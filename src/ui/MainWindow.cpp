@@ -3,11 +3,16 @@
 #include <QComboBox>
 #include <QFile>
 #include <QHBoxLayout>
+#include <QKeySequence>
 #include <QLabel>
+#include <QMenuBar>
+#include <QMessageBox>
+#include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QWidget>
+#include "help/HelpDialog.h"
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
 #include "../cli/ClaudeProfile.h"
@@ -44,6 +49,7 @@ MainWindow::MainWindow(AppConfig* config,
     resize(1200, 800);
 
     setupUi();
+    setupMenuBar();
     loadStyleSheet();
     populateProfileCombo();
 
@@ -152,6 +158,96 @@ void MainWindow::setupUi() {
 
     connect(m_profileCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onProfileChanged);
+}
+
+void MainWindow::setupMenuBar() {
+    // ── File ──────────────────────────────────────────────────────
+    QMenu* fileMenu = menuBar()->addMenu("&File");
+
+    QAction* newSession = fileMenu->addAction("&New Session");
+    newSession->setShortcut(QKeySequence("Ctrl+N"));
+    connect(newSession, &QAction::triggered, this, &MainWindow::onNewSessionRequested);
+
+    fileMenu->addSeparator();
+
+    QAction* quit = fileMenu->addAction("&Quit");
+    quit->setShortcut(QKeySequence("Ctrl+Q"));
+    connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+
+    // ── View ──────────────────────────────────────────────────────
+    QMenu* viewMenu = menuBar()->addMenu("&View");
+
+    QAction* toggleSidebar = viewMenu->addAction("Toggle &Sidebar");
+    toggleSidebar->setShortcut(QKeySequence("Ctrl+B"));
+    connect(toggleSidebar, &QAction::triggered, this, [this]() {
+        m_sessionPanel->setVisible(!m_sessionPanel->isVisible());
+    });
+
+    QAction* toggleConsole = viewMenu->addAction("Toggle &Console");
+    toggleConsole->setShortcut(QKeySequence("Ctrl+`"));
+    connect(toggleConsole, &QAction::triggered, m_console, &ConsoleWidget::toggleExpanded);
+
+    viewMenu->addSeparator();
+
+    QAction* fullscreen = viewMenu->addAction("&Fullscreen");
+    fullscreen->setShortcut(QKeySequence("Ctrl+Shift+F"));
+    fullscreen->setCheckable(true);
+    connect(fullscreen, &QAction::triggered, this, [this](bool checked) {
+        checked ? showFullScreen() : showNormal();
+    });
+
+    // ── Help ──────────────────────────────────────────────────────
+    QMenu* helpMenu = menuBar()->addMenu("&Help");
+
+    struct HelpEntry { QString label; QString page; QString shortcut; };
+    const QList<HelpEntry> helpPages = {
+        {"&Getting Started",       "getting-started",      "F1"},
+        {"&Interface Guide",       "ui-guide",             ""},
+        {"&Sessions",              "sessions",             ""},
+        {"&CLI Profiles & Models", "cli-profiles",         ""},
+        {"Claude Code &Wizard",    "wizard-claude-code",   ""},
+        {"Sc&ripting (Lua/Python)","scripting",            ""},
+        {"&Voice && Attachments",  "voice-and-attachments",""},
+        {"&Keyboard Shortcuts",    "keyboard-shortcuts",   ""},
+    };
+
+    for (const auto& entry : helpPages) {
+        QAction* act = helpMenu->addAction(entry.label);
+        if (!entry.shortcut.isEmpty())
+            act->setShortcut(QKeySequence(entry.shortcut));
+        const QString page = entry.page;
+        connect(act, &QAction::triggered, this, [this, page]() {
+            onHelpRequested(page);
+        });
+    }
+
+    helpMenu->addSeparator();
+
+    QAction* aboutAct = helpMenu->addAction("&About CodeHex");
+    connect(aboutAct, &QAction::triggered, this, &MainWindow::onAbout);
+}
+
+void MainWindow::onHelpRequested(const QString& page) {
+    if (!m_helpDialog) {
+        m_helpDialog = new HelpDialog(page, this);
+    } else {
+        m_helpDialog->openPage(page);
+    }
+    m_helpDialog->show();
+    m_helpDialog->raise();
+    m_helpDialog->activateWindow();
+}
+
+void MainWindow::onAbout() {
+    QMessageBox::about(this,
+        "About CodeHex",
+        "<h2>CodeHex 0.1.0</h2>"
+        "<p>A desktop coding chatbot for developers.</p>"
+        "<p>Supports <b>Claude CLI</b>, <b>Ollama</b>, and <b>OpenAI</b> "
+        "backends with Lua/Python scripting hooks.</p>"
+        "<p>Built with Qt6/C++ · <a href='https://github.com/LordTaylor/CliUiAgent'>"
+        "GitHub</a></p>"
+    );
 }
 
 void MainWindow::loadStyleSheet() {

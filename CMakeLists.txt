@@ -49,6 +49,20 @@ qt_add_resources(CodeHex "resources"
         resources/icons/folder.svg
 )
 
+qt_add_resources(CodeHex "help"
+    PREFIX "/help/en"
+    BASE "docs/help/en"
+    FILES
+        docs/help/en/getting-started.md
+        docs/help/en/ui-guide.md
+        docs/help/en/sessions.md
+        docs/help/en/cli-profiles.md
+        docs/help/en/wizard-claude-code.md
+        docs/help/en/scripting.md
+        docs/help/en/voice-and-attachments.md
+        docs/help/en/keyboard-shortcuts.md
+)
+
 target_link_libraries(CodeHex PRIVATE
     codehex_app
     codehex_ui

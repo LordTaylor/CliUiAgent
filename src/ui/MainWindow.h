@@ -5,6 +5,7 @@
 #include "../data/Attachment.h"
 #include "../data/Message.h"
 #include "../data/Session.h"
+#include "help/HelpDialog.h"
 
 namespace CodeHex {
 
@@ -42,9 +43,12 @@ private slots:
     void onGenerationStarted();
     void onGenerationStopped();
     void onProfileChanged(int index);
+    void onHelpRequested(const QString& page = "getting-started");
+    void onAbout();
 
 private:
     void setupUi();
+    void setupMenuBar();
     void loadStyleSheet();
     void switchSession(Session* session);
     void populateProfileCombo();
@@ -68,6 +72,8 @@ private:
     // Streaming state: accumulates tokens into a live bubble
     QString m_streamingText;
     bool m_hasStreamingMsg = false;
+
+    HelpDialog* m_helpDialog = nullptr;
 };
 
 }  // namespace CodeHex

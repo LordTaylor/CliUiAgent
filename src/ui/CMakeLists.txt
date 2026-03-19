@@ -9,6 +9,7 @@ add_library(codehex_ui STATIC
     console/ConsoleWidget.h console/ConsoleWidget.cpp
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
     session/SessionPanel.h  session/SessionPanel.cpp
+    help/HelpDialog.h       help/HelpDialog.cpp
 )
 
 target_include_directories(codehex_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
