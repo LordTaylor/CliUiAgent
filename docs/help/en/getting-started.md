@@ -1,6 +1,6 @@
 # Getting Started with CodeHex
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/getting-started.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../getting-started.md)
 
 This guide takes you from a fresh install to your first AI-assisted coding session in under 5 minutes.
 
@@ -45,15 +45,15 @@ cmake --preset debug-macos -B build/debug    # or debug-linux / debug-windows
 cmake --build build/debug -j$(nproc)
 
 # Run
-./build/debug/cmake/CodeHex.app/Contents/MacOS/CodeHex   # macOS
-./build/debug/cmake/CodeHex                               # Linux/Windows
+./build-scripts/run.sh           # macOS / Linux (builds if needed, then launches)
+.\build-scripts\run.ps1          # Windows PowerShell
 ```
 
 Or use the all-in-one install script:
 ```bash
 ./build-scripts/install-deps-macos.sh    # macOS
 ./build-scripts/install-deps-linux.sh    # Linux
-.\build-scripts\install-deps-windows.ps1 # Windows (PowerShell)
+.\build-scripts\install-deps-windows.ps1 # Windows
 ```
 
 ---
@@ -86,7 +86,7 @@ Click the dropdown in the top-right of the chat area. Choose the AI backend:
 - `Ollama` — requires Ollama running locally (`ollama serve`)
 - `OpenAI (sgpt)` — requires `sgpt` and an OpenAI API key
 
-> If you are new, the easiest option is **Ollama** (fully local, no API key):
+> Easiest for beginners: **Ollama** (fully local, no API key required):
 > ```bash
 > brew install ollama      # macOS
 > ollama pull llama3.2
@@ -95,23 +95,20 @@ Click the dropdown in the top-right of the chat area. Choose the AI backend:
 
 **Step 2 — Select a working folder**
 
-Click the folder path above the input area (or the folder icon). A native OS dialog opens. Choose the root of the project you want to discuss with the AI.
-
-The selected path is passed to the CLI as the working directory context — Claude CLI will use it for `--allowedTools` context.
+Click the folder path above the input area. A native OS dialog opens — select the root of the project you want to work on with the AI.
 
 **Step 3 — Create a new session**
 
-Click **+ New** in the Sessions panel on the left, or press `Ctrl+N`. A new untitled session appears.
+Click **+ New** in the Sessions panel, or press `Ctrl+N`.
 
 **Step 4 — Send your first message**
 
-Type a message in the input field and press `Ctrl+Enter` (or click **Send**):
-
+Type a message and press `Ctrl+Enter`:
 ```
 Explain the main architecture of this project.
 ```
 
-The AI response streams in real time into the chat view. Raw CLI output is visible in the collapsible **Console** at the bottom.
+The AI response streams in real time. Raw CLI output is visible in the **Console** at the bottom.
 
 ---
 
@@ -119,21 +116,21 @@ The AI response streams in real time into the chat view. Raw CLI output is visib
 
 ### Claude CLI
 ```bash
-claude --version        # should print version
-claude --print -p "hi"  # should return a response
+claude --version
+claude --print -p "hi"
 ```
-If not installed: see [[wizard-claude-code|Claude Code Wizard]].
+Not installed? See the [[wizard-claude-code|Claude Code Wizard]].
 
 ### Ollama
 ```bash
 ollama --version
-curl http://localhost:11434/api/tags   # lists available models
+curl http://localhost:11434/api/tags
 ```
 
 ### OpenAI (sgpt)
 ```bash
 sgpt --version
-sgpt "say hello"        # prompts for API key on first run
+sgpt "say hello"    # prompts for API key on first run
 ```
 
 ---
@@ -150,7 +147,7 @@ All settings are stored in `~/.codehex/config.json`:
 }
 ```
 
-You can edit this file directly; CodeHex re-reads it on next launch.
+You can edit this file directly; CodeHex re-reads it on the next launch.
 
 ---
 

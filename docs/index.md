@@ -2,7 +2,7 @@
 
 > Chatbot do kodowania — Qt6/C++ z obsługą CLI (Claude, Ollama, OpenAI), skryptami Lua/Python, głosem i obrazami.
 
-## Help / Pomoc użytkownika
+## Help / Pomoc użytkownika 🇵🇱
 
 | Sekcja | Opis |
 |--------|------|
@@ -15,6 +15,20 @@
 | [[help/scripting\|Skrypty Lua i Python]] | Hooki, automatyzacja, przykłady |
 | [[help/voice-and-attachments\|Głos i załączniki]] | Nagrywanie, obrazy, pliki |
 | [[help/keyboard-shortcuts\|Skróty klawiszowe]] | Kompletna referencja |
+
+## Help / Documentation 🇬🇧
+
+| Section | Description |
+|---------|-------------|
+| [[help/en/index\|Help — Table of Contents]] | Full help index |
+| [[help/en/getting-started\|Getting Started]] | Install, first run, first message |
+| [[help/en/ui-guide\|Interface Guide]] | Every UI element with examples |
+| [[help/en/sessions\|Sessions]] | Create, manage, restore sessions |
+| [[help/en/cli-profiles\|CLI Profiles & Models]] | Claude, Ollama, OpenAI — configuration |
+| [[help/en/wizard-claude-code\|Claude Code Wizard]] | Step-by-step: Claude Code + other models |
+| [[help/en/scripting\|Scripting (Lua & Python)]] | Hooks, automation, examples |
+| [[help/en/voice-and-attachments\|Voice & Attachments]] | Recording, images, files |
+| [[help/en/keyboard-shortcuts\|Keyboard Shortcuts]] | Complete reference |
 
 ## Nawigacja
 

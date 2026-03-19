@@ -1,6 +1,6 @@
 # Scripting (Lua & Python)
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/scripting.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../scripting.md)
 
 CodeHex supports hook scripts written in **Lua 5.4** (via sol2) and **Python 3** (via pybind11). Scripts are auto-loaded from `~/.codehex/scripts/` and hot-reloaded when files change — no restart required.
 
@@ -24,13 +24,11 @@ User sends message
   MessageModel / UI
 ```
 
-There are three hook points:
-
 | Hook | When | Typical use |
 |------|------|-------------|
-| `pre_send(prompt)` | Before prompt is sent to CLI | Inject context, rephrase, log |
-| `post_receive(text)` | After full response is received | Format output, filter, translate |
-| `message_transform(msg)` | On every token chunk during streaming | Live syntax highlighting |
+| `pre_send(prompt)` | Before prompt is sent | Inject context, rephrase, log |
+| `post_receive(text)` | After full response | Format output, filter, translate |
+| `message_transform(chunk)` | Each streaming token | Live syntax highlighting |
 
 ---
 
@@ -46,40 +44,32 @@ There are three hook points:
     └── logger.py              ← auto-loaded
 ```
 
-All `*.lua` and `*.py` files in these directories are loaded automatically at startup and whenever a file is added, changed, or deleted (`QFileSystemWatcher`).
+All `*.lua` and `*.py` files are loaded at startup and whenever a file is added, changed, or deleted.
 
 ---
 
 ## Lua scripting
 
-### Available API — `codehex` table
+### Available API
 
 ```lua
-codehex.log(message)         -- print to Console widget
-codehex.version()            -- returns "0.1.0"
+codehex.log(message)    -- print to Console widget
+codehex.version()       -- returns "0.1.0"
 ```
 
 ### Hook registration
 
-Register hook functions using the exact names below:
-
 ```lua
 function pre_send(prompt)
-    -- Called before the prompt is sent
-    -- Return the (optionally modified) prompt string
-    return prompt
+    return prompt   -- return (optionally modified) prompt
 end
 
 function post_receive(text)
-    -- Called after the full response is received
-    -- Return the (optionally modified) response string
-    return text
+    return text     -- return (optionally modified) response
 end
 
 function message_transform(chunk)
-    -- Called on each streaming token chunk
-    -- Return the (optionally modified) chunk
-    return chunk
+    return chunk    -- return (optionally modified) chunk
 end
 ```
 
@@ -87,12 +77,11 @@ end
 
 ### Lua examples
 
-#### Example 1 — Inject working folder context
+#### Example 1 — Inject working context
 
 **`~/.codehex/scripts/lua/context_injector.lua`**
 ```lua
 function pre_send(prompt)
-    -- Prepend a brief context note to every prompt
     local prefix = "[Context: coding assistant for a Qt6/C++ project]\n\n"
     codehex.log("pre_send: injecting context prefix")
     return prefix .. prompt
@@ -111,7 +100,7 @@ function post_receive(text)
 end
 ```
 
-#### Example 3 — Refuse off-topic questions
+#### Example 3 — Block off-topic prompts
 
 **`~/.codehex/scripts/lua/topic_guard.lua`**
 ```lua
@@ -121,7 +110,7 @@ function pre_send(prompt)
     local lower = prompt:lower()
     for _, word in ipairs(BLOCKED) do
         if lower:find(word) then
-            codehex.log("BLOCKED: off-topic prompt detected: " .. word)
+            codehex.log("BLOCKED: off-topic prompt: " .. word)
             return "[BLOCKED BY SCRIPT: off-topic question]"
         end
     end
@@ -129,24 +118,21 @@ function pre_send(prompt)
 end
 ```
 
-#### Example 4 — Add language instruction
+#### Example 4 — Always respond in English
 
 **`~/.codehex/scripts/lua/language.lua`**
 ```lua
 function pre_send(prompt)
-    -- Always ask the AI to respond in English
     return prompt .. "\n\n(Please respond in English.)"
 end
 ```
 
-#### Example 5 — Strip markdown fences from response
+#### Example 5 — Strip markdown code fences
 
 **`~/.codehex/scripts/lua/strip_fences.lua`**
 ```lua
 function post_receive(text)
-    -- Remove ```language ... ``` wrappers
-    local stripped = text:gsub("```%w*\n", ""):gsub("```", "")
-    return stripped
+    return text:gsub("```%w*\n", ""):gsub("```", "")
 end
 ```
 
@@ -154,7 +140,7 @@ end
 
 ## Python scripting
 
-### Available API — `codehex` module
+### Available API
 
 ```python
 import codehex
@@ -164,8 +150,6 @@ codehex.version() -> str       # returns "0.1.0"
 ```
 
 ### Hook registration
-
-Define module-level functions with the exact names:
 
 ```python
 def pre_send(prompt: str) -> str:
@@ -182,12 +166,11 @@ def message_transform(chunk: str) -> str:
 
 ### Python examples
 
-#### Example 1 — Automatic ticket reference injection
+#### Example 1 — Inject ticket references
 
 **`~/.codehex/scripts/python/ticket_injector.py`**
 ```python
-import re
-import codehex
+import re, codehex
 
 TICKET_PATTERN = re.compile(r'\b(PROJ-\d+)\b')
 
@@ -199,7 +182,7 @@ def pre_send(prompt: str) -> str:
     return prompt
 ```
 
-#### Example 2 — Response logger to file
+#### Example 2 — Log responses to file
 
 **`~/.codehex/scripts/python/file_logger.py`**
 ```python
@@ -213,7 +196,7 @@ def post_receive(text: str) -> str:
     ts = datetime.now().isoformat()
     with LOG_FILE.open("a", encoding="utf-8") as f:
         f.write(f"\n--- {ts} ---\n{text}\n")
-    codehex.log(f"Logged response ({len(text)} chars) to {LOG_FILE}")
+    codehex.log(f"Logged {len(text)} chars to {LOG_FILE}")
     return text
 ```
 
@@ -224,20 +207,19 @@ def post_receive(text: str) -> str:
 import codehex
 
 TEMPLATES = {
-    "/review": "Please do a thorough code review of the following:\n\n{rest}",
-    "/explain": "Explain this code step by step for a junior developer:\n\n{rest}",
+    "/review":   "Please do a thorough code review of:\n\n{rest}",
+    "/explain":  "Explain this code step by step for a junior developer:\n\n{rest}",
     "/refactor": "Refactor the following code for clarity and performance:\n\n{rest}",
-    "/test": "Write comprehensive unit tests (Catch2) for:\n\n{rest}",
-    "/doc": "Write Doxygen documentation for:\n\n{rest}",
+    "/test":     "Write comprehensive unit tests (Catch2) for:\n\n{rest}",
+    "/doc":      "Write Doxygen documentation for:\n\n{rest}",
 }
 
 def pre_send(prompt: str) -> str:
     for trigger, template in TEMPLATES.items():
         if prompt.strip().startswith(trigger):
             rest = prompt.strip()[len(trigger):].strip()
-            expanded = template.format(rest=rest)
             codehex.log(f"Template expanded: {trigger}")
-            return expanded
+            return template.format(rest=rest)
     return prompt
 ```
 
@@ -255,49 +237,52 @@ bool validate(const std::string& input) {
 ```python
 import codehex
 
-MAX_TOKENS = 2000  # rough character limit
+MAX_TOKENS = 2000
 
 def pre_send(prompt: str) -> str:
     estimated = len(prompt) // 4
     if estimated > MAX_TOKENS:
-        codehex.log(f"WARNING: prompt ~{estimated} tokens, truncating")
-        # Keep first 8000 chars (~2000 tokens)
+        codehex.log(f"WARNING: prompt ~{estimated} tokens — truncating")
         prompt = prompt[:8000] + "\n\n[... truncated by token_guard.py ...]"
     return prompt
 ```
 
-#### Example 5 — Auto-translate response to Polish
+#### Example 5 — Voice transcription hook
 
-**`~/.codehex/scripts/python/translate.py`**
+**`~/.codehex/scripts/python/transcribe_voice.py`**
 ```python
-import subprocess, codehex
+import subprocess, re, codehex
+from pathlib import Path
 
-def post_receive(text: str) -> str:
-    # Uses 'trans' CLI (translate-shell): brew install translate-shell
+def pre_send(prompt: str) -> str:
+    match = re.search(r'\[Voice: (.+?)\]', prompt)
+    if not match:
+        return prompt
+    wav_path = match.group(1)
+    codehex.log(f"Transcribing: {wav_path}")
     try:
         result = subprocess.run(
-            ["trans", "-b", ":pl", text],
-            capture_output=True, text=True, timeout=10
+            ["whisper", wav_path, "--model", "base",
+             "--output_format", "txt", "--output_dir", "/tmp"],
+            capture_output=True, text=True, timeout=30
         )
-        if result.returncode == 0:
-            return result.stdout.strip()
+        txt_path = Path("/tmp") / (Path(wav_path).stem + ".txt")
+        if txt_path.exists():
+            transcript = txt_path.read_text().strip()
+            codehex.log(f"Transcript: {transcript}")
+            return prompt.replace(match.group(0),
+                                  f"[Voice transcript: {transcript}]")
     except Exception as e:
-        codehex.log(f"translate error: {e}")
-    return text
+        codehex.log(f"Transcription error: {e}")
+    return prompt
 ```
 
 ---
 
 ## Script execution order
 
-When multiple scripts define the same hook, they are called in **alphabetical file name order**. The output of each hook is the input to the next:
+When multiple scripts define the same hook, they are called in **alphabetical filename order**. The output of each hook is passed as input to the next. To control order, prefix filenames with numbers:
 
-```
-context_injector.lua → pre_send(prompt)    → "prefix + prompt"
-topic_guard.lua      → pre_send(result)    → final prompt (or [BLOCKED])
-```
-
-To control order, prefix filenames with numbers:
 ```
 ~/.codehex/scripts/lua/
 ├── 01_context.lua
@@ -309,22 +294,22 @@ To control order, prefix filenames with numbers:
 
 ## Hot reload
 
-When you save a script file, CodeHex detects the change via `QFileSystemWatcher` and reloads that script within ~100 ms. No restart needed.
+Save a script file → CodeHex detects the change via `QFileSystemWatcher` and reloads it within ~100 ms. Watch for reload messages in the **Console**:
 
-Watch reload messages in the **Console** widget:
 ```
-[ScriptManager] Reloading: /Users/you/.codehex/scripts/lua/context_injector.lua
+[ScriptManager] Reloading: ~/.codehex/scripts/lua/context_injector.lua
 [ScriptManager] OK
 ```
 
 ---
 
-## Disabling a script temporarily
+## Disabling a script
 
 Rename the file extension to anything other than `.lua` / `.py`:
 
 ```bash
-mv ~/.codehex/scripts/lua/topic_guard.lua ~/.codehex/scripts/lua/topic_guard.lua.disabled
+mv ~/.codehex/scripts/lua/topic_guard.lua \
+   ~/.codehex/scripts/lua/topic_guard.lua.disabled
 ```
 
-It will be unloaded immediately.
+The script is unloaded immediately.

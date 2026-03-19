@@ -1,7 +1,7 @@
 # CodeHex — Help
 
-> Version 0.1.0 · Qt6/C++ · [Source on GitHub](../index.md)
-> 🇵🇱 Polski | [🇬🇧 English](en/index.md)
+> Version 0.1.0 · Qt6/C++ · [Source](../../index.md)
+> 🇬🇧 English | [🇵🇱 Polski](../index.md)
 
 Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that connects to AI assistants via CLI tools (Claude Code, Ollama, OpenAI/sgpt), with support for text, images, voice, Lua/Python scripting, and persistent sessions.
 
@@ -50,6 +50,6 @@ Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that con
 
 ## Support & Feedback
 
-- Architecture decisions: [[../decisions/ADR-001-qt6-vs-qt5|ADR index]]
-- Build instructions: [[../guides/building|Building from source]]
+- Architecture decisions: [[../../decisions/ADR-001-qt6-vs-qt5|ADR index]]
+- Build instructions: [[../../guides/building|Building from source]]
 - Issues: file a GitHub issue in the project repository

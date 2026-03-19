@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/keyboard-shortcuts.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../keyboard-shortcuts.md)
 
 Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux and `Cmd` on macOS unless noted.
 
@@ -24,8 +24,8 @@ Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux a
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+N` | Create a new session |
-| `Ctrl+W` | Close the current session (returns to empty state) |
-| `Ctrl+1` … `Ctrl+9` | Jump to session #1 … #9 in the Sessions panel |
+| `Ctrl+W` | Close the current session |
+| `Ctrl+1` … `Ctrl+9` | Jump to session #1 … #9 |
 | `Ctrl+Tab` | Switch to next session |
 | `Ctrl+Shift+Tab` | Switch to previous session |
 
@@ -46,7 +46,7 @@ Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux a
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+\`` | Toggle Console widget (expand/collapse) |
+| `Ctrl+\`` | Toggle Console widget |
 | `Ctrl+B` | Toggle Sessions panel sidebar |
 | `Ctrl+Shift+F` | Toggle fullscreen |
 | `Ctrl+=` | Increase font size |
@@ -59,10 +59,10 @@ Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux a
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Home` | Jump to top of chat (triggers lazy load) |
+| `Ctrl+Home` | Jump to top (triggers lazy load) |
 | `Ctrl+End` | Jump to bottom (latest message) |
 | `Ctrl+F` | Find text in current session |
-| `Page Up` | Scroll up one page (loads more messages when at top) |
+| `Page Up` | Scroll up one page |
 | `Page Down` | Scroll down one page |
 
 ---
@@ -86,7 +86,6 @@ Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux a
 |----------|--------|
 | `Cmd+H` | Hide window |
 | `Cmd+M` | Minimize to Dock |
-| `Cmd+Shift+3` | Screenshot (system) |
 | `Cmd+Shift+4` | Area screenshot → great for image attachments |
 
 ---
@@ -112,10 +111,10 @@ Complete keyboard reference for CodeHex. Shortcuts use `Ctrl` on Windows/Linux a
 
 ## Customizing shortcuts
 
-Keyboard shortcuts are defined in `src/ui/MainWindow.cpp` using `QShortcut`. To remap a shortcut:
+Shortcuts are defined in `src/ui/MainWindow.cpp` via `QShortcut`. To remap:
 
 ```cpp
-// Example: change "New session" from Ctrl+N to Ctrl+Shift+N
+// Change "New session" from Ctrl+N to Ctrl+Shift+N
 new QShortcut(QKeySequence("Ctrl+Shift+N"), this, this, &MainWindow::onNewSession);
 ```
 

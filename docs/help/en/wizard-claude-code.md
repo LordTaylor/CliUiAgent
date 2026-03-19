@@ -1,6 +1,6 @@
 # Claude Code Wizard
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/wizard-claude-code.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../wizard-claude-code.md)
 
 This wizard walks you through every step to connect CodeHex to the **Claude Code CLI** and configure it to run different models — including non-Anthropic models via the OpenRouter gateway.
 
@@ -10,12 +10,8 @@ This wizard walks you through every step to connect CodeHex to the **Claude Code
 
 ### macOS / Linux
 ```bash
-# Install via npm (recommended)
 npm install -g @anthropic-ai/claude-code
-
-# Verify
-claude --version
-# Expected: claude 1.x.x
+claude --version   # Expected: claude 1.x.x
 ```
 
 ### Windows
@@ -24,9 +20,9 @@ npm install -g @anthropic-ai/claude-code
 claude --version
 ```
 
-> **Node.js required:** If `npm` is not found, install Node.js 18+ first:
+> **Node.js required:** Install Node.js 18+ if `npm` is not found:
 > ```bash
-> brew install node      # macOS
+> brew install node          # macOS
 > winget install OpenJS.NodeJS  # Windows
 > ```
 
@@ -38,28 +34,23 @@ claude --version
 claude auth login
 ```
 
-This opens your browser. Sign in with your Anthropic account (Claude.ai account works). After login:
+Opens your browser. Sign in with your Anthropic / Claude.ai account. After login:
 
 ```bash
-claude --version --print    # should not ask for credentials
 claude --print -p "hello"   # quick connectivity test
 ```
 
-You should see a response streamed to your terminal.
-
-**API key authentication (alternative):**
+**API key alternative:**
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-claude --print -p "hello"
+# Add to ~/.zshrc or ~/.bashrc to persist
 ```
-
-Add this to your shell profile (`~/.zshrc`, `~/.bashrc`) to persist it.
 
 ---
 
 ## Part 3 — Connect CodeHex to Claude Code
 
-Open `~/.codehex/config.json` and set:
+Set in `~/.codehex/config.json`:
 
 ```json
 {
@@ -68,18 +59,13 @@ Open `~/.codehex/config.json` and set:
 }
 ```
 
-Launch CodeHex, select **Claude CLI** in the profile dropdown, and send a test message:
-```
-Hello, are you there?
-```
-
-If the Console shows `[exit 0]` and a response appears in the chat, the connection is working.
+Launch CodeHex, select **Claude CLI**, send a test message. If the Console shows `[exit 0]` and a response appears — you're connected.
 
 ---
 
 ## Part 4 — Selecting Anthropic models
 
-### Available Claude models (as of 2026)
+### Available Claude models
 
 | Model ID | Speed | Intelligence | Best for |
 |----------|-------|-------------|----------|
@@ -87,11 +73,7 @@ If the Console shows `[exit 0]` and a response appears in the chat, the connecti
 | `claude-sonnet-4-6` | Medium | High | General coding (default) |
 | `claude-haiku-4-5-20251001` | Fast | Good | Quick questions, autocomplete |
 
-### How to set a specific model in CodeHex
-
-**Option A — via `--model` flag in the profile**
-
-Edit `src/cli/ClaudeProfile.cpp`:
+### Option A — hardcode model in ClaudeProfile.cpp
 
 ```cpp
 QStringList ClaudeProfile::buildArguments(const QString& prompt,
@@ -99,7 +81,7 @@ QStringList ClaudeProfile::buildArguments(const QString& prompt,
     QStringList args;
     args << "--print"
          << "--output-format" << "stream-json"
-         << "--model" << "claude-opus-4-6"   // ← add this line
+         << "--model" << "claude-opus-4-6"   // ← change here
          << "-p" << prompt;
     if (!workDir.isEmpty())
         args << "--allowedTools" << "all";
@@ -109,9 +91,9 @@ QStringList ClaudeProfile::buildArguments(const QString& prompt,
 
 Rebuild: `cmake --build build/debug -j$(nproc)`
 
-**Option B — via config.json (no recompile)**
+### Option B — model from config (no recompile)
 
-Add a `claudeModel` key to `~/.codehex/config.json`:
+Add `claudeModel` to `~/.codehex/config.json`:
 ```json
 {
   "activeProfile": "claude",
@@ -119,31 +101,29 @@ Add a `claudeModel` key to `~/.codehex/config.json`:
 }
 ```
 
-Then read it in `AppConfig` and pass it through to `ClaudeProfile` constructor. See `src/core/AppConfig.h` for the pattern.
-
 ---
 
-## Part 5 — Using non-Anthropic models via Claude Code
+## Part 5 — Non-Anthropic models via OpenRouter
 
-Claude Code supports **OpenRouter** as a backend, which gives access to hundreds of models (GPT-4o, Gemini, Mistral, Llama, etc.) using the same `claude` CLI.
+Claude Code supports **OpenRouter** as a backend, giving access to hundreds of models (GPT-4o, Gemini, Mistral, Llama, DeepSeek, etc.) using the same `claude` CLI.
 
 ### 5a — Set up OpenRouter
 
 1. Create a free account at [openrouter.ai](https://openrouter.ai)
-2. Generate an API key in your OpenRouter dashboard
-3. Configure Claude Code:
+2. Generate an API key in your dashboard
+3. Configure:
 
 ```bash
 export OPENROUTER_API_KEY="sk-or-v1-..."
-export CLAUDE_CODE_USE_BEDROCK=false
+# Add to ~/.zshrc to persist
 ```
 
-Or set in Claude Code config:
+Or set directly in Claude Code config:
 ```bash
 claude config set openrouterApiKey "sk-or-v1-..."
 ```
 
-### 5b — List available models via OpenRouter
+### 5b — Available models via OpenRouter
 
 ```bash
 curl https://openrouter.ai/api/v1/models \
@@ -153,8 +133,8 @@ curl https://openrouter.ai/api/v1/models \
 
 Common model IDs:
 
-| Provider | Model ID (OpenRouter format) |
-|----------|------------------------------|
+| Provider | Model ID |
+|----------|----------|
 | OpenAI | `openai/gpt-4o` |
 | OpenAI | `openai/gpt-4-turbo` |
 | Google | `google/gemini-2.0-flash` |
@@ -166,13 +146,12 @@ Common model IDs:
 
 ### 5c — Use OpenRouter model in CodeHex
 
-In `ClaudeProfile.cpp`, pass `--model` with the OpenRouter model ID:
-
+In `ClaudeProfile.cpp`:
 ```cpp
 args << "--model" << "google/gemini-2.0-flash";
 ```
 
-**Or** create a dedicated profile `OpenRouterProfile`:
+Or create a dedicated `OpenRouterProfile` class for full flexibility:
 
 ```cpp
 // src/cli/OpenRouterProfile.h
@@ -186,18 +165,11 @@ public:
     QString executable()  const override { return "claude"; }
     QString defaultModel() const override { return m_model; }
 
-    QStringList buildArguments(const QString& prompt,
-                               const QString& /*workDir*/) const override {
-        return {
-            "--print",
-            "--output-format", "stream-json",
-            "--model", m_model,
-            "-p", prompt
-        };
+    QStringList buildArguments(const QString& prompt, const QString&) const override {
+        return {"--print", "--output-format", "stream-json", "--model", m_model, "-p", prompt};
     }
 
     QString parseStreamChunk(const QByteArray& raw) const override {
-        // Same JSON format as ClaudeProfile
         const auto doc = QJsonDocument::fromJson(raw.trimmed());
         if (doc.isNull()) return QString::fromUtf8(raw);
         const auto obj = doc.object();
@@ -205,7 +177,6 @@ public:
             return obj["delta"].toObject()["text"].toString();
         return {};
     }
-
 private:
     QString m_model;
 };
@@ -214,8 +185,6 @@ private:
 ---
 
 ## Part 6 — AWS Bedrock backend
-
-Claude Code can route requests through AWS Bedrock:
 
 ```bash
 export CLAUDE_CODE_USE_BEDROCK=true
@@ -226,7 +195,7 @@ export AWS_SECRET_ACCESS_KEY=...
 claude --model anthropic.claude-3-5-sonnet-20241022-v2:0 --print -p "hello"
 ```
 
-Add the `--model` Bedrock ARN to `ClaudeProfile::buildArguments()` in the same way.
+Pass the Bedrock model ARN via `--model` in `ClaudeProfile::buildArguments()`.
 
 ---
 
@@ -246,20 +215,20 @@ claude --model claude-sonnet-4-6@20250514 --print -p "hello"
 
 | Problem | Likely cause | Fix |
 |---------|-------------|-----|
-| `claude: command not found` | CLI not installed or not in PATH | `npm install -g @anthropic-ai/claude-code` |
+| `claude: command not found` | Not installed / not in PATH | `npm install -g @anthropic-ai/claude-code` |
 | `Authentication required` | Not logged in | `claude auth login` |
-| `Model not found` | Wrong model ID | Check `claude models` for available IDs |
-| Empty response, exit 1 | Network error or rate limit | Check Console; retry after delay |
-| `OPENROUTER_API_KEY not set` | Missing env var | Export the key or add to `.zshrc` |
-| Garbled JSON in Console | Wrong output format flag | Ensure `--output-format stream-json` is set |
+| `Model not found` | Wrong model ID | Check `claude models` |
+| Empty response, exit 1 | Network / rate limit | Check Console; retry |
+| `OPENROUTER_API_KEY not set` | Missing env var | Export the key |
+| Garbled JSON in Console | Wrong output format | Ensure `--output-format stream-json` |
 
 ---
 
-## Summary: model selection cheat sheet
+## Model selection cheat sheet
 
 ```
-# Default (Anthropic, Sonnet 4.6)
-activeProfile = "claude"           → uses claude-sonnet-4-6
+# Default — Anthropic Sonnet 4.6
+activeProfile = "claude"               → claude-sonnet-4-6
 
 # Fastest (Haiku)
 --model claude-haiku-4-5-20251001
@@ -271,14 +240,12 @@ activeProfile = "claude"           → uses claude-sonnet-4-6
 OPENROUTER_API_KEY=sk-or-...
 --model openai/gpt-4o
 
-# Gemini 2.0 Flash via OpenRouter (free tier available)
+# Gemini 2.0 Flash (free tier available via OpenRouter)
 --model google/gemini-2.0-flash
 
-# Local Llama via Ollama (no API key, fully offline)
-activeProfile = "ollama"
-ollamaModel = "llama3.2"
+# Local Llama via Ollama (fully offline, no API key)
+activeProfile = "ollama",  ollamaModel = "llama3.2"
 
-# DeepSeek Coder (best offline coding model)
-activeProfile = "ollama"
-ollamaModel = "deepseek-coder:33b"
+# Best offline coding model
+activeProfile = "ollama",  ollamaModel = "deepseek-coder:33b"
 ```

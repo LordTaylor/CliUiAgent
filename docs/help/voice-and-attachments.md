@@ -1,6 +1,6 @@
 # Voice & Attachments
 
-> [[index|← Help Index]]
+> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/voice-and-attachments.md)
 
 CodeHex supports attaching images and files to messages, and recording voice messages directly from the input panel.
 

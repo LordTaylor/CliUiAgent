@@ -1,6 +1,6 @@
 # CLI Profiles & Models
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/cli-profiles.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../cli-profiles.md)
 
 CodeHex communicates with AI models by spawning external CLI processes via `QProcess`. Each "profile" encapsulates a specific CLI tool — how to invoke it, which arguments to pass, and how to parse its output.
 
@@ -27,8 +27,6 @@ claude --print --output-format stream-json --allowedTools all -p "your prompt"
 ```json
 {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello "}}
 ```
-
-**Switching models:** See [[wizard-claude-code|Claude Code Wizard]] for full configuration, including using non-Anthropic models.
 
 ---
 
@@ -63,21 +61,6 @@ ollama pull codellama
 ollama pull deepseek-coder:6.7b
 ```
 
-**Switching the model for Ollama:**
-
-Edit `~/.codehex/config.json` and add an `ollamaModel` field:
-```json
-{
-  "activeProfile": "ollama",
-  "ollamaModel": "deepseek-coder:6.7b"
-}
-```
-
-Or modify `OllamaProfile.cpp` directly:
-```cpp
-OllamaProfile(const QString& model = "deepseek-coder:6.7b")
-```
-
 **Available Ollama models for coding:**
 
 | Model | Size | Strengths |
@@ -102,29 +85,13 @@ Wraps [shell-gpt](https://github.com/TheR1D/shell_gpt) (`sgpt`).
 | Stream format | Plain text stdout |
 | Default model | `gpt-4o` |
 
-**How it's invoked:**
-```bash
-sgpt --no-md "your prompt"
-```
-
 **Setup:**
 ```bash
 pip install shell-gpt
-sgpt "test"   # prompts: enter your OpenAI API key
+sgpt "test"   # prompts for your OpenAI API key
 ```
 
-The API key is stored in `~/.config/shell_gpt/.sgptrc`:
-```ini
-OPENAI_API_KEY=sk-...
-DEFAULT_MODEL=gpt-4o
-```
-
-**Switching models via sgpt:**
-```bash
-sgpt --model gpt-4-turbo --no-md "your prompt"
-```
-
-To change the default model permanently, edit `~/.config/shell_gpt/.sgptrc`:
+To change the default model, edit `~/.config/shell_gpt/.sgptrc`:
 ```ini
 DEFAULT_MODEL=gpt-4-turbo
 ```
@@ -133,9 +100,7 @@ DEFAULT_MODEL=gpt-4-turbo
 
 ## Switching profiles at runtime
 
-Use the **profile dropdown** in the top-right of the chat area. The change takes effect for the next message. The current session remembers which profile produced which response.
-
-The active profile is persisted in `~/.codehex/config.json`:
+Use the **profile dropdown** in the top-right of the chat area. The change takes effect for the next message. The active profile is saved to `~/.codehex/config.json`:
 ```json
 { "activeProfile": "ollama" }
 ```
@@ -143,8 +108,6 @@ The active profile is persisted in `~/.codehex/config.json`:
 ---
 
 ## Adding a custom CLI profile
-
-To add a new backend (e.g., Gemini CLI, LM Studio, Mistral CLI), create a new `CliProfile` subclass:
 
 ### Step 1 — Create the header
 
@@ -179,12 +142,11 @@ public:
 namespace CodeHex {
 
 QStringList GeminiProfile::buildArguments(const QString& prompt,
-                                          const QString& /*workDir*/) const {
+                                          const QString&) const {
     return {"--model", "gemini-2.0-flash", "--prompt", prompt};
 }
 
 QString GeminiProfile::parseStreamChunk(const QByteArray& raw) const {
-    // Gemini CLI streams plain text
     return QString::fromUtf8(raw);
 }
 
@@ -193,25 +155,20 @@ QString GeminiProfile::parseStreamChunk(const QByteArray& raw) const {
 
 ### Step 3 — Register in Application.cpp
 
-Find the `setupCliRunner()` method and add:
 ```cpp
 if (profile == "gemini")
     m_runner->setProfile(std::make_unique<GeminiProfile>());
 ```
 
-And add it to the profile combo box in `MainWindow.cpp`:
+Add it to the combo box in `MainWindow.cpp`:
 ```cpp
 m_profileCombo->addItem("Gemini CLI", "gemini");
 ```
 
 ### Step 4 — Add to CMakeLists.txt
 
-In `src/cli/CMakeLists.txt`:
 ```cmake
-target_sources(codehex_cli PRIVATE
-    GeminiProfile.h
-    GeminiProfile.cpp
-)
+target_sources(codehex_cli PRIVATE GeminiProfile.h GeminiProfile.cpp)
 ```
 
 ---
@@ -229,11 +186,11 @@ target_sources(codehex_cli PRIVATE
 
 ---
 
-## Troubleshooting profiles
+## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Console shows `No such file or directory` | CLI not in PATH | Install CLI or set full path in profile |
-| Empty response, exit code 1 | Authentication error | Re-run `claude auth login` or check API key |
-| Response cuts off | Process killed by timeout | Increase timeout in `CliRunner` (default: none) |
-| Garbled output | Wrong `parseStreamChunk` | Check raw output in Console widget |
+| `No such file or directory` | CLI not in PATH | Install CLI or use full path |
+| Empty response, exit code 1 | Auth error | Re-run `claude auth login` or check API key |
+| Response cuts off | Process killed | Check timeout settings in `CliRunner` |
+| Garbled output | Wrong `parseStreamChunk` | Inspect raw output in Console widget |

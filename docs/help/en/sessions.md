@@ -1,6 +1,6 @@
 # Sessions
 
-> [[index|← Help Index]] | 🇵🇱 Polski | [🇬🇧 English](en/sessions.md)
+> [[index|← Help Index]] | 🇬🇧 English | [🇵🇱 Polski](../sessions.md)
 
 Sessions are the core unit of conversation in CodeHex. Each session is an independent chat thread with its own message history, model settings, and token counters.
 
@@ -76,41 +76,35 @@ Sessions persist between app restarts. You can have unlimited sessions.
 
 ## Creating a session
 
-**Method 1 — Button:**
-Click **+ New** in the Sessions panel.
+**Button:** Click **+ New** in the Sessions panel.
 
-**Method 2 — Keyboard:**
-Press `Ctrl+N`.
+**Keyboard:** Press `Ctrl+N`.
 
-A new session is created immediately with a generated UUID. Its title defaults to "New Session" and is renamed automatically to the first ~40 characters of your first message.
+A new session is created immediately. Its title defaults to "New Session" and is automatically renamed to the first ~40 characters of your first message.
 
 ---
 
 ## Opening a session
 
-Double-click any session in the Sessions panel. The ChatView loads the **10 most recent messages** from that session's JSON file.
+Double-click any session in the Sessions panel. The ChatView loads the **10 most recent messages**.
 
-> Tip: The previously active session is automatically restored when you relaunch CodeHex.
+> The previously active session is automatically restored when you relaunch CodeHex.
 
 ---
 
 ## Lazy message loading
 
-Sessions with long histories are loaded in pages of **10 messages**:
+Sessions with long histories load in pages of **10 messages**:
 
 1. Open a session — 10 most recent messages appear.
-2. Scroll to the **top** of ChatView — the previous 10 messages load automatically.
-3. Keep scrolling up to load more, all the way to message #1.
-
-This keeps the app responsive even for sessions with thousands of messages.
+2. Scroll to the **top** of ChatView — previous 10 messages load automatically.
+3. Keep scrolling up to load all the way back to message #1.
 
 ---
 
 ## Renaming a session
 
-Right-click the session in the Sessions panel → **Rename**. Type the new name and press `Enter`.
-
-Session titles are stored in the JSON file and visible in the panel.
+Right-click the session → **Rename**. Type the new name and press `Enter`.
 
 ---
 
@@ -124,13 +118,13 @@ Right-click the session → **Delete**. A confirmation dialog appears.
 
 ## Exporting a session
 
-Sessions are plain JSON — you can open them in any text editor:
+Sessions are plain JSON — open them in any text editor:
 
 ```bash
 cat ~/.codehex/sessions/550e8400-e29b-41d4-a716-446655440000.json | jq .
 ```
 
-**Export all sessions to a readable format:**
+**Export all sessions to a readable text format:**
 ```bash
 for f in ~/.codehex/sessions/*.json; do
     title=$(jq -r '.title' "$f")
@@ -144,21 +138,17 @@ done
 
 ## Token statistics
 
-Each session tracks cumulative token usage:
-
 | Counter | Meaning |
 |---------|---------|
 | `input` | Tokens in all your messages |
 | `output` | Tokens in all AI responses |
 | `total` | Sum of both |
 
-Token counts are approximated as `text.length() / 4` (character heuristic). For exact counts with Claude, check the raw `usage` field in Claude's stream-json output via the **Console**.
+Token counts are approximated as `text.length() / 4`. For exact counts with Claude, check the raw `usage` field in the Console.
 
 ---
 
 ## Managing sessions manually
-
-You can manipulate sessions directly on disk — CodeHex will pick up changes on next launch:
 
 **Merge two sessions:**
 ```python
@@ -170,8 +160,10 @@ s2 = json.load(open("~/.codehex/sessions/id2.json"))
 merged = s1.copy()
 merged["id"] = str(uuid.uuid4())
 merged["title"] = f"{s1['title']} + {s2['title']}"
-merged["messages"] = s1["messages"] + s2["messages"]
-merged["messages"].sort(key=lambda m: m["timestamp"])
+merged["messages"] = sorted(
+    s1["messages"] + s2["messages"],
+    key=lambda m: m["timestamp"]
+)
 
 json.dump(merged, open(f"~/.codehex/sessions/{merged['id']}.json", "w"), indent=2)
 ```
