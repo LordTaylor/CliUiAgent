@@ -1,5 +1,6 @@
 #pragma once
 #include <QComboBox>
+#include <QCheckBox>
 #include <QLabel>
 #include <QMainWindow>
 #include <QSplitter>
@@ -73,6 +74,7 @@ private:
     ConsoleWidget*      m_console;
     WorkFolderSelector* m_folderSelector;
     QComboBox*          m_profileCombo;
+    QCheckBox*          m_agentModeCheck;
     QLabel*             m_tokenLabel   = nullptr;
 
     // Streaming state

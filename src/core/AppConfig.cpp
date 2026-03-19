@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QVariant>
 #include "../data/JsonSerializer.h"
 
 namespace CodeHex {
@@ -55,12 +56,21 @@ void AppConfig::setWorkingFolder(const QString& path) {
 QString AppConfig::lastSessionId() const { return m_lastSessionId; }
 void AppConfig::setLastSessionId(const QString& id) { m_lastSessionId = id; }
 
+bool AppConfig::manualApproval() const { return m_manualApproval; }
+void AppConfig::setManualApproval(bool enabled) {
+    if (m_manualApproval == enabled) return;
+    m_manualApproval = enabled;
+    save();
+}
+
 void AppConfig::load() {
     const auto obj = JsonSerializer::readFile(configFilePath());
     if (obj.isEmpty()) return;
     m_activeProfile = obj["activeProfile"].toString(m_activeProfile);
     m_workingFolder = obj["workingFolder"].toString();
     m_lastSessionId = obj["lastSessionId"].toString();
+    m_manualApproval = obj["manualApproval"].toVariant().toBool(); // JsonSerializer uses toVariant internally for some types
+    if (obj.find("manualApproval") == obj.end()) m_manualApproval = true; // Default
 }
 
 void AppConfig::save() const {
@@ -68,6 +78,7 @@ void AppConfig::save() const {
         {"activeProfile", m_activeProfile},
         {"workingFolder", m_workingFolder},
         {"lastSessionId", m_lastSessionId},
+        {"manualApproval", m_manualApproval},
     });
 }
 

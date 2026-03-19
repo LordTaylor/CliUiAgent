@@ -138,7 +138,19 @@ void MainWindow::setupUi() {
     m_profileCombo = new QComboBox(toolbar);
     m_profileCombo->setObjectName("profileCombo");
     m_profileCombo->setMinimumWidth(120);
+    m_profileCombo->setMinimumWidth(120);
     tbLayout->addWidget(m_profileCombo);
+
+    tbLayout->addSpacing(10);
+    m_agentModeCheck = new QCheckBox("Agent Mode (Manual Approval)", toolbar);
+    m_agentModeCheck->setChecked(m_config->manualApproval());
+    m_controller->setManualApproval(m_agentModeCheck->isChecked());
+    tbLayout->addWidget(m_agentModeCheck);
+
+    connect(m_agentModeCheck, &QCheckBox::toggled, this, [this](bool checked) {
+        m_config->setManualApproval(checked);
+        m_controller->setManualApproval(checked);
+    });
 
     rightLayout->addWidget(toolbar);
 

@@ -66,6 +66,25 @@ QMainWindow {
     selection-background-color: #2563EB;
 }
 
+QCheckBox {
+    spacing: 5px;
+    color: #D1D5DB;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    background-color: #374151;
+    border: 1px solid #4B5563;
+    border-radius: 4px;
+}
+QCheckBox::indicator:unchecked:hover {
+    border-color: #60A5FA;
+}
+QCheckBox::indicator:checked {
+    background-color: #2563EB;
+    border-color: #3B82F6;
+}
+
 /* ---- Chat View ---- */
 QListView {
     background-color: #111827;
@@ -195,6 +214,12 @@ QStatusBar {
     color: #6B7280;
     font-size: 11px;
     border-top: 1px solid #374151;
+}
+
+#tokenLabel {
+    color: #10B981;
+    font-weight: 500;
+    margin-right: 10px;
 }
 
 /* ---- Splitter ---- */

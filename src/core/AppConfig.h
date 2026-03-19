@@ -26,6 +26,9 @@ public:
     QString lastSessionId() const;
     void setLastSessionId(const QString& id);
 
+    bool manualApproval() const;
+    void setManualApproval(bool enabled);
+
     void load();
     void save() const;
     void ensureDirectories() const;
@@ -37,6 +40,7 @@ private:
     QString m_activeProfile = "claude";
     QString m_workingFolder;
     QString m_lastSessionId;
+    bool    m_manualApproval = true; // Default to true for safety
 };
 
 }  // namespace CodeHex
