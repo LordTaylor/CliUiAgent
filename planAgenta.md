@@ -121,7 +121,7 @@ Agent może czytać i pisać pliki oraz wykonywać inne narzędzia, a także imp
     - [x] **2.3.2.1. Testy `ToolExecutor`:** Stworzono `tests/test_tool_executor.cpp`.
     - [x] **2.3.2.2. Testy pętli agenta:** Stworzono `tests/test_chat_controller.cpp`.
 
-## Faza 3: Zaawansowane możliwości i niezawodność agenta
+## Faza 3: Zaawansowane możliwości i niezawodność agenta (ZAKOŃCZONA)
 
 ### Cel:
 Rozszerzenie zestawu narzędzi agenta, lepsze zarządzanie kontekstem oraz wprowadzenie mechanizmów bezpieczeństwa i kontroli.
@@ -129,14 +129,14 @@ Rozszerzenie zestawu narzędzi agenta, lepsze zarządzanie kontekstem oraz wprow
 ### Zadania (Checklista):
 
 #### Krok 3.1: Rozszerzony zestaw narzędzi (Advanced Toolset)
-- [ ] **3.1.1. Narzędzie `Search` (Grep):** Szybkie wyszukiwanie tekstu w plikach projektu.
-- [ ] **3.1.2. Narzędzie `Replace`:** Bezpieczna zamiana tekstu w plikach przy użyciu wyrażeń regularnych.
-- [ ] **3.1.3. Ulepszone `ListDirectory`:** Zwracanie szczegółów (rozmiar, data modyfikacji) dla lepszej orientacji AI.
+- [x] **3.1.1. Narzędzie `Search` (Grep):** Szybkie wyszukiwanie tekstu w plikach projektu.
+- [x] **3.1.2. Narzędzie `Replace`:** Bezpieczna zamiana tekstu w plikach przy użyciu wyrażeń regularnych.
+- [x] **3.1.3. Ulepszone `ListDirectory`:** Zwracanie szczegółów (rozmiar, data modyfikacji) dla lepszej orientacji AI.
 
 #### Krok 3.2: Zarządzanie kontekstem i wydajność
-- [ ] **3.2.1. Dynamiczny System Prompt:** Automatyczne dołączanie informacji o systemie (OS, folder roboczy, struktura projektu) do każdego zapytania.
-- [ ] **3.2.2. Zarządzanie historią (Sliding Window):** Implementacja mechanizmu przycinania historii wiadomości, aby uniknąć przekroczenia limitu Tokenów.
+- [x] **3.2.1. Dynamiczny System Prompt:** Automatyczne dołączanie informacji o systemie (OS, folder roboczy, struktura projektu) do każdego zapytania.
+- [x] **3.2.2. Zarządzanie historią (Sliding Window):** Implementacja mechanizmu przycinania historii wiadomości, aby uniknąć przekroczenia limitu Tokenów.
 
 #### Krok 3.3: Bezpieczeństwo i kontrola użytkownika
-- [ ] **3.3.1. Tryb zatwierdzania (Manual Approval):** Opcja wymagająca potwierdzenia użytkownika przed wykonaniem "niebezpiecznych" narzędzi (Write, RunCommand).
-- [ ] **3.3.2. Wskaźnik stanu agenta w UI:** Wizualna informacja (np. "Agent myśli...", "Wykonywanie narzędzia...") w interfejsie głównym.
+- [x] **3.3.1. Tryb zatwierdzania (Manual Approval):** Opcja wymagająca potwierdzenia użytkownika przed wykonaniem "niebezpiecznych" narzędzi (Write, RunCommand).
+- [x] **3.3.2. Wskaźnik stanu agenta w UI:** Wizualna informacja (np. "Agent myśli...", "Wykonywanie narzędzia...") w interfejsie głównym.
