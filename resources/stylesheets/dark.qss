@@ -1,0 +1,204 @@
+/* ===== CodeHex Dark Theme ===== */
+
+QWidget {
+    background-color: #111827;
+    color: #F3F4F6;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+}
+
+QMainWindow {
+    background-color: #111827;
+}
+
+/* ---- Session Panel ---- */
+#sessionList {
+    background-color: #1F2937;
+    border: none;
+    border-right: 1px solid #374151;
+    padding: 4px;
+}
+#sessionList::item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #D1D5DB;
+}
+#sessionList::item:selected {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+#sessionList::item:hover:!selected {
+    background-color: #374151;
+}
+
+/* ---- Toolbar ---- */
+#toolbar {
+    background-color: #1F2937;
+    border-bottom: 1px solid #374151;
+}
+#folderLabel {
+    color: #9CA3AF;
+    font-size: 12px;
+}
+#folderBtn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    padding: 2px 4px;
+}
+#folderBtn:hover {
+    background-color: #374151;
+    border-radius: 4px;
+}
+#profileCombo {
+    background-color: #374151;
+    border: 1px solid #4B5563;
+    border-radius: 6px;
+    padding: 3px 8px;
+    color: #F3F4F6;
+}
+#profileCombo::drop-down {
+    border: none;
+}
+#profileCombo QAbstractItemView {
+    background-color: #374151;
+    border: 1px solid #4B5563;
+    selection-background-color: #2563EB;
+}
+
+/* ---- Chat View ---- */
+QListView {
+    background-color: #111827;
+    border: none;
+    padding: 8px;
+}
+QListView::item {
+    background: transparent;
+}
+
+/* ---- Scroll bars ---- */
+QScrollBar:vertical {
+    background: #1F2937;
+    width: 8px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical {
+    background: #4B5563;
+    border-radius: 4px;
+    min-height: 20px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #6B7280;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+
+/* ---- Input Panel ---- */
+QWidget > #inputTextEdit {
+    background-color: #1F2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 8px;
+    color: #F3F4F6;
+    selection-background-color: #2563EB;
+}
+#inputTextEdit:focus {
+    border-color: #3B82F6;
+}
+
+/* ---- Buttons ---- */
+QPushButton {
+    background-color: #374151;
+    border: 1px solid #4B5563;
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: #F3F4F6;
+}
+QPushButton:hover {
+    background-color: #4B5563;
+}
+QPushButton:pressed {
+    background-color: #1F2937;
+}
+QPushButton:disabled {
+    color: #6B7280;
+    background-color: #1F2937;
+    border-color: #374151;
+}
+#sendBtn {
+    background-color: #2563EB;
+    border-color: #1D4ED8;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+#sendBtn:hover {
+    background-color: #3B82F6;
+}
+#sendBtn:disabled {
+    background-color: #1E3A5F;
+    color: #6B7280;
+}
+#stopBtn {
+    background-color: #7F1D1D;
+    border-color: #991B1B;
+    color: #FCA5A5;
+}
+#stopBtn:hover {
+    background-color: #991B1B;
+}
+#stopBtn:disabled {
+    background-color: #1F2937;
+    color: #6B7280;
+    border-color: #374151;
+}
+
+/* ---- Attachment & Voice buttons ---- */
+#attachBtn, #voiceBtn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+#attachBtn:hover, #voiceBtn:hover {
+    background-color: #374151;
+}
+#voiceBtn:checked {
+    background-color: #7F1D1D;
+}
+
+/* ---- Console ---- */
+#consoleToggleBtn {
+    background-color: #1F2937;
+    border: none;
+    border-top: 1px solid #374151;
+    text-align: left;
+    padding-left: 12px;
+    color: #9CA3AF;
+    font-size: 12px;
+}
+#consoleToggleBtn:hover {
+    background-color: #374151;
+}
+#consoleEdit {
+    background-color: #0F172A;
+    color: #86EFAC;
+    border: none;
+    border-top: 1px solid #374151;
+    font-family: "Menlo", "Consolas", "Courier New", monospace;
+    font-size: 11px;
+}
+
+/* ---- Status bar ---- */
+QStatusBar {
+    background-color: #1F2937;
+    color: #6B7280;
+    font-size: 11px;
+    border-top: 1px solid #374151;
+}
+
+/* ---- Splitter ---- */
+QSplitter::handle {
+    background-color: #374151;
+    width: 1px;
+}

@@ -1,0 +1,38 @@
+#pragma once
+#include <QObject>
+#include <QString>
+
+namespace CodeHex {
+
+class AppConfig : public QObject {
+    Q_OBJECT
+public:
+    explicit AppConfig(QObject* parent = nullptr);
+
+    QString dataDir() const;     // ~/.codehex
+    QString sessionsDir() const; // ~/.codehex/sessions
+    QString scriptsDir() const;  // ~/.codehex/scripts
+    QString luaScriptsDir() const;
+    QString pythonScriptsDir() const;
+    QString configFilePath() const;
+
+    QString activeProfile() const;
+    void setActiveProfile(const QString& name);
+
+    QString workingFolder() const;
+    void setWorkingFolder(const QString& path);
+
+    QString lastSessionId() const;
+    void setLastSessionId(const QString& id);
+
+    void load();
+    void save() const;
+    void ensureDirectories() const;
+
+private:
+    QString m_activeProfile = "claude";
+    QString m_workingFolder;
+    QString m_lastSessionId;
+};
+
+}  // namespace CodeHex

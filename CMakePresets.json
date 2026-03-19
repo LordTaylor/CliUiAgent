@@ -1,0 +1,64 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "debug-macos",
+      "inherits": "base",
+      "displayName": "Debug (macOS)",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_PREFIX_PATH": "/opt/homebrew/opt/qt@6/lib/cmake/Qt6",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/debug/generators/conan_toolchain.cmake",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -fsanitize=address -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "release-macos",
+      "inherits": "base",
+      "displayName": "Release (macOS)",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_PREFIX_PATH": "/opt/homebrew/opt/qt@6/lib/cmake/Qt6",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/release/generators/conan_toolchain.cmake"
+      }
+    },
+    {
+      "name": "ci",
+      "inherits": "base",
+      "displayName": "CI (headless)",
+      "binaryDir": "${sourceDir}/build/ci",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/ci/generators/conan_toolchain.cmake",
+        "CODEHEX_NO_MULTIMEDIA": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-macos",
+      "configurePreset": "debug-macos"
+    },
+    {
+      "name": "release-macos",
+      "configurePreset": "release-macos"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-macos",
+      "configurePreset": "debug-macos",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
