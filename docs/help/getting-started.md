@@ -97,13 +97,19 @@ Click the dropdown in the top-right of the chat area. Choose the AI backend:
 
 Click the folder path above the input area (or the folder icon). A native OS dialog opens. Choose the root of the project you want to discuss with the AI.
 
-The selected path is passed to the CLI as the working directory context — Claude CLI will use it for `--allowedTools` context.
+Wybrana ścieżka jest przekazywana do CLI jako kontekst katalogu roboczego — Claude CLI użyje go do operacji `--allowedTools all`. **To tutaj agent będzie mógł czytać i pisać pliki.**
 
-**Step 3 — Create a new session**
+**Krok 3 — Utwórz nową sesję**
 
-Click **+ New** in the Sessions panel on the left, or press `Ctrl+N`. A new untitled session appears.
+Kliknij **+ Nowa** w panelu sesji po lewej stronie lub naciśnij `Ctrl+N`. Pojawi się nowa, nienazwana sesja.
 
-**Step 4 — Send your first message**
+**Krok 4 — Tryb Autonomicznego Agenta i Bezpieczeństwa**
+
+Zwróć uwagę na przełącznik **Manual Approval** nad polem wpisywania.
+- Jeśli jest **włączony** (zalecane na początek): Agent zapyta o Twoją zgodę przed każdą zmianą w plikach lub wykonaniem komendy.
+- Jeśli jest **wyłączony**: Agent będzie działał w pełni autonomicznie w Twoim projekcie.
+
+**Krok 5 — Wyślij swoją pierwszą wiadomość**
 
 Type a message in the input field and press `Ctrl+Enter` (or click **Send**):
 
@@ -154,8 +160,11 @@ You can edit this file directly; CodeHex re-reads it on next launch.
 
 ---
 
-## Next steps
+---
 
-- [[ui-guide|Learn the interface]] — every button and panel explained
-- [[wizard-claude-code|Claude Code Wizard]] — connect Claude Code with custom models
-- [[scripting|Write your first hook script]] — automate prompt pre-processing
+## Następne kroki
+
+- [[ui-guide|Poznaj interfejs]] — każdy przycisk i panel wyjaśniony
+- [[autonomous-agent|Autonomiczny Agent]] — dowiedz się, jak agent operuje na Twoich plikach
+- [[wizard-claude-code|Kreator Claude Code]] — podłącz Claude Code z własnymi modelami
+- [[scripting|Napisz swój pierwszy skrypt hook]] — zautomatyzuj wstępne przetwarzanie promptów

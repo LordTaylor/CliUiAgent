@@ -22,7 +22,7 @@ A complete reference for every element of the CodeHex interface.
 │                      │   └──────────────────────────────────┘    │
 │                      │                                           │
 │                      │  ─────────────────────────────────────────│
-│                      │  [4] WorkFolderSelector  [5] Profile ▾    │
+│                      │  [4] FolderRoboczy  [5] Profil ▾  [8] Manual Approval [x] │
 │                      │  ─────────────────────────────────────────│
 │                      │  [6] InputPanel                           │
 │                      │  [📎][🎤]  Type here…        [Stop][Send]  │
@@ -71,10 +71,12 @@ The main conversation area. Messages appear as styled bubbles:
 
 | Bubble style | Who |
 |-------------|-----|
-| Blue bubble, right-aligned | Your messages |
-| Gray bubble, left-aligned | AI responses |
-| Image thumbnail | Attached image (click to open full size) |
-| Voice pill with play icon | Recorded voice message |
+| Niebieski bąbelek, do prawej | Twoje wiadomości |
+| Szary bąbelek, do lewej | Odpowiedzi AI |
+| Miniaturka obrazu | Załączony obraz (kliknij, by powiększyć) |
+| Pigułka głosowa | Nagranie głosowe |
+| Ikona ⚙️ (Narzędzie) | Agent wywołuje narzędzie (np. `Read`, `Bash`) |
+| Ikona ✅ (Wynik) | Wynik działania narzędzia (kliknij, by rozwinąć) |
 
 ### Lazy loading
 
@@ -174,9 +176,19 @@ See [[voice-and-attachments|Voice & Attachments]] for full details.
 
 Sends the current text (and any attachments). Keyboard shortcut: `Ctrl+Enter`.
 
-### Stop Button
+---
 
-Immediately terminates the running CLI process (`QProcess::kill()`). Available only while the AI is responding (otherwise grayed out).
+## [8] Manual Approval (Tryb Bezpieczeństwa)
+
+Przełącznik znajdujący się nad polem wpisywania wiadomości.
+
+**Cel:** Zapobieganie niekontrolowanym zmianom w systemie plików przez agenta.
+
+- **Włączony (Checked):** Każda próba zapisu pliku (`Write`), wyszukiwania (`Search`) czy wykonania komendy (`Bash`) przez agenta wymaga Twojego kliknięcia przycisku "Approve".
+- **Wyłączony (Unchecked):** Agent wykonuje wszystkie polecenia automatycznie bez dodatkowych pytań.
+
+> [!IMPORTANT]
+> Zaleca się trzymanie tej opcji włączonej podczas pracy nad ważnymi projektami, aby uniknąć przypadkowego nadpisania kodu przez AI.
 
 ---
 

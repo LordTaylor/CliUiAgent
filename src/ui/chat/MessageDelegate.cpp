@@ -39,6 +39,28 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
 
     int currentY = r.top() + kRowMargin;
 
+    // Avatar drawing (once per message)
+    const int avatarX = isUser ? viewWidth - kAvatarSize - 4 : 4;
+    const int avatarY = currentY;
+    if (isUser) {
+        p->setBrush(QColor(0x1E40AF));
+        p->setPen(Qt::NoPen);
+        p->drawEllipse(avatarX, avatarY, kAvatarSize, kAvatarSize);
+        p->setPen(Qt::white);
+        p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "U");
+    } else {
+        QPixmap pix(":/icons/app.png");
+        if (!pix.isNull()) {
+            p->drawPixmap(avatarX, avatarY, kAvatarSize, kAvatarSize, pix);
+        } else {
+            p->setBrush(QColor(0x10B981));
+            p->setPen(Qt::NoPen);
+            p->drawEllipse(avatarX, avatarY, kAvatarSize, kAvatarSize);
+            p->setPen(Qt::white);
+            p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "A");
+        }
+    }
+
     for (const CodeBlock& block : msg.contentBlocks) {
         if (block.type == BlockType::Text) {
             std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, !isUser));
@@ -70,8 +92,6 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, Qt::white);
             doc.documentLayout()->draw(p, ctx);
-            p->restore();
-
             currentY += bubbleH + kRowMargin; // Move Y for next block
         } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
             // Render code block

@@ -62,6 +62,9 @@ public:
                                const QString& workDir,
                                const QList<Message>& history) const override;
     QString parseStreamChunk(const QByteArray& raw) const override;
+
+    void reset() override {}
+
     QMap<QString, QString> extraEnvironment() const override;
     // OpenAI-compatible vision: base64-encode images into the messages array.
     // ClaudeProxy type: delegates to --image flag via ClaudeProfile behaviour.
@@ -71,6 +74,8 @@ public:
 
 private:
     ConfigurableProfile() = default;
+
+    QString parseOpenAIStream(const QByteArray& line) const;
 
     ApiType m_type     = ApiType::OpenAICompatible;
     QString m_name;

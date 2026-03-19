@@ -14,11 +14,13 @@ Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that con
 | [[getting-started\|Getting Started]] | First launch, initial setup, sending your first message |
 | [[ui-guide\|Interface Guide]] | Every UI element explained with examples |
 | [[sessions\|Sessions]] | Creating, managing, and restoring chat sessions |
-| [[cli-profiles\|CLI Profiles & Models]] | Switching between Claude, Ollama, OpenAI and custom CLIs |
-| [[wizard-claude-code\|Claude Code Wizard]] | Step-by-step wizard for Claude Code + custom model setup |
-| [[scripting\|Scripting (Lua & Python)]] | Hook scripts for pre/post processing, automation |
-| [[voice-and-attachments\|Voice & Attachments]] | Recording voice messages, attaching images and files |
-| [[keyboard-shortcuts\|Keyboard Shortcuts]] | Full keyboard reference |
+| [[cli-profiles|Profile CLI i Modele]] | Przełączanie między Claude, Ollama, OpenAI i własnymi CLI |
+| [[lm-studio|Podłączenie LM Studio (Lokalne AI)]] | Jak używać modeli lokalnych z LM Studio jako Agenta |
+| [[wizard-claude-code|Kreator Claude Code]] | Krok po kroku: od instalacji do konfiguracji własnych modeli |
+| [[autonomous-agent|Autonomiczny Agent i Bezpieczeństwo]] | Działanie agenta, narzędzia (plikowe, bash) i Tryb Bezpieczeństwa |
+| [[scripting|Skryptowanie (Lua i Python)]] | Skrypty hook dla przetwarzania pre/post, automatyzacja |
+| [[voice-and-attachments|Głos i Załączniki]] | Nagrywanie wiadomości głosowych, dołączanie obrazów i plików |
+| [[keyboard-shortcuts|Skróty klawiszowe]] | Pełna lista skrótów klawiszowych |
 
 ---
 
@@ -26,14 +28,15 @@ Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that con
 
 | Task | How |
 |------|-----|
-| Send message | `Ctrl+Enter` or click **Send** |
-| Stop generation | Click **Stop** or `Ctrl+.` |
-| New session | `Ctrl+N` |
-| Switch profile | Dropdown top-right of chat area |
-| Attach file | Click **📎** or `Ctrl+Shift+A` |
-| Record voice | Hold **🎤** or `Ctrl+Shift+V` |
-| Toggle console | Click **▼ Console** strip at bottom |
-| Select work folder | Click folder path above input area |
+| Wyślij wiadomość | `Ctrl+Enter` lub kliknij **Wyślij** |
+| Zatrzymaj generowanie | Kliknij **Stop** lub `Ctrl+.` |
+| Nowa sesja | `Ctrl+N` |
+| Zmień profil | Rozwijana lista w prawym górnym rogu czatu |
+| Attach file | Kliknij **📎** lub `Ctrl+Shift+A` |
+| Nagraj głos | Przytrzymaj **🎤** lub `Ctrl+Shift+V` |
+| Przełącz konsolę | Kliknij pasek **▼ Konsola** na dole |
+| Wybierz folder roboczy | Kliknij ścieżkę folderu nad polem wpisywania |
+| Tryb Bezpieczeństwa | Przełącznik "Manual Approval" w panelu wejściowym |
 
 ---
 

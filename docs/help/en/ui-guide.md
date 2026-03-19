@@ -22,8 +22,8 @@ A complete reference for every element of the CodeHex interface.
 │                      │   └──────────────────────────────────┘    │
 │                      │                                           │
 │                      │  ─────────────────────────────────────────│
-│                      │  [4] WorkFolderSelector  [5] Profile ▾    │
-│                      │  ─────────────────────────────────────────│
+│                      │  [4] WorkFolderSelector  [5] Profile ▾  [8] Manual Approval [x] │
+│                      │  ─────────────────────────────────────────────────────────│
 │                      │  [6] InputPanel                           │
 │                      │  [📎][🎤]  Type here…        [Stop][Send]  │
 │                      │  ─────────────────────────────────────────│
@@ -75,6 +75,8 @@ The main conversation area. Messages appear as styled bubbles:
 | Gray bubble, left-aligned | AI responses |
 | Image thumbnail | Attached image (click to open full size) |
 | Voice pill with play icon | Recorded voice message |
+| ⚙️ Tool icon | Agent is calling a tool (e.g., `Read`, `Bash`) |
+| ✅ Result icon | Tool execution result (click to expand) |
 
 ### Lazy loading
 
@@ -170,6 +172,20 @@ See [[voice-and-attachments|Voice & Attachments]] for full details.
 
 - **Send** (`Ctrl+Enter`) — sends current text + attachments.
 - **Stop** (`Ctrl+.`) — immediately kills the CLI process; available only while the AI is responding.
+
+---
+
+## [8] Manual Approval (Safety Mode)
+
+A toggle located above the message input field.
+
+**Purpose:** Prevents uncontrolled changes to your file system by the agent.
+
+- **Enabled (Checked):** Every attempt to write a file (`Write`), search (`Search`), or execute a command (`Bash`) by the agent requires your explicit "Approve" click.
+- **Disabled (Unchecked):** The agent executes all commands automatically without further questions.
+
+> [!IMPORTANT]
+> It is recommended to keep this enabled when working on important projects to avoid accidental overwrites by the AI.
 
 ---
 

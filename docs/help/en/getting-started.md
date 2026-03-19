@@ -95,13 +95,19 @@ Click the dropdown in the top-right of the chat area. Choose the AI backend:
 
 **Step 2 — Select a working folder**
 
-Click the folder path above the input area. A native OS dialog opens — select the root of the project you want to work on with the AI.
+Click the folder path above the input area. A native OS dialog opens — The selected path is passed to the CLI as the working directory context — Claude CLI will use it for `--allowedTools all` context. **This is where the agent will be able to read and write files.**
 
 **Step 3 — Create a new session**
 
-Click **+ New** in the Sessions panel, or press `Ctrl+N`.
+Click **+ New** in the Sessions panel on the left, or press `Ctrl+N`. A new untitled session appears.
 
-**Step 4 — Send your first message**
+**Step 4 — Autonomous Agent Mode & Safety**
+
+Notice the **Manual Approval** toggle above the input area.
+- If **On** (recommended at first): The agent will ask for your consent before every file change or command execution.
+- If **Off**: The agent will run fully autonomously within your project.
+
+**Step 5 — Send your first message**
 
 Type a message and press `Ctrl+Enter`:
 ```
@@ -154,5 +160,6 @@ You can edit this file directly; CodeHex re-reads it on the next launch.
 ## Next steps
 
 - [[ui-guide|Learn the interface]] — every button and panel explained
+- [[autonomous-agent|Autonomous Agent]] — learn how the agent operates on your files
 - [[wizard-claude-code|Claude Code Wizard]] — connect Claude Code with custom models
 - [[scripting|Write your first hook script]] — automate prompt pre-processing

@@ -193,34 +193,25 @@ void CliRunner::onProcessError(QProcess::ProcessError error) {
 }
 
 void CliRunner::processLine(const QByteArray& line) {
-    // Current behavior: emit raw output, then attempt to parse tool_use JSON
-    // If it's a tool_use, don't emit outputChunk to ChatView.
-    // If not, emit the full line as an outputChunk.
-
     // Always emit raw output to console for full visibility
     emit rawOutput(QString::fromLocal8Bit(line));
 
-    // Tool use parsing (for Claude CLI)
-    static const QRegularExpression kToolUseRx(
-        R"(\{ *\"tool_code\" *: *\d+, *\"tool_name\" *: *\"([^\"]+)\" *, *\"input\" *: *(\{.*?\}) *\})");
-
-    QRegularExpressionMatch match = kToolUseRx.match(QString::fromLocal8Bit(line));
-    if (match.hasMatch()) {
-        // qWarning() << "CliRunner: detected tool_use!";
-        const QString toolName = match.captured(1);
-        const QString jsonStr = match.captured(2);
-        QJsonParseError parseError;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-        if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
-            emit toolCallReady(ToolCall{QString(), toolName, doc.object()});
-            return; // Don't emit as regular outputChunk
-        } else {
-            qWarning() << "CliRunner: failed to parse tool_use JSON:" << parseError.errorString();
-            // Fall through, emit as regular outputChunk
-        }
+    if (!m_profile) {
+        emit outputChunk(QString::fromLocal8Bit(line));
+        return;
     }
 
-    emit outputChunk(QString::fromLocal8Bit(line));
+    StreamResult res = m_profile->parseLine(line);
+
+    // 1. Text streaming
+    if (!res.textToken.isEmpty()) {
+        emit outputChunk(res.textToken);
+    }
+
+    // 2. Tool calls (now handled by profile parser)
+    if (res.toolCall) {
+        emit toolCallReady(*res.toolCall);
+    }
 }
 
 void CliRunner::onSimpleReadyReadStdout() {

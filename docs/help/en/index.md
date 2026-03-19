@@ -14,11 +14,13 @@ Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that con
 | [[getting-started\|Getting Started]] | First launch, initial setup, sending your first message |
 | [[ui-guide\|Interface Guide]] | Every UI element explained with examples |
 | [[sessions\|Sessions]] | Creating, managing, and restoring chat sessions |
-| [[cli-profiles\|CLI Profiles & Models]] | Switching between Claude, Ollama, OpenAI and custom CLIs |
-| [[wizard-claude-code\|Claude Code Wizard]] | Step-by-step wizard for Claude Code + custom model setup |
-| [[scripting\|Scripting (Lua & Python)]] | Hook scripts for pre/post processing, automation |
-| [[voice-and-attachments\|Voice & Attachments]] | Recording voice messages, attaching images and files |
-| [[keyboard-shortcuts\|Keyboard Shortcuts]] | Full keyboard reference |
+| [[cli-profiles|CLI Profiles & Models]] | Switching between Claude, Ollama, OpenAI and custom CLIs |
+| [[lm-studio|Connecting LM Studio (Local AI)]] | How to use local models from LM Studio as an Agent |
+| [[wizard-claude-code|Claude Code Wizard]] | Step-by-step wizard for Claude Code + custom model setup |
+| [[autonomous-agent|Autonomous Agent & Safety]] | Agent loop, file/bash tools, and Safety Mode |
+| [[scripting|Scripting (Lua & Python)]] | Hook scripts for pre/post processing, automation |
+| [[voice-and-attachments|Voice & Attachments]] | Recording voice messages, attaching images and files |
+| [[keyboard-shortcuts|Keyboard Shortcuts]] | Full keyboard reference |
 
 ---
 
@@ -34,6 +36,7 @@ Welcome to the CodeHex help center. CodeHex is a desktop coding chatbot that con
 | Record voice | Hold **🎤** or `Ctrl+Shift+V` |
 | Toggle console | Click **▼ Console** strip at bottom |
 | Select work folder | Click folder path above input area |
+| Safety Mode | "Manual Approval" toggle in the input panel |
 
 ---
 

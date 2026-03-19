@@ -47,6 +47,7 @@ qt_add_resources(CodeHex "resources"
         resources/icons/attach.svg
         resources/icons/mic.svg
         resources/icons/folder.svg
+        resources/icons/app.png
 )
 
 qt_add_resources(CodeHex "help"

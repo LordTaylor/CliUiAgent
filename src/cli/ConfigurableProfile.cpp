@@ -207,15 +207,18 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
 // ── parseStreamChunk ──────────────────────────────────────────────────────────
 
 QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
-    const QByteArray line = raw.trimmed();
+    QByteArray line = raw.trimmed();
     if (line.isEmpty()) return {};
 
+    // ── Handle ClaudeProxy (claude CLI --output-format stream-json) ───────────
     if (m_type == ApiType::ClaudeProxy) {
-        // claude --output-format stream-json --include-partial-messages format:
-        // {"type":"stream_event","event":{"type":"content_block_delta",
-        //   "delta":{"type":"text_delta","text":"hello"}}}
         const auto doc = QJsonDocument::fromJson(line);
-        if (doc.isNull()) return {};
+        if (doc.isNull()) {
+            // Robust fallback: if it's not JSON but starts with data: (SSE),
+            // maybe the proxy is bypassing claude's own format.
+            if (line.startsWith("data:")) return parseOpenAIStream(line);
+            return {};
+        }
         const auto obj = doc.object();
         const QString type = obj["type"].toString();
 
@@ -228,7 +231,6 @@ QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
             }
             return {};
         }
-        // Fallback: full message without partial streaming
         if (type == "assistant") {
             const auto content = obj["message"].toObject()["content"].toArray();
             if (!content.isEmpty())
@@ -237,26 +239,39 @@ QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
         return {};
     }
 
-    if (m_type == ApiType::OpenAICompatible) {
-        // SSE format: "data: {...}"  or  "data: [DONE]"
-        QByteArray data = line;
-        if (data.startsWith("data: ")) data = data.mid(6);
-        if (data == "[DONE]") return {};
+    // ── Handle OpenAICompatible / SSE ─────────────────────────────────────────
+    if (m_type == ApiType::OpenAICompatible || line.startsWith("data:")) {
+        return parseOpenAIStream(line);
+    }
 
+    // ── Handle Ollama (native REST API) ───────────────────────────────────────
+    const auto doc = QJsonDocument::fromJson(line);
+    if (doc.isNull()) return {};
+    return doc.object()["response"].toString();
+}
+
+// Helper to parse OpenAI/SSE stream chunks
+QString ConfigurableProfile::parseOpenAIStream(const QByteArray& line) const {
+    if (line.startsWith("data: ")) {
+        QByteArray data = line.mid(6).trimmed();
+        if (data == "[DONE]") return {};
         const auto doc = QJsonDocument::fromJson(data);
         if (doc.isNull()) return {};
-
-        // {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
         const auto choices = doc.object()["choices"].toArray();
         if (choices.isEmpty()) return {};
-        return choices[0].toObject()["delta"].toObject()["content"].toString();
-
-    } else {
-        // Ollama: {"model":"...","response":"token","done":false}
-        const auto doc = QJsonDocument::fromJson(line);
+        const auto delta = choices[0].toObject()["delta"].toObject();
+        return delta["content"].toString();
+    } else if (line.startsWith("data:")) {
+        QByteArray data = line.mid(5).trimmed();
+        if (data == "[DONE]") return {};
+        const auto doc = QJsonDocument::fromJson(data);
         if (doc.isNull()) return {};
-        return doc.object()["response"].toString();
+        const auto choices = doc.object()["choices"].toArray();
+        if (choices.isEmpty()) return {};
+        const auto delta = choices[0].toObject()["delta"].toObject();
+        return delta["content"].toString();
     }
+    return {};
 }
 
 // ── imageArguments ────────────────────────────────────────────────────────────

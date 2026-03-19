@@ -3,6 +3,7 @@
 #include <QComboBox>
 #include <QFile>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenuBar>
@@ -48,6 +49,7 @@ MainWindow::MainWindow(AppConfig* config,
       m_player(player),
       m_extraProfiles(extraProfiles) {
     setWindowTitle("CodeHex");
+    setWindowIcon(QIcon(":/icons/app.png"));
     setMinimumSize(900, 600);
     resize(1200, 800);
 
@@ -257,15 +259,16 @@ void MainWindow::onHelpRequested(const QString& page) {
 }
 
 void MainWindow::onAbout() {
-    QMessageBox::about(this,
-        "About CodeHex",
-        "<h2>CodeHex 0.1.0</h2>"
+    QMessageBox about(this);
+    about.setWindowTitle("About CodeHex");
+    about.setIconPixmap(QPixmap(":/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    about.setText("<h2>CodeHex 0.1.0</h2>"
         "<p>A desktop coding chatbot for developers.</p>"
         "<p>Supports <b>Claude CLI</b>, <b>Ollama</b>, and <b>OpenAI</b> "
         "backends with Lua/Python scripting hooks.</p>"
         "<p>Built with Qt6/C++ · <a href='https://github.com/LordTaylor/CliUiAgent'>"
-        "GitHub</a></p>"
-    );
+        "GitHub</a></p>");
+    about.exec();
 }
 
 void MainWindow::loadStyleSheet() {
