@@ -6,6 +6,8 @@ add_executable(codehex_tests
     test_message_model.cpp
     test_session_manager.cpp
     test_cli_runner.cpp
+    test_tool_executor.cpp
+    test_chat_controller.cpp
 )
 
 target_link_libraries(codehex_tests PRIVATE

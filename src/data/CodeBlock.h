@@ -8,7 +8,8 @@ enum class BlockType {
     Bash,
     Python,
     Lua,
-    Output // For CLI command output
+    Output, // For CLI command output
+    ToolCall // For tool invocation
 };
 
 struct CodeBlock {

@@ -33,6 +33,9 @@ ChatController::ChatController(AppConfig* config,
     connect(m_runner, &CliRunner::toolCallReady, this, &ChatController::onToolCallReady);
     // New connection for simple command results
     connect(m_runner, &CliRunner::simpleCommandFinished, this, &ChatController::onSimpleCommandFinished);
+
+    // Connect ToolExecutor results back to the controller for the autonomous loop
+    connect(m_toolExecutor, &ToolExecutor::toolFinished, this, &ChatController::onToolResultReceived);
 }
 
 void ChatController::sendMessage(const QString& text, const QList<Attachment>& attachments) {
@@ -97,6 +100,9 @@ void ChatController::sendMessage(const QString& text, const QList<Attachment>& a
     // session->messages already includes the user message we just appended.
     m_currentResponse.clear();
     emit generationStarted();
+    if (m_runner->isProfileRunning()) {
+        emit statusChanged("Agent is thinking...");
+    }
     m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths,
                    session->messages);
 }
@@ -130,6 +136,39 @@ void ChatController::onToolCallReady(const CodeHex::ToolCall& call) {
     const QString log = formatToolCallLog(call);
     emit consoleOutput(log);
     emit toolCallStarted(call.name, call.input);
+
+    // Record the tool call in the session history for UI visualization
+    QList<CodeBlock> blocks;
+    blocks.append(CodeBlock{log, BlockType::ToolCall});
+    QList<Message::ContentType> types;
+    types.append(Message::ContentType::Code); // Using Code as a generic container
+
+    buildAssistantMessage(blocks, types, log);
+
+    // Trigger execution for custom tool loop
+    // This is currently BLOCKING (see ToolExecutor.h)
+    // dangerous tools that require approval if enabled
+    static const QStringList kDangerous = { "WriteFile", "Write", "RunCommand", "Bash", "Replace", "Sed" };
+
+    if (m_manualApproval && kDangerous.contains(call.name)) {
+        qDebug() << "[Agent] Pause for manual approval of:" << call.name;
+        emit statusChanged("Waiting for approval...");
+        emit toolApprovalRequested(call.name, call.input);
+        return;
+    }
+
+    emit statusChanged(QString("Executing %1...").arg(call.name));
+    m_toolExecutor->execute(call, m_config->workingFolder());
+}
+
+void ChatController::setManualApproval(bool enabled) {
+    m_manualApproval = enabled;
+}
+
+void ChatController::approveToolCall(const CodeHex::ToolCall& call) {
+    qDebug() << "[Agent] Resuming approved tool:" << call.name;
+    emit statusChanged(QString("Executing %1...").arg(call.name));
+    m_toolExecutor->execute(call, m_config->workingFolder());
 }
 
 // ── formatToolCallLog ─────────────────────────────────────────────────────────
@@ -165,6 +204,7 @@ void ChatController::onRunnerFinished(int exitCode) {
 
     if (m_currentResponse.trimmed().isEmpty()) {
         emit generationStopped();
+        emit statusChanged(""); // Reset status on finish
         return;
     }
 
@@ -245,7 +285,27 @@ void ChatController::onRunnerFinished(int exitCode) {
         }
     }
 
-    // Now, if a bash command was found, execute it. Otherwise, build the assistant message.
+    // Now, if a tool_use or bash command was found, execute it. Otherwise, build the assistant message.
+    QRegularExpression toolUseBlock(R"""(```tool_use\n(.*?)\n```)""", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpressionMatch toolMatch = toolUseBlock.match(m_currentResponse);
+
+    if (toolMatch.hasMatch()) {
+        QString jsonStr = toolMatch.captured(1);
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+        if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+            QJsonObject obj = doc.object();
+            ToolCall tc;
+            tc.id = obj["id"].toString();
+            tc.name = obj["name"].toString();
+            tc.input = obj["input"].toObject();
+
+            buildAssistantMessage(assistantContentBlocks, assistantContentTypes, plainTextResponse);
+            onToolCallReady(tc);
+            return;
+        }
+    }
+
     if (foundBashCommand) {
         // Extract the last bash command. We assume only one executable bash command per response for now.
         QString bashCommand;
@@ -265,6 +325,7 @@ void ChatController::onRunnerFinished(int exitCode) {
 
     buildAssistantMessage(assistantContentBlocks, assistantContentTypes, plainTextResponse);
     emit generationStopped();
+    emit statusChanged(""); // Reset status on finish
 }
 
 void ChatController::buildAssistantMessage(const QList<CodeBlock>& contentBlocks,
@@ -312,6 +373,7 @@ void ChatController::buildAssistantMessage(const QList<CodeBlock>& contentBlocks
 
 void ChatController::executeBashCommand(const QString& command) {
     emit consoleOutput(QString("Executing: %1").arg(command));
+    emit statusChanged(QString("Executing: %1").arg(command));
     m_runner->runSimpleCommand(command, m_config->workingFolder());
     // The result will be handled by onSimpleCommandFinished
 }
@@ -348,6 +410,29 @@ void ChatController::onSimpleCommandFinished(int exitCode, const QString& output
 
     buildAssistantMessage(outputBlocks, outputContentTypes, plainTextOutput);
     emit generationStopped(); // End generation after simple command
+}
+
+void ChatController::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result) {
+    Q_UNUSED(toolName)
+
+    auto* session = m_sessions->currentSession();
+    if (!session) return;
+
+    // 1. Log the result to console
+    emit consoleOutput(QString("✅ [Result] %1").arg(result.content.left(120)));
+
+    // 2. Add the result as a new message to the session using our helper.
+    QList<CodeBlock> blocks;
+    blocks.append(CodeBlock{result.content, BlockType::Output});
+    QList<Message::ContentType> types;
+    types.append(Message::ContentType::Output);
+
+    buildAssistantMessage(blocks, types, result.content);
+
+    // 3. Re-prompt the model automatically.
+    // This creates the autonomous loop.
+    emit generationStarted();
+    m_runner->send(result.content, m_config->workingFolder(), {}, session->messages);
 }
 
 }  // namespace CodeHex

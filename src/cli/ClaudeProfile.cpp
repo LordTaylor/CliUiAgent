@@ -2,6 +2,11 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
+#include <QSysInfo>
+#include "../core/TokenCounter.h"
 #include "../data/Message.h"
 
 namespace CodeHex {
@@ -35,20 +40,46 @@ QStringList ClaudeProfile::buildArguments(const QString& prompt,
     // history contains all messages including the current user message at the end.
     // We format the prior exchanges as a conversation prefix and prepend to prompt.
     const int histEnd   = history.size() - 1;   // skip last (== current prompt)
-    const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
+    
+    // Dynamic System Context
+    QString systemContext;
+    systemContext += "## System Information\n";
+    systemContext += "- OS: " + QSysInfo::productType() + " " + QSysInfo::productVersion() + "\n";
+    systemContext += "- Current Time: " + QDateTime::currentDateTime().toString() + "\n";
+    if (!workDir.isEmpty()) {
+        systemContext += "- Working Directory: " + workDir + "\n";
+        systemContext += "- Project Structure (Top Level):\n";
+        QDir dir(workDir);
+        for (const QString& entry : dir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot)) {
+            systemContext += "  - " + entry + (QFileInfo(workDir + "/" + entry).isDir() ? "/" : "") + "\n";
+        }
+    }
+    systemContext += "\n";
 
-    QString context;
-    for (int i = histStart; i < histEnd; ++i) {
+    // Sliding Window with Token Counting
+    constexpr int kMaxTokens = 100000;
+    int currentTokens = TokenCounter::estimate(systemContext) + TokenCounter::estimate(prompt);
+    
+    QStringList historyBlocks;
+    for (int i = histEnd - 1; i >= 0; --i) {
         const Message& msg = history.at(i);
+        QString block;
         if (msg.role == Message::Role::User)
-            context += "[User]: " + msg.textFromContentBlocks() + "\n";
-        else if (msg.role == Message::Role::Assistant)
-            context += "[Assistant]: " + msg.textFromContentBlocks() + "\n";
+            block = "[User]: " + msg.textFromContentBlocks() + "\n";
+        else if (msg.role == Message::Role::Assistant) {
+            QString text = msg.textFromContentBlocks();
+            block = (msg.contentTypes.contains(Message::ContentType::Output) ? "[Tool Result]: " : "[Assistant]: ") + text + "\n";
+        }
+        
+        const int msgTokens = TokenCounter::estimate(block);
+        if (currentTokens + msgTokens > kMaxTokens) break;
+        
+        currentTokens += msgTokens;
+        historyBlocks.prepend(block);
     }
 
-    const QString fullPrompt = context.isEmpty()
-        ? prompt
-        : context + "\n[User]: " + prompt;
+    const QString context = systemContext + historyBlocks.join("");
+    const QString fullPrompt = context.isEmpty() ? prompt : context + "\n[User]: " + prompt;
 
     return claudeBaseArgs(fullPrompt, workDir);
 }

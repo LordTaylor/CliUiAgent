@@ -29,6 +29,10 @@ ToolResult ToolExecutor::execute(const ToolCall& call, const QString& workDir) {
         result = execRunCommand(call.input, workDir);
     else if (name == "SearchFiles"   || name == "Glob")
         result = execSearchFiles(call.input, workDir);
+    else if (name == "Search"        || name == "Grep")
+        result = execSearch(call.input, workDir);
+    else if (name == "Replace"       || name == "Sed")
+        result = execReplace(call.input, workDir);
     else if (name == "GitStatus")
         result = execGitStatus(workDir);
     else if (name == "GitDiff")
@@ -59,7 +63,7 @@ ToolResult ToolExecutor::execReadFile(const QJsonObject& in, const QString& work
     QByteArray data = file.read(kMaxBytes);
     const bool truncated = (file.bytesAvailable() > 0);
 
-    QString content = QString::fromUtf8(data);
+    QString content = QString::fromLocal8Bit(data); // Changed from fromUtf8
     if (truncated)
         content += "\n\n[... file truncated at 100 KB ...]";
     return okResult(content);
@@ -109,7 +113,12 @@ ToolResult ToolExecutor::execListDirectory(const QJsonObject& in, const QString&
             QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot, QDir::Name);
         for (const QFileInfo& fi : entries) {
             if (fi.isDir() && kSkip.contains(fi.fileName())) continue;
-            lines << indent + (fi.isDir() ? "[D] " : "    ") + fi.fileName();
+            QString details;
+            if (!fi.isDir()) {
+                const double kb = fi.size() / 1024.0;
+                details = QString(" (%1 KB, %2)").arg(kb, 0, 'f', 1).arg(fi.lastModified().toString("yyyy-MM-dd HH:mm"));
+            }
+            lines << indent + (fi.isDir() ? "[D] " : "    ") + fi.fileName() + details;
             if (fi.isDir()) walk(fi.filePath(), depth + 1);
         }
     };
@@ -121,6 +130,7 @@ ToolResult ToolExecutor::execListDirectory(const QJsonObject& in, const QString&
 // ── RunCommand ────────────────────────────────────────────────────────────────
 // Runs the command via "bash -c <command>" in workDir.
 // Blocks until the process exits or timeout_ms elapses.
+// TODO: move to a worker thread for the next sprint.
 ToolResult ToolExecutor::execRunCommand(const QJsonObject& in, const QString& workDir) {
     const QString command = in["command"].toString();
     if (command.isEmpty())
@@ -141,8 +151,8 @@ ToolResult ToolExecutor::execRunCommand(const QJsonObject& in, const QString& wo
         return errResult(QString("RunCommand: timed out after %1 ms").arg(timeout));
     }
 
-    const QString out = QString::fromUtf8(proc.readAllStandardOutput());
-    const QString err = QString::fromUtf8(proc.readAllStandardError());
+    const QString out = QString::fromLocal8Bit(proc.readAllStandardOutput()); // Changed from fromUtf8
+    const QString err = QString::fromLocal8Bit(proc.readAllStandardError());  // Changed from fromUtf8
 
     QString combined;
     if (!out.isEmpty()) combined += out;
@@ -174,6 +184,70 @@ ToolResult ToolExecutor::execSearchFiles(const QJsonObject& in, const QString& w
     if (matches.isEmpty())
         return okResult("(no files matched the pattern)");
     return okResult(matches.join('\n'));
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+// Grep-like content search.
+ToolResult ToolExecutor::execSearch(const QJsonObject& in, const QString& workDir) {
+    const QString query = in["query"].toString();
+    if (query.isEmpty()) return errResult("Search: 'query' parameter is required");
+
+    const QString root = resolvePath(in.contains("root") ? in["root"].toString() : ".", workDir);
+    const bool caseSensitive = in.contains("case_sensitive") ? in["case_sensitive"].toBool() : false;
+
+    QStringList results;
+    QDirIterator it(root, QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
+    while (it.hasNext() && results.size() < 100) {
+        const QString filePath = it.next();
+        QFile file(filePath);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream stream(&file);
+            int lineNum = 1;
+            while (!stream.atEnd()) {
+                const QString line = stream.readLine();
+                if (line.contains(query, caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)) {
+                    const QString relPath = QDir(workDir).relativeFilePath(filePath);
+                    results << QString("%1:%2: %3").arg(relPath).arg(lineNum).arg(line.trimmed());
+                }
+                lineNum++;
+            }
+        }
+    }
+
+    if (results.isEmpty()) return okResult("(no matches found)");
+    return okResult(results.join('\n'));
+}
+
+// ── Replace ───────────────────────────────────────────────────────────────────
+// Regex-based text replacement.
+ToolResult ToolExecutor::execReplace(const QJsonObject& in, const QString& workDir) {
+    const QString path    = resolvePath(in["path"].toString(), workDir);
+    const QString pattern = in["pattern"].toString();
+    const QString replacement = in["replacement"].toString();
+
+    if (path.isEmpty() || pattern.isEmpty())
+        return errResult("Replace: 'path' and 'pattern' parameters are required");
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return errResult(QString("Replace: cannot open '%1' for reading").arg(path));
+
+    QString content = QString::fromLocal8Bit(file.readAll());
+    file.close();
+
+    QRegularExpression re(pattern);
+    if (!re.isValid())
+        return errResult(QString("Replace: invalid regex pattern: %1").arg(re.errorString()));
+
+    const QString newContent = content.replace(re, replacement);
+    if (newContent == content)
+        return okResult("(no changes made, pattern not found)");
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        return errResult(QString("Replace: cannot open '%1' for writing").arg(path));
+
+    file.write(newContent.toUtf8());
+    return okResult(QString("Successfully replaced occurrences in %1").arg(path));
 }
 
 // ── Git helpers ───────────────────────────────────────────────────────────────

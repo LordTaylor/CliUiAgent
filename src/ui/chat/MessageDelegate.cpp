@@ -103,18 +103,20 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->restore();
 
             currentY += bubbleH + kRowMargin; // Move Y for next block
+            currentY += bubbleH + kRowMargin; // Move Y for next block
         } else if (block.type == BlockType::Output) {
-            // Render CLI output block
-            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false)); // Output is plain text
+            // Render CLI output block (Tool Result)
+            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false)); 
             QTextDocument& doc = *docPtr;
             doc.setDefaultFont(opt.font);
             doc.setTextWidth(maxW - 2 * kBubblePadding);
-            const int docH = static_cast<int>(doc.size().height());
-            const int bubbleH = docH + 2 * kBubblePadding;
-            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
 
-            int x;
-            x = kAvatarSize + 12; // Output blocks always align left (assistant output)
+            const int headerH = 24;
+            const int docH = static_cast<int>(doc.size().height());
+            const int bubbleH = docH + 2 * kBubblePadding + headerH;
+            const int bubbleW = qMin(maxW, qMax(static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding, 150));
+
+            int x = kAvatarSize + 12;
 
             // Bubble background (even darker gray for output)
             const QColor outputColor(0x111827);
@@ -123,16 +125,45 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->setRenderHint(QPainter::Antialiasing);
             p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
 
-            // Text
+            // Header: "✅ Tool Result"
+            p->setPen(QColor(0x10B981)); // Greenish for success/result
+            QFont headerFont = opt.font;
+            headerFont.setBold(true);
+            headerFont.setPointSizeF(headerFont.pointSizeF() * 0.9);
+            p->setFont(headerFont);
+            p->drawText(QRect(x + kBubblePadding, currentY + 6, bubbleW - 2 * kBubblePadding, headerH), 
+                        Qt::AlignVCenter | Qt::AlignLeft, "✅ Tool Result");
+
+            // Text content
             p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding);
-            p->setPen(QColor(0xD1D5DB)); // Lighter text for output
+            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerH);
+            p->setPen(QColor(0xD1D5DB));
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, QColor(0xD1D5DB));
             doc.documentLayout()->draw(p, ctx);
             p->restore();
 
-            currentY += bubbleH + kRowMargin; // Move Y for next block
+            p->setFont(opt.font); // Restore font
+            currentY += bubbleH + kRowMargin;
+        } else if (block.type == BlockType::ToolCall) {
+            // Render Tool Call block
+            const int bubbleH = 40;
+            const int x = kAvatarSize + 12;
+            const int bubbleW = qMin(maxW, 300);
+
+            // Bubble background (subtle blue/gray)
+            const QColor toolCallColor(0x374151);
+            p->setPen(Qt::NoPen);
+            p->setBrush(toolCallColor);
+            p->setRenderHint(QPainter::Antialiasing);
+            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+
+            // Icon and Text: "⚙ <log content>"
+            p->setPen(QColor(0x60A5FA)); // Light blue for action/tool
+            p->drawText(QRect(x + kBubblePadding, currentY, bubbleW - 2 * kBubblePadding, bubbleH),
+                        Qt::AlignCenter | Qt::AlignLeft, "⚙  " + block.content);
+
+            currentY += bubbleH + kRowMargin;
         }
     }
 
@@ -194,7 +225,14 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
         std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown));
         doc->setDefaultFont(option.font);
         totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
+    } else if (block.type == BlockType::Output) {
+        std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false));
+        doc->setDefaultFont(option.font);
+        totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + 24 + kRowMargin; // 24 for header
+    } else if (block.type == BlockType::ToolCall) {
+        totalHeight += 40 + kRowMargin;
     }
+}
 
     // Extra height for attachment badge
     if (!msg.attachments.isEmpty())

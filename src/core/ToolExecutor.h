@@ -45,6 +45,8 @@ private:
     ToolResult execListDirectory(const QJsonObject& in, const QString& workDir);
     ToolResult execRunCommand   (const QJsonObject& in, const QString& workDir);
     ToolResult execSearchFiles  (const QJsonObject& in, const QString& workDir);
+    ToolResult execSearch       (const QJsonObject& in, const QString& workDir);
+    ToolResult execReplace      (const QJsonObject& in, const QString& workDir);
     ToolResult execGitStatus    (const QString& workDir);
     ToolResult execGitDiff      (const QJsonObject& in, const QString& workDir);
     ToolResult execGitLog       (const QJsonObject& in, const QString& workDir);

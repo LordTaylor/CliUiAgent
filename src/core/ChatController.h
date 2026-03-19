@@ -44,6 +44,7 @@ signals:
     // For Claude CLI profiles the CLI executes the tool itself; this signal
     // is used to update the UI and console display.
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
+    void toolApprovalRequested(const QString& toolName, const QJsonObject& input);
 
     // Emitted after first assistant response renames the session automatically.
     void sessionRenamed(const QString& sessionId, const QString& newTitle);
@@ -72,8 +73,13 @@ private:
     CliRunner*      m_runner;
     ScriptManager*  m_scripts;
     ToolExecutor*   m_toolExecutor;  // available for custom (non-Claude) tool loops
+    bool            m_manualApproval = false;
+    QString         m_pendingToolCallId;
+    CodeHex::ToolCall m_pendingToolCall;
 
     QString m_currentResponse;
+
+    // Added empty comment to trigger MOC regeneration
 };
 
 }  // namespace CodeHex
