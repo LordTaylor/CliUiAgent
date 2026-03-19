@@ -199,8 +199,19 @@ ToolResult ToolExecutor::execSearch(const QJsonObject& in, const QString& workDi
     QDirIterator it(root, QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
     while (it.hasNext() && results.size() < 100) {
         const QString filePath = it.next();
+        QFileInfo info(filePath);
+        if (info.size() > 1024 * 1024) continue; // skip files > 1MB
+
         QFile file(filePath);
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (file.open(QIODevice::ReadOnly)) {
+            // Heuristic to skip binary files
+            const QByteArray firstBytes = file.read(512);
+            if (firstBytes.contains('\0')) {
+                file.close();
+                continue;
+            }
+            file.seek(0);
+
             QTextStream stream(&file);
             int lineNum = 1;
             while (!stream.atEnd()) {

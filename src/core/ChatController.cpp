@@ -103,6 +103,11 @@ void ChatController::sendMessage(const QString& text, const QList<Attachment>& a
     if (m_runner->isProfileRunning()) {
         emit statusChanged("Agent is thinking...");
     }
+
+    // Update input token stats
+    const int inputTokens = TokenCounter::estimate(enrichedPrompt);
+    session->updateTokens(inputTokens, 0);
+
     m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths,
                    session->messages);
 }
@@ -134,6 +139,7 @@ void ChatController::onErrorChunk(const QString& chunk) {
 // would call m_toolExecutor->execute() and re-prompt with the result.
 void ChatController::onToolCallReady(const CodeHex::ToolCall& call) {
     const QString log = formatToolCallLog(call);
+    qDebug() << "[Agent] Tool call ready:" << call.name << "with input:" << call.input;
     emit consoleOutput(log);
     emit toolCallStarted(call.name, call.input);
 
@@ -200,7 +206,7 @@ QString ChatController::formatToolCallLog(const ToolCall& call) {
 }
 
 void ChatController::onRunnerFinished(int exitCode) {
-    Q_UNUSED(exitCode) // In the future, handle exitCode to indicate errors
+    qDebug() << "[Agent] Profile runner finished with exit code:" << exitCode;
 
     if (m_currentResponse.trimmed().isEmpty()) {
         emit generationStopped();
@@ -324,6 +330,13 @@ void ChatController::onRunnerFinished(int exitCode) {
     }
 
     buildAssistantMessage(assistantContentBlocks, assistantContentTypes, plainTextResponse);
+    
+    // Update output token stats
+    if (m_sessions->currentSession()) {
+        const int outputTokens = TokenCounter::estimate(plainTextResponse);
+        m_sessions->currentSession()->updateTokens(0, outputTokens);
+    }
+
     emit generationStopped();
     emit statusChanged(""); // Reset status on finish
 }
@@ -432,6 +445,11 @@ void ChatController::onToolResultReceived(const QString& toolName, const CodeHex
     // 3. Re-prompt the model automatically.
     // This creates the autonomous loop.
     emit generationStarted();
+    
+    // Update input tokens for the re-prompt
+    const int resultTokens = TokenCounter::estimate(result.content);
+    session->updateTokens(resultTokens, 0);
+
     m_runner->send(result.content, m_config->workingFolder(), {}, session->messages);
 }
 

@@ -14,6 +14,9 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 - **Expandable Console** — shows raw CLI output for debugging
 - **Dark theme** — full QSS dark UI
 - **Cross-platform** — macOS, Linux, Windows
+- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`) in a recursive loop
+- **Safety Mode** — optional manual approval for persistent file changes or command execution
+- **Smart Context** — dynamic system prompt injection (OS, time, project structure) and token-aware history management
 
 ---
 
@@ -92,6 +95,8 @@ cd CodeHex
 4. **Stop generation** — click **Stop** or press `Ctrl+.`
 5. **Attach files** — click **📎** (`Ctrl+Shift+A`) to attach images or code files
 6. **Record voice** — hold **🎤** (`Ctrl+Shift+V`) to record
+7. **Autonomous Agent** — many profiles (like Claude) can now browse your files and execute commands. Look for the ⚙️ icon for tool calls and ✅ for results.
+8. **Manual Approval** — toggle "Manual Approval" in settings to require a click before the agent modifies files or runs commands.
 
 Open **Help → Getting Started** (`F1`) for the full in-app guide.
 
