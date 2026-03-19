@@ -1,0 +1,10 @@
+{
+  "type":        "ollama",
+  "name":        "ollama-codellama",
+  "displayName": "Ollama — CodeLlama 13b",
+
+  "baseUrl":     "http://localhost:11434",
+  "model":       "codellama:13b",
+
+  "systemPrompt": "You are CodeLlama. Help with code review, refactoring, debugging and generation across all major programming languages."
+}

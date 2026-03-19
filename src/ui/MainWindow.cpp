@@ -37,13 +37,15 @@ MainWindow::MainWindow(AppConfig* config,
                        ChatController* controller,
                        AudioRecorder* recorder,
                        AudioPlayer* player,
+                       const ProfileList& extraProfiles,
                        QWidget* parent)
     : QMainWindow(parent),
       m_config(config),
       m_sessions(sessions),
       m_controller(controller),
       m_recorder(recorder),
-      m_player(player) {
+      m_player(player),
+      m_extraProfiles(extraProfiles) {
     setWindowTitle("CodeHex");
     setMinimumSize(900, 600);
     resize(1200, 800);
@@ -260,10 +262,20 @@ void MainWindow::loadStyleSheet() {
 void MainWindow::populateProfileCombo() {
     m_profileCombo->blockSignals(true);
     m_profileCombo->clear();
+
+    // ── Built-in profiles ─────────────────────────────────────────
     m_profileCombo->addItem("Claude CLI",  "claude");
     m_profileCombo->addItem("Ollama",      "ollama");
     m_profileCombo->addItem("OpenAI/sgpt", "gpt");
 
+    // ── Extra profiles from ~/.codehex/profiles/ ──────────────────
+    if (!m_extraProfiles.isEmpty()) {
+        m_profileCombo->insertSeparator(m_profileCombo->count());
+        for (const auto& entry : m_extraProfiles)
+            m_profileCombo->addItem(entry.displayName, entry.name);
+    }
+
+    // Restore selection
     const QString active = m_config->activeProfile();
     for (int i = 0; i < m_profileCombo->count(); ++i) {
         if (m_profileCombo->itemData(i).toString() == active) {

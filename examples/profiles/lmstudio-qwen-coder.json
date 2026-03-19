@@ -1,0 +1,12 @@
+{
+  "type":        "openai-compatible",
+  "name":        "lmstudio-qwen",
+  "displayName": "LM Studio — Qwen 2.5 Coder",
+
+  "baseUrl":     "http://localhost:1234/v1",
+  "apiKey":      "lm-studio",
+
+  "model":       "qwen2.5-coder-32b-instruct",
+
+  "systemPrompt": "You are Qwen Coder, an expert programming assistant. Support all major languages. Prefer clean, idiomatic code."
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include <QApplication>
 #include <memory>
+#include "../cli/ProfileEntry.h"
 
 namespace CodeHex {
 
@@ -21,9 +22,12 @@ public:
 
     int run();
 
+private slots:
+    void setupCliRunner();
+
 private:
     void setupComponents();
-    void setupCliRunner();
+    void discoverProfiles();   // scans ~/.codehex/profiles/*.json
 
     std::unique_ptr<AppConfig>      m_config;
     std::unique_ptr<SessionManager> m_sessions;
@@ -33,6 +37,8 @@ private:
     std::unique_ptr<AudioRecorder>  m_recorder;
     std::unique_ptr<AudioPlayer>    m_player;
     std::unique_ptr<MainWindow>     m_mainWindow;
+
+    ProfileList m_extraProfiles;
 };
 
 }  // namespace CodeHex

@@ -1,0 +1,10 @@
+{
+  "type":        "ollama",
+  "name":        "ollama-deepseek",
+  "displayName": "Ollama — DeepSeek Coder 6.7b",
+
+  "baseUrl":     "http://localhost:11434",
+  "model":       "deepseek-coder:6.7b",
+
+  "systemPrompt": "You are DeepSeek Coder. Provide correct, well-structured code solutions with minimal prose."
+}

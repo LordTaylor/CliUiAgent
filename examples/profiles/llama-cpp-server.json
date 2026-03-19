@@ -1,0 +1,12 @@
+{
+  "type":        "openai-compatible",
+  "name":        "llama-cpp",
+  "displayName": "llama.cpp server (local)",
+
+  "baseUrl":     "http://localhost:8080/v1",
+  "apiKey":      "none",
+
+  "model":       "gpt-3.5-turbo",
+
+  "systemPrompt": "You are a helpful coding assistant running on a local llama.cpp server."
+}

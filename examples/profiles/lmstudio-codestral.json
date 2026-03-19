@@ -1,0 +1,12 @@
+{
+  "type":        "openai-compatible",
+  "name":        "lmstudio-codestral",
+  "displayName": "LM Studio — Codestral",
+
+  "baseUrl":     "http://localhost:1234/v1",
+  "apiKey":      "lm-studio",
+
+  "model":       "codestral-22b",
+
+  "systemPrompt": "You are Codestral, an expert software engineer. Provide clean, production-ready code with brief explanations."
+}

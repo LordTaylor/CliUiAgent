@@ -2,6 +2,7 @@
 #include <QComboBox>
 #include <QMainWindow>
 #include <QSplitter>
+#include "../cli/ProfileEntry.h"
 #include "../data/Attachment.h"
 #include "../data/Message.h"
 #include "../data/Session.h"
@@ -14,7 +15,6 @@ class SessionManager;
 class ChatController;
 class AudioRecorder;
 class AudioPlayer;
-class ScriptManager;
 
 class ChatView;
 class MessageModel;
@@ -31,6 +31,7 @@ public:
                         ChatController* controller,
                         AudioRecorder* recorder,
                         AudioPlayer* player,
+                        const ProfileList& extraProfiles = {},
                         QWidget* parent = nullptr);
 
 private slots:
@@ -53,25 +54,26 @@ private:
     void switchSession(Session* session);
     void populateProfileCombo();
 
-    AppConfig* m_config;
+    AppConfig*      m_config;
     SessionManager* m_sessions;
     ChatController* m_controller;
-    AudioRecorder* m_recorder;
-    AudioPlayer* m_player;
+    AudioRecorder*  m_recorder;
+    AudioPlayer*    m_player;
+    ProfileList     m_extraProfiles;
 
     // UI widgets
-    QSplitter* m_splitter;
-    SessionPanel* m_sessionPanel;
-    ChatView* m_chatView;
-    MessageModel* m_messageModel;
-    InputPanel* m_inputPanel;
-    ConsoleWidget* m_console;
+    QSplitter*          m_splitter;
+    SessionPanel*       m_sessionPanel;
+    ChatView*           m_chatView;
+    MessageModel*       m_messageModel;
+    InputPanel*         m_inputPanel;
+    ConsoleWidget*      m_console;
     WorkFolderSelector* m_folderSelector;
-    QComboBox* m_profileCombo;
+    QComboBox*          m_profileCombo;
 
-    // Streaming state: accumulates tokens into a live bubble
+    // Streaming state
     QString m_streamingText;
-    bool m_hasStreamingMsg = false;
+    bool    m_hasStreamingMsg = false;
 
     HelpDialog* m_helpDialog = nullptr;
 };

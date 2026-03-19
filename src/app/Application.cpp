@@ -1,9 +1,11 @@
 #include "Application.h"
 #include <QDebug>
+#include <QDir>
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
 #include "../cli/ClaudeProfile.h"
 #include "../cli/CliRunner.h"
+#include "../cli/ConfigurableProfile.h"
 #include "../cli/GptProfile.h"
 #include "../cli/OllamaProfile.h"
 #include "../core/AppConfig.h"
@@ -34,6 +36,9 @@ void Application::setupComponents() {
     m_config->ensureDirectories();
     m_config->load();
 
+    // Discover configurable profiles from ~/.codehex/profiles/
+    discoverProfiles();
+
     // Sessions
     m_sessions = std::make_unique<SessionManager>(m_config.get());
 
@@ -61,21 +66,50 @@ void Application::setupComponents() {
     m_recorder = std::make_unique<AudioRecorder>();
     m_player   = std::make_unique<AudioPlayer>();
 
-    // Main window
+    // Main window — pass discovered profile entries for the combo box
     m_mainWindow = std::make_unique<MainWindow>(
         m_config.get(),
         m_sessions.get(),
         m_controller.get(),
         m_recorder.get(),
-        m_player.get());
+        m_player.get(),
+        m_extraProfiles);
 
-    // React to profile changes from MainWindow
-    // (profile switch is triggered by combo box which calls config->setActiveProfile)
-    connect(m_config.get(), &AppConfig::destroyed, this, []{});  // placeholder hook
+    // When the user switches profile in MainWindow, re-configure CliRunner
+    connect(m_config.get(), &AppConfig::activeProfileChanged,
+            this, &Application::setupCliRunner);
+}
+
+void Application::discoverProfiles() {
+    m_extraProfiles.clear();
+    QDir dir(m_config->profilesDir());
+    const auto files = dir.entryInfoList({"*.json"}, QDir::Files, QDir::Name);
+    for (const QFileInfo& fi : files) {
+        auto p = ConfigurableProfile::fromFile(fi.absoluteFilePath());
+        if (!p) {
+            qWarning() << "ConfigurableProfile: failed to parse" << fi.fileName();
+            continue;
+        }
+        qDebug() << "Loaded profile:" << p->displayName();
+        m_extraProfiles.append({p->name(), p->displayName(), fi.absoluteFilePath()});
+    }
 }
 
 void Application::setupCliRunner() {
     const QString profile = m_config->activeProfile();
+
+    // Check extra (configurable) profiles first
+    for (const auto& entry : m_extraProfiles) {
+        if (entry.name == profile) {
+            auto p = ConfigurableProfile::fromFile(entry.filePath);
+            if (p) {
+                m_runner->setProfile(std::move(p));
+                return;
+            }
+        }
+    }
+
+    // Built-in profiles
     std::unique_ptr<CliProfile> p;
     if (profile == "ollama") {
         p = std::make_unique<OllamaProfile>();

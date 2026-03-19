@@ -21,6 +21,10 @@ QString AppConfig::scriptsDir() const {
     return dataDir() + "/scripts";
 }
 
+QString AppConfig::profilesDir() const {
+    return dataDir() + "/profiles";
+}
+
 QString AppConfig::luaScriptsDir() const {
     return scriptsDir() + "/lua";
 }
@@ -34,7 +38,11 @@ QString AppConfig::configFilePath() const {
 }
 
 QString AppConfig::activeProfile() const { return m_activeProfile; }
-void AppConfig::setActiveProfile(const QString& name) { m_activeProfile = name; }
+void AppConfig::setActiveProfile(const QString& name) {
+    if (m_activeProfile == name) return;
+    m_activeProfile = name;
+    emit activeProfileChanged(name);
+}
 
 QString AppConfig::workingFolder() const { return m_workingFolder; }
 void AppConfig::setWorkingFolder(const QString& path) { m_workingFolder = path; }
@@ -59,7 +67,7 @@ void AppConfig::save() const {
 }
 
 void AppConfig::ensureDirectories() const {
-    for (const QString& d : {dataDir(), sessionsDir(), luaScriptsDir(), pythonScriptsDir()})
+    for (const QString& d : {dataDir(), sessionsDir(), profilesDir(), luaScriptsDir(), pythonScriptsDir()})
         QDir().mkpath(d);
 }
 

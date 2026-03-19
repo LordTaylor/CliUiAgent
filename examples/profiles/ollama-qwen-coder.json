@@ -1,0 +1,10 @@
+{
+  "type":        "ollama",
+  "name":        "ollama-qwen-coder",
+  "displayName": "Ollama — Qwen 2.5 Coder 7b",
+
+  "baseUrl":     "http://localhost:11434",
+  "model":       "qwen2.5-coder:7b",
+
+  "systemPrompt": "You are Qwen Coder. Specialise in Python, C++, TypeScript and Rust. Provide idiomatic, efficient, well-commented code."
+}

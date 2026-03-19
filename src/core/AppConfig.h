@@ -11,7 +11,8 @@ public:
 
     QString dataDir() const;     // ~/.codehex
     QString sessionsDir() const; // ~/.codehex/sessions
-    QString scriptsDir() const;  // ~/.codehex/scripts
+    QString scriptsDir() const;   // ~/.codehex/scripts
+    QString profilesDir() const;  // ~/.codehex/profiles
     QString luaScriptsDir() const;
     QString pythonScriptsDir() const;
     QString configFilePath() const;
@@ -28,6 +29,9 @@ public:
     void load();
     void save() const;
     void ensureDirectories() const;
+
+signals:
+    void activeProfileChanged(const QString& name);
 
 private:
     QString m_activeProfile = "claude";
