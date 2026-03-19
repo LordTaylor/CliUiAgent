@@ -28,6 +28,7 @@ public:
               const QList<Message>& history  = {});
     void stop();
     bool isRunning() const;
+    bool isProfileRunning() const;
 
     // New: for running simple bash commands
     void runSimpleCommand(const QString& command, const QString& workingDirectory);

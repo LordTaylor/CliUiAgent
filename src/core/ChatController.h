@@ -8,7 +8,7 @@
 #include "../data/CodeBlock.h" // Added
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
-#include "../data/ToolResult.h" // Added for ToolResult
+#include "../data/ToolCall.h"   // Contains ToolCall and ToolResult
 
 namespace CodeHex {
 
@@ -30,6 +30,10 @@ public:
 public slots:
     void sendMessage(const QString& text, const QList<Attachment>& attachments = {});
     void stopGeneration();
+    bool isRunning() const;
+    bool isProfileRunning() const;
+    void setManualApproval(bool enabled);
+    void approveToolCall(const CodeHex::ToolCall& call);
 
 signals:
     void userMessageReady(const Message& msg);
@@ -39,6 +43,7 @@ signals:
     void consoleOutput(const QString& raw);
     void generationStarted();
     void generationStopped();
+    void statusChanged(const QString& status);
 
     // Emitted when a tool_use block is fully parsed from the stream.
     // For Claude CLI profiles the CLI executes the tool itself; this signal

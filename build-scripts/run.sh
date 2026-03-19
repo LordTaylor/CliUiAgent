@@ -66,7 +66,11 @@ fi
 
 if [ "$NEEDS_BUILD" = true ]; then
     echo "==> Running Conan install ($BUILD_TYPE)..."
-    BUILD_UPPER="$(echo "$BUILD_TYPE" | sed 's/./\u&/')"   # debug→Debug
+    if [ "$BUILD_TYPE" = "debug" ]; then
+        BUILD_UPPER="Debug"
+    else
+        BUILD_UPPER="Release"
+    fi
 
     conan install . \
         --output-folder="$BUILD_DIR/build/$BUILD_UPPER" \

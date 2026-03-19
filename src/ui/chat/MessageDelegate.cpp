@@ -222,17 +222,19 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
     for (const CodeBlock& block : msg.contentBlocks) {
         // Code blocks should be rendered as markdown for syntax highlighting
         bool isMarkdown = (block.type != BlockType::Text);
-        std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown));
-        doc->setDefaultFont(option.font);
-        totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
-    } else if (block.type == BlockType::Output) {
-        std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false));
-        doc->setDefaultFont(option.font);
-        totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + 24 + kRowMargin; // 24 for header
-    } else if (block.type == BlockType::ToolCall) {
-        totalHeight += 40 + kRowMargin;
+        
+        if (block.type == BlockType::Output) {
+            std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false));
+            doc->setDefaultFont(option.font);
+            totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + 24 + kRowMargin; // 24 for header
+        } else if (block.type == BlockType::ToolCall) {
+            totalHeight += 40 + kRowMargin;
+        } else {
+            std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown));
+            doc->setDefaultFont(option.font);
+            totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
+        }
     }
-}
 
     // Extra height for attachment badge
     if (!msg.attachments.isEmpty())

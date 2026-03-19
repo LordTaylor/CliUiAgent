@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC OFF)
 
 # --- Qt6 ---
 find_package(Qt6 REQUIRED COMPONENTS
-    Core Widgets Multimedia MultimediaWidgets Network Concurrent
+    Core Widgets Multimedia MultimediaWidgets Network Concurrent Test
 )
 qt_standard_project_setup()
 

@@ -18,7 +18,7 @@ target_link_libraries(codehex_tests PRIVATE
     codehex_scripting
     codehex_audio
     Catch2::Catch2WithMain
-    Qt6::Core Qt6::Widgets Qt6::Multimedia
+    Qt6::Core Qt6::Widgets Qt6::Multimedia Qt6::Test
     lua::lua sol2::sol2 pybind11::embed
 )
 

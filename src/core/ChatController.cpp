@@ -453,4 +453,12 @@ void ChatController::onToolResultReceived(const QString& toolName, const CodeHex
     m_runner->send(result.content, m_config->workingFolder(), {}, session->messages);
 }
 
+bool ChatController::isRunning() const {
+    return m_runner && m_runner->isRunning();
+}
+
+bool ChatController::isProfileRunning() const {
+    return m_runner && m_runner->isProfileRunning();
+}
+
 }  // namespace CodeHex

@@ -1,13 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <QSignalSpy>
 #include <QJsonObject>
-#include "../src/core/ChatController.h"
-#include "../src/cli/CliRunner.h"
-#include "../src/core/SessionManager.h"
-#include "../src/core/AppConfig.h"
-#include "../src/core/ScriptManager.h"
-#include "../src/data/ToolCall.h"
-#include "../src/data/ToolResult.h"
+#include "ChatController.h"
+#include "CliRunner.h"
+#include "SessionManager.h"
+#include "AppConfig.h"
+#include "ScriptManager.h"
+#include "ToolCall.h"
 
 using namespace CodeHex;
 

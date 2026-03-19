@@ -126,7 +126,11 @@ void CliRunner::stop() {
 }
 
 bool CliRunner::isRunning() const {
-    return m_process.state() == QProcess::Running || m_simpleProcess.state() == QProcess::Running;
+    return m_process.state() != QProcess::NotRunning || m_simpleProcess.state() != QProcess::NotRunning;
+}
+
+bool CliRunner::isProfileRunning() const {
+    return m_process.state() != QProcess::NotRunning;
 }
 
 // New: for running simple bash commands
