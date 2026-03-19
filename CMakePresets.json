@@ -13,11 +13,11 @@
       "name": "debug-macos",
       "inherits": "base",
       "displayName": "Debug (macOS)",
-      "binaryDir": "${sourceDir}/build/debug",
+      "binaryDir": "${sourceDir}/build/Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_PREFIX_PATH": "/opt/homebrew/opt/qt@6/lib/cmake/Qt6",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/debug/generators/conan_toolchain.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/Debug/generators/conan_toolchain.cmake",
         "CMAKE_CXX_FLAGS_DEBUG": "-g -fsanitize=address -fno-omit-frame-pointer"
       }
     },
@@ -25,11 +25,11 @@
       "name": "release-macos",
       "inherits": "base",
       "displayName": "Release (macOS)",
-      "binaryDir": "${sourceDir}/build/release",
+      "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_PREFIX_PATH": "/opt/homebrew/opt/qt@6/lib/cmake/Qt6",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/release/generators/conan_toolchain.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/Release/generators/conan_toolchain.cmake"
       }
     },
     {

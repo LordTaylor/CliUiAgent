@@ -84,6 +84,11 @@ MainWindow::MainWindow(AppConfig* config,
     m_cursorTimer->setInterval(500);
     connect(m_cursorTimer, &QTimer::timeout, this, &MainWindow::onCursorBlink);
 
+    m_tokenTimer = new QTimer(this);
+    m_tokenTimer->setInterval(50); // 50ms batch window
+    m_tokenTimer->setSingleShot(true);
+    connect(m_tokenTimer, &QTimer::timeout, this, &MainWindow::onTokenBufferTimeout);
+
     // Load sessions and open last
     m_sessions->loadAll();
     Session* last = m_sessions->allSessions().isEmpty()
@@ -346,21 +351,32 @@ void MainWindow::onNewSessionRequested() {
 }
 
 void MainWindow::onTokenReceived(const QString& token) {
+    m_tokenBuffer += token;
+    if (!m_tokenTimer->isActive()) {
+        m_tokenTimer->start();
+    }
+}
+
+void MainWindow::onTokenBufferTimeout() {
+    if (m_tokenBuffer.isEmpty()) return;
+    
+    const QString tokens = m_tokenBuffer;
+    m_tokenBuffer.clear();
+
     if (!m_hasStreamingMsg) {
-        // First token — create the assistant bubble
-        m_streamingText = token;
+        // First batch — create the assistant bubble
+        m_streamingText = tokens;
         Message liveMsg;
         liveMsg.id = QUuid::createUuid();
         liveMsg.role = Message::Role::Assistant;
-        liveMsg.contentBlocks.append(CodeBlock{token, BlockType::Text});
+        liveMsg.contentBlocks.append(CodeBlock{tokens, BlockType::Text});
         liveMsg.contentTypes.append(Message::ContentType::Text);
         liveMsg.timestamp = QDateTime::currentDateTimeUtc();
         m_messageModel->appendMessage(liveMsg);
         m_hasStreamingMsg = true;
     } else {
-        // Subsequent tokens — accumulate and update in-place.
-        // The cursor blink timer overlays the ▋ independently.
-        m_streamingText += token;
+        // Subsequent batches — accumulate and update in-place.
+        m_streamingText += tokens;
         m_messageModel->updateLastMessage(m_streamingText);
     }
     m_chatView->scrollToBottom();
@@ -376,8 +392,15 @@ void MainWindow::onCursorBlink() {
 void MainWindow::onResponseComplete(const Message& msg) {
     // Stop cursor, set final complete text (no cursor)
     m_cursorTimer->stop();
+    m_tokenTimer->stop();
     m_isStreaming = false;
     m_cursorVisible = false;
+    
+    // Flush any remaining tokens in buffer
+    if (!m_tokenBuffer.isEmpty()) {
+        onTokenBufferTimeout();
+    }
+
     if (m_hasStreamingMsg && !msg.textFromContentBlocks().isEmpty())
         m_messageModel->updateLastMessage(msg.textFromContentBlocks());
     m_hasStreamingMsg = false;

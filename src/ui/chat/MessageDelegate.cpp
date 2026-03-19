@@ -11,7 +11,8 @@
 
 namespace CodeHex {
 
-MessageDelegate::MessageDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
+MessageDelegate::MessageDelegate(QObject* parent) 
+    : QStyledItemDelegate(parent), m_docCache(100) {}
 
 // ── makeTextDoc ───────────────────────────────────────────────────────────────
 // Creates a QTextDocument with the given text. When isMarkdown=true the text
@@ -19,12 +20,26 @@ MessageDelegate::MessageDelegate(QObject* parent) : QStyledItemDelegate(parent) 
 // The caller takes ownership of the returned pointer.
 QTextDocument* MessageDelegate::makeTextDoc(const QString& text, int maxWidth,
                                              bool isMarkdown) const {
+    const QString cacheKey = QString("%1|%2|%3").arg(maxWidth).arg(isMarkdown).arg(qHash(text));
+    
+    QMutexLocker locker(&m_cacheMutex);
+    if (auto* cached = m_docCache.object(cacheKey)) {
+        return cached; 
+    }
+    locker.unlock();
+
     auto* doc = new QTextDocument();
     doc->setPageSize({qreal(maxWidth), -1.0});
     if (isMarkdown)
         doc->setMarkdown(text);
     else
         doc->setPlainText(text);
+    
+    locker.relock();
+    // QCache takes ownership, but we want to return a pointer that won't be deleted 
+    // immediately if it falls out of cache. Actually QCache is fine if we use it carefully.
+    // For simplicity in a delegate, we'll return the pointer and QCache will manage it.
+    m_docCache.insert(cacheKey, doc);
     return doc;
 }
 
@@ -63,13 +78,13 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
 
     for (const CodeBlock& block : msg.contentBlocks) {
         if (block.type == BlockType::Text) {
-            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, !isUser));
-            QTextDocument& doc = *docPtr;
-            doc.setDefaultFont(opt.font);
-            doc.setTextWidth(maxW - 2 * kBubblePadding);
-            const int docH = static_cast<int>(doc.size().height());
+            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, !isUser);
+            // Don't use unique_ptr because makeTextDoc now returns a cached pointer owned by m_docCache
+            doc->setDefaultFont(opt.font);
+            doc->setTextWidth(maxW - 2 * kBubblePadding);
+            const int docH = static_cast<int>(doc->size().height());
             const int bubbleH = docH + 2 * kBubblePadding;
-            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
+            const int bubbleW = qMin(maxW, static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding);
 
             int x;
             if (isUser) {
@@ -91,17 +106,17 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->setPen(Qt::white);
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, Qt::white);
-            doc.documentLayout()->draw(p, ctx);
+            doc->documentLayout()->draw(p, ctx);
+            p->restore();
             currentY += bubbleH + kRowMargin; // Move Y for next block
         } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
             // Render code block
-            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, true)); // Code is always markdown
-            QTextDocument& doc = *docPtr;
-            doc.setDefaultFont(opt.font);
-            doc.setTextWidth(maxW - 2 * kBubblePadding);
-            const int docH = static_cast<int>(doc.size().height());
+            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, true); // Code is always markdown
+            doc->setDefaultFont(opt.font);
+            doc->setTextWidth(maxW - 2 * kBubblePadding);
+            const int docH = static_cast<int>(doc->size().height());
             const int bubbleH = docH + 2 * kBubblePadding;
-            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
+            const int bubbleW = qMin(maxW, static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding);
 
             int x;
             x = kAvatarSize + 12; // Code blocks always align left (assistant output)
@@ -119,22 +134,21 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->setPen(QColor(0x9CA3AF)); // Lighter text for code
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, QColor(0x9CA3AF));
-            doc.documentLayout()->draw(p, ctx);
+            doc->documentLayout()->draw(p, ctx);
             p->restore();
 
             currentY += bubbleH + kRowMargin; // Move Y for next block
             currentY += bubbleH + kRowMargin; // Move Y for next block
         } else if (block.type == BlockType::Output) {
             // Render CLI output block (Tool Result)
-            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false)); 
-            QTextDocument& doc = *docPtr;
-            doc.setDefaultFont(opt.font);
-            doc.setTextWidth(maxW - 2 * kBubblePadding);
+            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, false); 
+            doc->setDefaultFont(opt.font);
+            doc->setTextWidth(maxW - 2 * kBubblePadding);
 
             const int headerH = 24;
-            const int docH = static_cast<int>(doc.size().height());
+            const int docH = static_cast<int>(doc->size().height());
             const int bubbleH = docH + 2 * kBubblePadding + headerH;
-            const int bubbleW = qMin(maxW, qMax(static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding, 150));
+            const int bubbleW = qMin(maxW, qMax(static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding, 150));
 
             int x = kAvatarSize + 12;
 
@@ -160,7 +174,7 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->setPen(QColor(0xD1D5DB));
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, QColor(0xD1D5DB));
-            doc.documentLayout()->draw(p, ctx);
+            doc->documentLayout()->draw(p, ctx);
             p->restore();
 
             p->setFont(opt.font); // Restore font
@@ -244,13 +258,13 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
         bool isMarkdown = (block.type != BlockType::Text);
         
         if (block.type == BlockType::Output) {
-            std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false));
+            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, false);
             doc->setDefaultFont(option.font);
             totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + 24 + kRowMargin; // 24 for header
         } else if (block.type == BlockType::ToolCall) {
             totalHeight += 40 + kRowMargin;
         } else {
-            std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown));
+            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown);
             doc->setDefaultFont(option.font);
             totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
         }

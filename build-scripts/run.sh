@@ -30,12 +30,17 @@ done
 
 # ---- Resolve platform-specific binary path ----
 UNAME="$(uname -s)"
-BUILD_DIR="$PROJECT_DIR/build/$BUILD_TYPE"
+if [ "$BUILD_TYPE" = "debug" ]; then
+    BUILD_UPPER="Debug"
+else
+    BUILD_UPPER="Release"
+fi
+BUILD_DIR="$PROJECT_DIR/build/$BUILD_UPPER"
 
 case "$UNAME" in
     Darwin)
         PRESET="${BUILD_TYPE}-macos"
-        BIN="$BUILD_DIR/cmake/CodeHex.app/Contents/MacOS/CodeHex"
+        BIN="$BUILD_DIR/CodeHex.app/Contents/MacOS/CodeHex"
         ;;
     Linux)
         PRESET="${BUILD_TYPE}-linux"
@@ -73,23 +78,33 @@ if [ "$NEEDS_BUILD" = true ]; then
     fi
 
     conan install . \
-        --output-folder="$BUILD_DIR/build/$BUILD_UPPER" \
+        --output-folder="$PROJECT_DIR" \
         --build=missing \
         -s build_type="$BUILD_UPPER" \
         -s compiler.cppstd=20
 
+    # Conan with cmake_layout puts generators in build/<build_type>/generators
+    TOOLCHAIN="$PROJECT_DIR/build/$BUILD_UPPER/generators/conan_toolchain.cmake"
+
     echo "==> CMake configure (preset: $PRESET)..."
+    # Check if Ninja is available
+    if command -v ninja >/dev/null 2>&1; then
+        GENERATOR="Ninja"
+    else
+        GENERATOR="Unix Makefiles"
+    fi
+
     cmake --preset "$PRESET" 2>/dev/null || \
-    cmake -B "$BUILD_DIR/cmake" \
-        -G Ninja \
+    cmake -B "$BUILD_DIR" \
+        -G "$GENERATOR" \
         -DCMAKE_BUILD_TYPE="$BUILD_UPPER" \
-        -DCMAKE_TOOLCHAIN_FILE="$BUILD_DIR/build/$BUILD_UPPER/generators/conan_toolchain.cmake" \
+        -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
         -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6 2>/dev/null || echo /opt/homebrew/opt/qt@6)/lib/cmake/Qt6" \
         -Wno-dev
 
     echo "==> Building..."
     JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)"
-    cmake --build "$BUILD_DIR/cmake" -j"$JOBS"
+    cmake --build "$BUILD_DIR" -j"$JOBS"
 fi
 
 # ---- Verify binary exists ----
@@ -106,7 +121,7 @@ echo ""
 
 # Launch — detach on macOS so the terminal is free; keep attached on Linux
 if [ "$UNAME" = "Darwin" ]; then
-    open "$BUILD_DIR/cmake/CodeHex.app"
+    open "$BUILD_DIR/CodeHex.app"
 else
     exec "$BIN" "$@"
 fi

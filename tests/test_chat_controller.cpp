@@ -14,7 +14,7 @@ using namespace CodeHex;
 class MockCliRunner : public CliRunner {
 public:
     using CliRunner::CliRunner;
-    void send(const QString& prompt, const QList<Attachment>& attachments = {}) override {
+    void send(const QString& prompt, const QString& workDir, const QStringList& imagePaths, const QList<Message>& history) override {
         lastPrompt = prompt;
         sendCount++;
     }
@@ -25,8 +25,8 @@ public:
 TEST_CASE("ChatController Tool Loop", "[ChatController]") {
     AppConfig config;
     SessionManager sessions(&config);
-    MockCliRunner runner(&config);
-    ScriptManager scripts;
+    MockCliRunner runner; // CliRunner takes QObject* parent
+    ScriptManager scripts(".", ".");
     
     ChatController controller(&config, &sessions, &runner, &scripts);
     sessions.createSession("test_profile", "Test Session");

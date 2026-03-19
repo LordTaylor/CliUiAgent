@@ -48,6 +48,7 @@ private slots:
     void onProfileChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();
+    void onTokenBufferTimeout();
 
 private:
     void setupUi();
@@ -80,6 +81,10 @@ private:
     bool    m_isStreaming       = false;
     bool    m_cursorVisible     = false;
     QTimer* m_cursorTimer       = nullptr;
+    
+    // Token batching
+    QString m_tokenBuffer;
+    QTimer* m_tokenTimer        = nullptr;
 
     HelpDialog* m_helpDialog = nullptr;
 

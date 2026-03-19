@@ -34,6 +34,8 @@ public slots:
     bool isProfileRunning() const;
     void setManualApproval(bool enabled);
     void approveToolCall(const CodeHex::ToolCall& call);
+    void onToolCallReady(const CodeHex::ToolCall& call);
+    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result);
 
 signals:
     void userMessageReady(const Message& msg);
@@ -59,11 +61,9 @@ private slots:
     void onRawOutput(const QString& raw);
     void onErrorChunk(const QString& chunk);
     void onRunnerFinished(int exitCode);
-    void onToolCallReady(const CodeHex::ToolCall& call);
     // New slot for simple command results
     void onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
     // New slot for ToolExecutor results
-    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result); // Modified signature
 
 private:
     void buildAssistantMessage(const QList<CodeBlock>& contentBlocks,

@@ -22,7 +22,7 @@ public:
     //              CliProfile::imageArguments() before the -p prompt flag.
     // history    : full session message list (last entry == current prompt);
     //              passed to CliProfile::buildArguments() for multi-turn context.
-    void send(const QString& prompt,
+    virtual void send(const QString& prompt,
               const QString& workDir         = {},
               const QStringList& imagePaths  = {},
               const QList<Message>& history  = {});
