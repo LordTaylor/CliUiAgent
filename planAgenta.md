@@ -121,22 +121,20 @@ Agent może czytać i pisać pliki oraz wykonywać inne narzędzia, a także imp
     - [x] **2.3.2.1. Testy `ToolExecutor`:** Stworzono `tests/test_tool_executor.cpp`.
     - [x] **2.3.2.2. Testy pętli agenta:** Stworzono `tests/test_chat_controller.cpp`.
 
-## Faza 3: Zaawansowane możliwości i niezawodność agenta (ZAKOŃCZONA)
+## Faza 4: Monitorowanie i optymalizacja (ZAKOŃCZONA)
 
 ### Cel:
-Rozszerzenie zestawu narzędzi agenta, lepsze zarządzanie kontekstem oraz wprowadzenie mechanizmów bezpieczeństwa i kontroli.
+Implementacja mechanizmów śledzenia wydajności agenta, logowania sesji oraz optymalizacji narzędzi.
 
 ### Zadania (Checklista):
 
-#### Krok 3.1: Rozszerzony zestaw narzędzi (Advanced Toolset)
-- [x] **3.1.1. Narzędzie `Search` (Grep):** Szybkie wyszukiwanie tekstu w plikach projektu.
-- [x] **3.1.2. Narzędzie `Replace`:** Bezpieczna zamiana tekstu w plikach przy użyciu wyrażeń regularnych.
-- [x] **3.1.3. Ulepszone `ListDirectory`:** Zwracanie szczegółów (rozmiar, data modyfikacji) dla lepszej orientacji AI.
+#### Krok 4.1: Śledzenie zużycia tokenów
+- [x] **Obliczanie tokenów:** Precyzyjne szacowanie za pomocą `TokenCounter` dla wejść i wyjść.
+- [x] **Statystyki sesji:** Automatyczna aktualizacja `Session::TokenStats`.
 
-#### Krok 3.2: Zarządzanie kontekstem i wydajność
-- [x] **3.2.1. Dynamiczny System Prompt:** Automatyczne dołączanie informacji o systemie (OS, folder roboczy, struktura projektu) do każdego zapytania.
-- [x] **3.2.2. Zarządzanie historią (Sliding Window):** Implementacja mechanizmu przycinania historii wiadomości, aby uniknąć przekroczenia limitu Tokenów.
+#### Krok 4.2: Logowanie sesji i debugowanie
+- [x] **Logi pętli:** Rozszerzone informacje o stanie agenta i wynikach narzędzi w konsoli i logach.
 
-#### Krok 3.3: Bezpieczeństwo i kontrola użytkownika
-- [x] **3.3.1. Tryb zatwierdzania (Manual Approval):** Opcja wymagająca potwierdzenia użytkownika przed wykonaniem "niebezpiecznych" narzędzi (Write, RunCommand).
-- [x] **3.3.2. Wskaźnik stanu agenta w UI:** Wizualna informacja (np. "Agent myśli...", "Wykonywanie narzędzia...") w interfejsie głównym.
+#### Krok 4.3: Optymalizacja narzędzi
+- [x] **Wydajność `Search`:** Dodano pomijanie plików binarnych i limit wielkości plików (1MB) dla szybszego przeszukiwania.
+- [x] **Limity wyników:** Ograniczenie do 100 trafień, aby nie przeciążać kontekstu AI.
