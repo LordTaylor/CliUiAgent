@@ -3,25 +3,28 @@
 #include <QJsonObject>
 #include <QString>
 #include <QUuid>
+#include <QList>
 #include "Attachment.h"
+#include "CodeBlock.h"
 
 namespace CodeHex {
 
 struct Message {
     enum class Role { User, Assistant, System };
-    enum class ContentType { Text, Image, Voice };
+    enum class ContentType { Text, Image, Voice, Code, Output }; // Added Code and Output types
 
     QUuid id;
     Role role = Role::User;
-    ContentType contentType = ContentType::Text;
-    QString text;
-    QString filePath;   // for Image / Voice content
+    QList<ContentType> contentTypes; // Allow multiple content types
+    QList<CodeBlock> contentBlocks; // Replaces 'text' and 'filePath'
     QDateTime timestamp;
     int tokenCount = 0;
     QList<Attachment> attachments;
 
     QJsonObject toJson() const;
     static Message fromJson(const QJsonObject& obj);
+
+    QString textFromContentBlocks() const;
 
     static QString roleToString(Role r);
     static Role roleFromString(const QString& s);

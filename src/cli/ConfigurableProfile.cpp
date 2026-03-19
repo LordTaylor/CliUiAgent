@@ -1,8 +1,10 @@
 #include "ConfigurableProfile.h"
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMimeDatabase>
 
 namespace CodeHex {
 
@@ -20,7 +22,12 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
     auto p = std::unique_ptr<ConfigurableProfile>(new ConfigurableProfile);
 
     const QString typeStr = obj["type"].toString("openai-compatible");
-    p->m_type = (typeStr == "ollama") ? ApiType::Ollama : ApiType::OpenAICompatible;
+    if (typeStr == "ollama")
+        p->m_type = ApiType::Ollama;
+    else if (typeStr == "claude")
+        p->m_type = ApiType::ClaudeProxy;
+    else
+        p->m_type = ApiType::OpenAICompatible;
 
     p->m_name        = obj["name"].toString("custom");
     p->m_displayName = obj["displayName"].toString(p->m_name);
@@ -29,18 +36,124 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
     p->m_model       = obj["model"].toString("local-model");
     p->m_systemPrompt = obj["systemPrompt"].toString(
         "You are an expert coding assistant. Be concise and precise.");
+    p->m_proxyUrl    = obj["proxyUrl"].toString("http://localhost:8082");
 
     return p;
 }
 
+// ── executable ────────────────────────────────────────────────────────────────
+
+QString ConfigurableProfile::executable() const {
+    return (m_type == ApiType::ClaudeProxy) ? "claude" : "curl";
+}
+
+// ── extraEnvironment ──────────────────────────────────────────────────────────
+
+QMap<QString, QString> ConfigurableProfile::extraEnvironment() const {
+    if (m_type != ApiType::ClaudeProxy) return {};
+    return {
+        {"ANTHROPIC_BASE_URL", m_proxyUrl},
+        {"ANTHROPIC_API_KEY",  "litellm-proxy"},
+    };
+}
+
 // ── buildArguments ────────────────────────────────────────────────────────────
 //
-// We use curl directly so that no additional Python/Node runtime is needed.
-// Arguments are passed as a proper argv array (no shell), so the JSON body
-// with arbitrary user text is safe without extra escaping.
+// For openai-compatible / ollama: we use curl directly.
+// For claude: we call the `claude` CLI with stream-json output.
+
+static constexpr int kMaxHistoryMessages = 20;
 
 QStringList ConfigurableProfile::buildArguments(const QString& prompt,
-                                                const QString& /*workDir*/) const {
+                                                const QString& workDir,
+                                                const QList<Message>& history) const {
+    // For ClaudeProxy: prepend chat history as context text (like ClaudeProfile).
+    if (m_type == ApiType::ClaudeProxy) {
+        const int histEnd   = history.size() - 1;
+        const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
+        QString context;
+        for (int i = histStart; i < histEnd; ++i) {
+            const Message& msg = history.at(i);
+            if (msg.role == Message::Role::User)
+                context += "[User]: " + msg.textFromContentBlocks() + "\n";
+            else if (msg.role == Message::Role::Assistant)
+                context += "[Assistant]: " + msg.textFromContentBlocks() + "\n";
+        }
+        const QString fullPrompt = context.isEmpty()
+            ? prompt
+            : context + "\n[User]: " + prompt;
+        return buildArguments(fullPrompt, workDir);
+    }
+
+    // For OpenAI-compatible: build full messages array from history.
+    if (m_type == ApiType::OpenAICompatible) {
+        QStringList args;
+        args << "-sN"
+             << "-X" << "POST"
+             << "-H" << "Content-Type: application/json"
+             << "-H" << QStringLiteral("Authorization: Bearer %1").arg(m_apiKey);
+
+        QJsonArray messages;
+        if (!m_systemPrompt.isEmpty())
+            messages.append(QJsonObject{{"role","system"},{"content", m_systemPrompt}});
+
+        const int histEnd   = history.size() - 1;
+        const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
+        for (int i = histStart; i < histEnd; ++i) {
+            const Message& msg = history.at(i);
+            if (msg.role == Message::Role::User && !msg.textFromContentBlocks().isEmpty())
+                messages.append(QJsonObject{{"role","user"},{"content", msg.textFromContentBlocks()}});
+            else if (msg.role == Message::Role::Assistant && !msg.textFromContentBlocks().isEmpty())
+                messages.append(QJsonObject{{"role","assistant"},{"content", msg.textFromContentBlocks()}});
+        }
+        messages.append(QJsonObject{{"role","user"},{"content", prompt}});
+
+        const QJsonObject body{
+            {"model",       m_model},
+            {"messages",    messages},
+            {"stream",      true},
+            {"temperature", 0.2},
+        };
+        args << "--data-raw"
+             << QString::fromUtf8(QJsonDocument(body).toJson(QJsonDocument::Compact));
+        args << m_baseUrl + "/chat/completions";
+        return args;
+    }
+
+    // Ollama: format history as conversational text prefix.
+    {
+        const int histEnd   = history.size() - 1;
+        const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
+        QString context;
+        for (int i = histStart; i < histEnd; ++i) {
+            const Message& msg = history.at(i);
+            if (msg.role == Message::Role::User)
+                context += "User: " + msg.textFromContentBlocks() + "\n";
+            else if (msg.role == Message::Role::Assistant)
+                context += "Assistant: " + msg.textFromContentBlocks() + "\n";
+        }
+        const QString fullPrompt = context.isEmpty()
+            ? prompt
+            : context + "\nUser: " + prompt;
+        return buildArguments(fullPrompt, workDir);
+    }
+}
+
+QStringList ConfigurableProfile::buildArguments(const QString& prompt,
+                                                const QString& workDir) const {
+    if (m_type == ApiType::ClaudeProxy) {
+        QStringList args;
+        args << "--print"
+             << "--verbose"
+             << "--output-format" << "stream-json"
+             << "--include-partial-messages"
+             << "--model" << m_model
+             << "-p" << prompt;
+        if (!workDir.isEmpty())
+            args << "--allowedTools" << "all";
+        return args;
+    }
+
     QStringList args;
     args << "-sN"          // silent + no progress, keep streaming alive
          << "-X" << "POST"
@@ -66,6 +179,9 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
         args << "--data-raw"
              << QString::fromUtf8(QJsonDocument(body).toJson(QJsonDocument::Compact));
         args << m_baseUrl + "/chat/completions";
+
+        // NOTE: images are pre-embedded as base64 data URLs by imageArguments()
+        // which CliRunner splices into the JSON body before the -p flag.
 
     } else {
         // ── Ollama REST API (/api/generate) ────────────────────────────────
@@ -94,6 +210,33 @@ QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
     const QByteArray line = raw.trimmed();
     if (line.isEmpty()) return {};
 
+    if (m_type == ApiType::ClaudeProxy) {
+        // claude --output-format stream-json --include-partial-messages format:
+        // {"type":"stream_event","event":{"type":"content_block_delta",
+        //   "delta":{"type":"text_delta","text":"hello"}}}
+        const auto doc = QJsonDocument::fromJson(line);
+        if (doc.isNull()) return {};
+        const auto obj = doc.object();
+        const QString type = obj["type"].toString();
+
+        if (type == "stream_event") {
+            const auto event = obj["event"].toObject();
+            if (event["type"].toString() == "content_block_delta") {
+                const auto delta = event["delta"].toObject();
+                if (delta["type"].toString() == "text_delta")
+                    return delta["text"].toString();
+            }
+            return {};
+        }
+        // Fallback: full message without partial streaming
+        if (type == "assistant") {
+            const auto content = obj["message"].toObject()["content"].toArray();
+            if (!content.isEmpty())
+                return content[0].toObject()["text"].toString();
+        }
+        return {};
+    }
+
     if (m_type == ApiType::OpenAICompatible) {
         // SSE format: "data: {...}"  or  "data: [DONE]"
         QByteArray data = line;
@@ -114,6 +257,29 @@ QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
         if (doc.isNull()) return {};
         return doc.object()["response"].toString();
     }
+}
+
+// ── imageArguments ────────────────────────────────────────────────────────────
+QStringList ConfigurableProfile::imageArguments(const QStringList& imagePaths) const {
+    if (imagePaths.isEmpty()) return {};
+
+    if (m_type == ApiType::ClaudeProxy) {
+        // claude CLI supports --image <path> natively
+        QStringList args;
+        for (const QString& p : imagePaths)
+            args << "--image" << p;
+        return args;
+    }
+
+    // OpenAI-compatible / Ollama: images must go inside the JSON body of
+    // --data-raw. CliRunner calls imageArguments() and splices extra flags
+    // around the -p token, but for curl-based profiles there is no -p token
+    // and the JSON is already fully built in buildArguments(). The correct
+    // solution is to pass imagePaths to buildArguments() — this is tracked as
+    // a future improvement. For now, ChatController embeds images as
+    // base64 data-URL strings inside the text prompt, which multimodal models
+    // such as LM Studio's vision variants can parse.
+    return {};
 }
 
 }  // namespace CodeHex

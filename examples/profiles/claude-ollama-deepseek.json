@@ -1,0 +1,8 @@
+{
+  "name": "claude-ollama-deepseek",
+  "displayName": "Claude Code → Ollama (DeepSeek Coder 6.7B)",
+  "type": "claude",
+  "proxyUrl": "http://localhost:8082",
+  "model": "ollama/deepseek-coder:6.7b",
+  "systemPrompt": "You are an expert coding assistant. Help the user write clean, efficient code."
+}

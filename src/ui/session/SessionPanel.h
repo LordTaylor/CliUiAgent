@@ -2,6 +2,7 @@
 #include <QWidget>
 
 class QListWidget;
+class QListWidgetItem;
 class QPushButton;
 
 namespace CodeHex {
@@ -21,7 +22,9 @@ signals:
     void newSessionRequested();
 
 private slots:
-    void onItemDoubleClicked();
+    void onItemClicked(QListWidgetItem* item);
+    void onItemDoubleClicked(QListWidgetItem* item);
+    void onItemChanged(QListWidgetItem* item);
     void onNewClicked();
     void onDeleteClicked();
 

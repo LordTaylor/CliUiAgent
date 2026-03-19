@@ -34,9 +34,16 @@ ConsoleWidget::ConsoleWidget(QWidget* parent) : QWidget(parent) {
 }
 
 void ConsoleWidget::appendText(const QString& text) {
+    // Auto-expand the console on the first piece of output so the user always
+    // sees CLI communication without having to click the toggle button.
+    if (!m_hadOutput) {
+        m_hadOutput = true;
+        setExpanded(true);
+    }
     m_edit->moveCursor(QTextCursor::End);
     m_edit->insertPlainText(text);
     m_edit->moveCursor(QTextCursor::End);
+    m_edit->ensureCursorVisible();  // scroll view to bottom even if user scrolled up
 }
 
 void ConsoleWidget::clear() {

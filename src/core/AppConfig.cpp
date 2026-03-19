@@ -41,11 +41,16 @@ QString AppConfig::activeProfile() const { return m_activeProfile; }
 void AppConfig::setActiveProfile(const QString& name) {
     if (m_activeProfile == name) return;
     m_activeProfile = name;
+    save();
     emit activeProfileChanged(name);
 }
 
 QString AppConfig::workingFolder() const { return m_workingFolder; }
-void AppConfig::setWorkingFolder(const QString& path) { m_workingFolder = path; }
+void AppConfig::setWorkingFolder(const QString& path) {
+    if (m_workingFolder == path) return;
+    m_workingFolder = path;
+    save();   // persist immediately so the folder survives restarts
+}
 
 QString AppConfig::lastSessionId() const { return m_lastSessionId; }
 void AppConfig::setLastSessionId(const QString& id) { m_lastSessionId = id; }

@@ -1,6 +1,7 @@
 #pragma once
 #include <QStyledItemDelegate>
 #include <QTextDocument>
+#include "../../data/Message.h" // Include Message for the new paintMessageContent signature
 
 namespace CodeHex {
 
@@ -15,20 +16,20 @@ public:
                    const QModelIndex& index) const override;
 
 private:
-    static constexpr int kBubblePadding = 12;
+    static constexpr int kBubblePadding  = 12;
+    static constexpr int kBadgeHeight    = 20;
+    static constexpr int kBadgeMargin    = 4;
     static constexpr int kBubbleRadius  = 10;
     static constexpr int kMaxBubbleWidth = 520;
     static constexpr int kAvatarSize    = 32;
     static constexpr int kRowMargin     = 8;
 
-    void paintTextBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                         const QModelIndex& idx) const;
-    void paintImageBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                          const QModelIndex& idx) const;
-    void paintVoiceBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                          const QModelIndex& idx) const;
+    // New: Generic method to paint message content blocks.
+    void paintMessageContent(QPainter* p, const QStyleOptionViewItem& opt,
+                             const Message& msg) const;
 
-    QTextDocument* makeTextDoc(const QString& text, int maxWidth) const;
+    // isMarkdown=true: renders CommonMark (assistant); false: plain text (user)
+    QTextDocument* makeTextDoc(const QString& text, int maxWidth, bool isMarkdown) const;
 };
 
 }  // namespace CodeHex

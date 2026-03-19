@@ -1,8 +1,10 @@
 #pragma once
+#include <QFileInfo>
 #include <QList>
 #include <QWidget>
 #include "../../data/Attachment.h"
 
+class QLabel;
 class QTextEdit;
 class QPushButton;
 
@@ -30,13 +32,15 @@ private slots:
     void onSendClicked();
     void onTextChanged();
     void onVoiceMessageReady(const QString& path);
+    void onAttachmentsChanged(const QList<Attachment>& attachments);
 
 private:
-    QTextEdit* m_textEdit;
+    QLabel*          m_attachBadge;  // shows queued filenames above text input
+    QTextEdit*       m_textEdit;
     AttachmentButton* m_attachBtn;
-    VoiceButton* m_voiceBtn;
-    QPushButton* m_sendBtn;
-    QPushButton* m_stopBtn;
+    VoiceButton*     m_voiceBtn;
+    QPushButton*     m_sendBtn;
+    QPushButton*     m_stopBtn;
 };
 
 }  // namespace CodeHex

@@ -1,6 +1,7 @@
 #include "InputPanel.h"
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QPushButton>
 #include <QSizePolicy>
 #include <QTextEdit>
@@ -10,20 +11,20 @@
 
 namespace CodeHex {
 
-// Custom QTextEdit that sends on Ctrl+Enter
+// Custom QTextEdit that sends on Ctrl+Enter or plain Enter
 class ExpandingTextEdit : public QTextEdit {
     Q_OBJECT
 public:
     explicit ExpandingTextEdit(QWidget* parent = nullptr) : QTextEdit(parent) {}
 
-    QSize sizeHint() const override {
-        return {400, 60};
-    }
+    QSize sizeHint() const override { return {400, 60}; }
 
 protected:
     void keyPressEvent(QKeyEvent* event) override {
-        if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) &&
-            event->modifiers() & Qt::ControlModifier) {
+        const bool enter = (event->key() == Qt::Key_Return ||
+                            event->key() == Qt::Key_Enter);
+        // Ctrl+Enter → send; plain Enter → send; Shift+Enter → newline
+        if (enter && !(event->modifiers() & Qt::ShiftModifier)) {
             emit sendTriggered();
             return;
         }
@@ -39,10 +40,17 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     outerLayout->setContentsMargins(8, 4, 8, 4);
     outerLayout->setSpacing(4);
 
+    // Attachment badge row — shows filenames of queued attachments
+    m_attachBadge = new QLabel(this);
+    m_attachBadge->setObjectName("attachBadge");
+    m_attachBadge->setWordWrap(true);
+    m_attachBadge->setVisible(false);
+    outerLayout->addWidget(m_attachBadge);
+
     // Text input
     auto* te = new ExpandingTextEdit(this);
     te->setObjectName("inputTextEdit");
-    te->setPlaceholderText("Type a message… (Ctrl+Enter to send)");
+    te->setPlaceholderText("Type a message… (Enter to send, Shift+Enter for newline)");
     te->setMinimumHeight(48);
     te->setMaximumHeight(120);
     te->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -80,13 +88,16 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     connect(m_voiceBtn, &VoiceButton::voiceMessageReady,
             this, &InputPanel::onVoiceMessageReady);
     connect(te, &ExpandingTextEdit::sendTriggered, this, &InputPanel::onSendClicked);
+    // Refresh Send button + badge whenever the attachment list changes
+    connect(m_attachBtn, &AttachmentButton::attachmentsChanged,
+            this, &InputPanel::onAttachmentsChanged);
 }
 
 void InputPanel::setEnabled(bool enabled) {
     m_textEdit->setEnabled(enabled);
     m_attachBtn->setEnabled(enabled);
     m_voiceBtn->setEnabled(enabled);
-    onTextChanged();  // refresh send button state
+    onTextChanged();
 }
 
 void InputPanel::setSendEnabled(bool enabled) {
@@ -100,6 +111,7 @@ void InputPanel::setStopEnabled(bool enabled) {
 void InputPanel::clearInput() {
     m_textEdit->clear();
     m_attachBtn->clearAttachments();
+    // Badge hidden via onAttachmentsChanged which clearAttachments() triggers
 }
 
 void InputPanel::onSendClicked() {
@@ -116,12 +128,31 @@ void InputPanel::onTextChanged() {
     m_sendBtn->setEnabled(hasContent);
 }
 
+void InputPanel::onAttachmentsChanged(const QList<Attachment>& attachments) {
+    onTextChanged();   // refresh Send button state
+
+    if (attachments.isEmpty()) {
+        m_attachBadge->setVisible(false);
+        m_attachBtn->setToolTip("Attach files or images");
+        return;
+    }
+
+    // Build a compact list of filenames for the badge
+    QStringList names;
+    for (const Attachment& a : attachments)
+        names << QFileInfo(a.filePath).fileName();
+
+    m_attachBadge->setText("📎 " + names.join("  ·  "));
+    m_attachBadge->setVisible(true);
+    m_attachBtn->setToolTip(
+        QString("%1 file(s) attached:\n  ").arg(attachments.size()) + names.join("\n  "));
+}
+
 void InputPanel::onVoiceMessageReady(const QString& path) {
     Attachment a;
     a.filePath = path;
     a.mimeType = "audio/wav";
     a.type = Attachment::Type::Audio;
-    // Send immediately as a voice message
     emit sendRequested({}, {a});
 }
 

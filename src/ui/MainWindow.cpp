@@ -10,6 +10,7 @@
 #include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include "help/HelpDialog.h"
@@ -70,6 +71,16 @@ MainWindow::MainWindow(AppConfig* config,
             this, &MainWindow::onGenerationStopped);
     connect(m_controller, &ChatController::errorOccurred,
             m_console, &ConsoleWidget::appendText);
+    connect(m_controller, &ChatController::sessionRenamed,
+            this, [this](const QString& /*id*/, const QString& title) {
+                m_sessionPanel->refresh();
+                setWindowTitle("CodeHex — " + title);
+            });
+
+    // Cursor blink timer (started/stopped around generation)
+    m_cursorTimer = new QTimer(this);
+    m_cursorTimer->setInterval(500);
+    connect(m_cursorTimer, &QTimer::timeout, this, &MainWindow::onCursorBlink);
 
     // Load sessions and open last
     m_sessions->loadAll();
@@ -160,6 +171,11 @@ void MainWindow::setupUi() {
 
     connect(m_profileCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onProfileChanged);
+
+    // Token stats label in status bar
+    m_tokenLabel = new QLabel(this);
+    m_tokenLabel->setObjectName("tokenLabel");
+    statusBar()->addPermanentWidget(m_tokenLabel);
 }
 
 void MainWindow::setupMenuBar() {
@@ -287,9 +303,21 @@ void MainWindow::populateProfileCombo() {
 }
 
 void MainWindow::switchSession(Session* session) {
+    if (!session) return;   // guard against null (e.g. openSession failure)
     m_messageModel->setSession(session);
     m_chatView->scrollToBottom();
-    setWindowTitle("CodeHex — " + (session ? session->title : QString("No session")));
+    setWindowTitle("CodeHex — " + session->title);
+    updateTokenLabel();
+}
+
+void MainWindow::updateTokenLabel() {
+    auto* s = m_sessions->currentSession();
+    if (!s || (s->tokens.input == 0 && s->tokens.output == 0)) {
+        m_tokenLabel->clear();
+        return;
+    }
+    m_tokenLabel->setText(
+        QString("Tokens: %1 in / %2 out").arg(s->tokens.input).arg(s->tokens.output));
 }
 
 void MainWindow::onSendRequested(const QString& text, const QList<Attachment>& attachments) {
@@ -309,51 +337,69 @@ void MainWindow::onSessionSelected(const QString& id) {
 
 void MainWindow::onNewSessionRequested() {
     Session* s = m_sessions->createSession(m_config->activeProfile(), "default");
+    if (!s) return;
     m_sessions->setCurrentSession(s);
     switchSession(s);
 }
 
 void MainWindow::onTokenReceived(const QString& token) {
-    // Update or append the live streaming assistant message
     if (!m_hasStreamingMsg) {
-        m_streamingText.clear();
+        // First token — create the assistant bubble
+        m_streamingText = token;
         Message liveMsg;
         liveMsg.id = QUuid::createUuid();
         liveMsg.role = Message::Role::Assistant;
-        liveMsg.contentType = Message::ContentType::Text;
-        liveMsg.text = token;
+        liveMsg.contentBlocks.append(CodeBlock{token, BlockType::Text});
+        liveMsg.contentTypes.append(Message::ContentType::Text);
         liveMsg.timestamp = QDateTime::currentDateTimeUtc();
         m_messageModel->appendMessage(liveMsg);
         m_hasStreamingMsg = true;
     } else {
+        // Subsequent tokens — accumulate and update in-place.
+        // The cursor blink timer overlays the ▋ independently.
         m_streamingText += token;
-        // Update last row in-place
-        const int lastRow = m_messageModel->rowCount() - 1;
-        if (lastRow >= 0) {
-            // We use a workaround: setData is not exposed, so we re-append
-            // For a production version, expose a updateLastMessage() on the model
-        }
+        m_messageModel->updateLastMessage(m_streamingText);
     }
     m_chatView->scrollToBottom();
 }
 
+void MainWindow::onCursorBlink() {
+    if (!m_hasStreamingMsg) return;
+    m_cursorVisible = !m_cursorVisible;
+    m_messageModel->updateLastMessage(
+        m_streamingText + (m_cursorVisible ? "▋" : ""));
+}
+
 void MainWindow::onResponseComplete(const Message& msg) {
-    Q_UNUSED(msg)
+    // Stop cursor, set final complete text (no cursor)
+    m_cursorTimer->stop();
+    m_isStreaming = false;
+    m_cursorVisible = false;
+    if (m_hasStreamingMsg && !msg.textFromContentBlocks().isEmpty())
+        m_messageModel->updateLastMessage(msg.textFromContentBlocks());
     m_hasStreamingMsg = false;
     m_streamingText.clear();
     m_chatView->scrollToBottom();
+    updateTokenLabel();
 }
 
 void MainWindow::onGenerationStarted() {
+    m_isStreaming = true;
+    m_cursorVisible = true;
+    m_cursorTimer->start();
     m_inputPanel->setSendEnabled(false);
     m_inputPanel->setStopEnabled(true);
     statusBar()->showMessage("Generating…");
 }
 
 void MainWindow::onGenerationStopped() {
+    m_cursorTimer->stop();
+    m_isStreaming = false;
+    m_cursorVisible = false;
     m_inputPanel->setSendEnabled(true);
     m_inputPanel->setStopEnabled(false);
     statusBar()->clearMessage();
+    updateTokenLabel();
 }
 
 void MainWindow::onProfileChanged(int index) {

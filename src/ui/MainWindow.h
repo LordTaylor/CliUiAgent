@@ -1,7 +1,9 @@
 #pragma once
 #include <QComboBox>
+#include <QLabel>
 #include <QMainWindow>
 #include <QSplitter>
+#include <QTimer>
 #include "../cli/ProfileEntry.h"
 #include "../data/Attachment.h"
 #include "../data/Message.h"
@@ -70,12 +72,19 @@ private:
     ConsoleWidget*      m_console;
     WorkFolderSelector* m_folderSelector;
     QComboBox*          m_profileCombo;
+    QLabel*             m_tokenLabel   = nullptr;
 
     // Streaming state
     QString m_streamingText;
-    bool    m_hasStreamingMsg = false;
+    bool    m_hasStreamingMsg  = false;
+    bool    m_isStreaming       = false;
+    bool    m_cursorVisible     = false;
+    QTimer* m_cursorTimer       = nullptr;
 
     HelpDialog* m_helpDialog = nullptr;
+
+    void updateTokenLabel();
+    void onCursorBlink();
 };
 
 }  // namespace CodeHex

@@ -1,0 +1,8 @@
+{
+  "name": "claude-lmstudio-qwen14b",
+  "displayName": "Claude Code → LM Studio (Qwen 2.5 Coder 14B)",
+  "type": "claude",
+  "proxyUrl": "http://localhost:8082",
+  "model": "qwen/qwen2.5-coder-14b",
+  "systemPrompt": "You are an expert coding assistant. Help the user write clean, efficient code."
+}

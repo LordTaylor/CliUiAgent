@@ -3,114 +3,204 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QTextDocument>
-#include "../chat/MessageModel.h"
+#include <memory>
+#include <QFileInfo> // Added
+#include "MessageModel.h"
+#include "../../data/CodeBlock.h"
 #include "../../data/Message.h"
 
 namespace CodeHex {
 
 MessageDelegate::MessageDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
 
+// ── makeTextDoc ───────────────────────────────────────────────────────────────
+// Creates a QTextDocument with the given text. When isMarkdown=true the text
+// is parsed as CommonMark (Qt6 setMarkdown); otherwise plain text is used.
+// The caller takes ownership of the returned pointer.
+QTextDocument* MessageDelegate::makeTextDoc(const QString& text, int maxWidth,
+                                             bool isMarkdown) const {
+    auto* doc = new QTextDocument();
+    doc->setPageSize({qreal(maxWidth), -1.0});
+    if (isMarkdown)
+        doc->setMarkdown(text);
+    else
+        doc->setPlainText(text);
+    return doc;
+}
+
+// ── paintMessageContent ───────────────────────────────────────────────────────
+// Generic method to paint message content blocks.
+void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewItem& opt,
+                                          const Message& msg) const {
+    const bool isUser = (msg.role == Message::Role::User);
+    const QRect& r = opt.rect;
+    const int viewWidth = r.width();
+    const int maxW = qMin(kMaxBubbleWidth, viewWidth - 2 * kAvatarSize - 20);
+
+    int currentY = r.top() + kRowMargin;
+
+    for (const CodeBlock& block : msg.contentBlocks) {
+        if (block.type == BlockType::Text) {
+            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, !isUser));
+            QTextDocument& doc = *docPtr;
+            doc.setDefaultFont(opt.font);
+            doc.setTextWidth(maxW - 2 * kBubblePadding);
+            const int docH = static_cast<int>(doc.size().height());
+            const int bubbleH = docH + 2 * kBubblePadding;
+            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
+
+            int x;
+            if (isUser) {
+                x = viewWidth - bubbleW - kAvatarSize - 12;
+            } else {
+                x = kAvatarSize + 12;
+            }
+
+            // Bubble background
+            const QColor bubbleColor = isUser ? QColor(0x2563EB) : QColor(0x374151);
+            p->setPen(Qt::NoPen);
+            p->setBrush(bubbleColor);
+            p->setRenderHint(QPainter::Antialiasing);
+            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+
+            // Text
+            p->save();
+            p->translate(x + kBubblePadding, currentY + kBubblePadding);
+            p->setPen(Qt::white);
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            ctx.palette.setColor(QPalette::Text, Qt::white);
+            doc.documentLayout()->draw(p, ctx);
+            p->restore();
+
+            currentY += bubbleH + kRowMargin; // Move Y for next block
+        } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
+            // Render code block
+            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, true)); // Code is always markdown
+            QTextDocument& doc = *docPtr;
+            doc.setDefaultFont(opt.font);
+            doc.setTextWidth(maxW - 2 * kBubblePadding);
+            const int docH = static_cast<int>(doc.size().height());
+            const int bubbleH = docH + 2 * kBubblePadding;
+            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
+
+            int x;
+            x = kAvatarSize + 12; // Code blocks always align left (assistant output)
+
+            // Bubble background (gray for code)
+            const QColor codeColor(0x1F2937);
+            p->setPen(Qt::NoPen);
+            p->setBrush(codeColor);
+            p->setRenderHint(QPainter::Antialiasing);
+            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+
+            // Text
+            p->save();
+            p->translate(x + kBubblePadding, currentY + kBubblePadding);
+            p->setPen(QColor(0x9CA3AF)); // Lighter text for code
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            ctx.palette.setColor(QPalette::Text, QColor(0x9CA3AF));
+            doc.documentLayout()->draw(p, ctx);
+            p->restore();
+
+            currentY += bubbleH + kRowMargin; // Move Y for next block
+        } else if (block.type == BlockType::Output) {
+            // Render CLI output block
+            std::unique_ptr<QTextDocument> docPtr(makeTextDoc(block.content, maxW - 2 * kBubblePadding, false)); // Output is plain text
+            QTextDocument& doc = *docPtr;
+            doc.setDefaultFont(opt.font);
+            doc.setTextWidth(maxW - 2 * kBubblePadding);
+            const int docH = static_cast<int>(doc.size().height());
+            const int bubbleH = docH + 2 * kBubblePadding;
+            const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
+
+            int x;
+            x = kAvatarSize + 12; // Output blocks always align left (assistant output)
+
+            // Bubble background (even darker gray for output)
+            const QColor outputColor(0x111827);
+            p->setPen(Qt::NoPen);
+            p->setBrush(outputColor);
+            p->setRenderHint(QPainter::Antialiasing);
+            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+
+            // Text
+            p->save();
+            p->translate(x + kBubblePadding, currentY + kBubblePadding);
+            p->setPen(QColor(0xD1D5DB)); // Lighter text for output
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            ctx.palette.setColor(QPalette::Text, QColor(0xD1D5DB));
+            doc.documentLayout()->draw(p, ctx);
+            p->restore();
+
+            currentY += bubbleH + kRowMargin; // Move Y for next block
+        }
+    }
+
+    // Attachment badge - only for user messages with files
+    // Assuming attachments are now handled directly from msg.attachments
+    if (!msg.attachments.isEmpty() && isUser) {
+        const int badgeY = currentY;
+        QStringList badgeTexts;
+        for (const auto& att : msg.attachments) {
+            const QString icon = (att.type == Attachment::Type::Image)  ? "🖼" :
+                                 (att.type == Attachment::Type::Audio)  ? "🎤" : "📄";
+            badgeTexts << icon + " " + QFileInfo(att.filePath).fileName();
+        }
+        const QString badgeText = badgeTexts.join("  ");
+
+        QFont badgeFont = opt.font;
+        badgeFont.setPointSizeF(badgeFont.pointSizeF() * 0.82);
+        p->setFont(badgeFont);
+
+        // Pill background
+        const QFontMetrics fm(badgeFont);
+        const int textW = fm.horizontalAdvance(badgeText) + 16;
+        const int badgeX = isUser ? viewWidth - textW - kAvatarSize - 12 : kAvatarSize + 12;
+
+        p->setPen(Qt::NoPen);
+        p->setBrush(QColor(0x1F2937));
+        p->drawRoundedRect(badgeX, badgeY, textW, kBadgeHeight, 6, 6);
+
+        p->setPen(QColor(0x9CA3AF));
+        p->drawText(QRect(badgeX + 8, badgeY, textW - 8, kBadgeHeight),
+                    Qt::AlignVCenter | Qt::AlignLeft, badgeText);
+
+        p->setFont(opt.font);  // restore
+    }
+}
+
+
 void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                              const QModelIndex& index) const {
     painter->save();
-    const int type = index.data(MessageModel::ContentTypeRole).toInt();
-    switch (static_cast<Message::ContentType>(type)) {
-        case Message::ContentType::Image: paintImageBubble(painter, option, index); break;
-        case Message::ContentType::Voice: paintVoiceBubble(painter, option, index); break;
-        default:                          paintTextBubble(painter, option, index);  break;
+    const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
+
+    if (!msg.contentBlocks.isEmpty() || !msg.attachments.isEmpty()) { // Also paint if only attachments
+        paintMessageContent(painter, option, msg);
     }
     painter->restore();
 }
 
 QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
-    const QString text = index.data(MessageModel::TextRole).toString();
+    const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
     const int viewWidth = option.rect.width() > 0 ? option.rect.width() : 600;
     const int maxW = qMin(kMaxBubbleWidth, viewWidth - 2 * kAvatarSize - 20);
 
-    QTextDocument doc;
-    doc.setDefaultFont(option.font);
-    doc.setPlainText(text);
-    doc.setTextWidth(maxW - 2 * kBubblePadding);
-    const int h = static_cast<int>(doc.size().height()) + 2 * kBubblePadding + 2 * kRowMargin;
-    return {viewWidth, qMax(h, kAvatarSize + 2 * kRowMargin)};
-}
-
-void MessageDelegate::paintTextBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                                      const QModelIndex& idx) const {
-    const QString text = idx.data(MessageModel::TextRole).toString();
-    const int role = idx.data(MessageModel::RoleRole).toInt();
-    const bool isUser = (role == static_cast<int>(Message::Role::User));
-
-    const QRect& r = opt.rect;
-    const int viewWidth = r.width();
-    const int maxW = qMin(kMaxBubbleWidth, viewWidth - 2 * kAvatarSize - 20);
-
-    QTextDocument doc;
-    doc.setDefaultFont(opt.font);
-    doc.setPlainText(text);
-    doc.setTextWidth(maxW - 2 * kBubblePadding);
-    const int docH = static_cast<int>(doc.size().height());
-    const int bubbleH = docH + 2 * kBubblePadding;
-    const int bubbleW = qMin(maxW, static_cast<int>(doc.idealWidth()) + 2 * kBubblePadding);
-
-    int x, y;
-    y = r.top() + kRowMargin;
-    if (isUser) {
-        x = viewWidth - bubbleW - kAvatarSize - 12;
-    } else {
-        x = kAvatarSize + 12;
+    int totalHeight = 0;
+    for (const CodeBlock& block : msg.contentBlocks) {
+        // Code blocks should be rendered as markdown for syntax highlighting
+        bool isMarkdown = (block.type != BlockType::Text);
+        std::unique_ptr<QTextDocument> doc(makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown));
+        doc->setDefaultFont(option.font);
+        totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
     }
 
-    // Bubble background
-    const QColor bubbleColor = isUser ? QColor(0x2563EB) : QColor(0x374151);
-    p->setPen(Qt::NoPen);
-    p->setBrush(bubbleColor);
-    p->setRenderHint(QPainter::Antialiasing);
-    p->drawRoundedRect(x, y, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+    // Extra height for attachment badge
+    if (!msg.attachments.isEmpty())
+        totalHeight += kBadgeHeight + kBadgeMargin;
 
-    // Text
-    p->save();
-    p->translate(x + kBubblePadding, y + kBubblePadding);
-    p->setPen(Qt::white);
-    QAbstractTextDocumentLayout::PaintContext ctx;
-    ctx.palette.setColor(QPalette::Text, Qt::white);
-    doc.documentLayout()->draw(p, ctx);
-    p->restore();
-}
-
-void MessageDelegate::paintImageBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                                       const QModelIndex& idx) const {
-    const QString path = idx.data(MessageModel::FilePathRole).toString();
-    const QRect& r = opt.rect;
-    QPixmap pix(path);
-    if (pix.isNull()) {
-        p->drawText(r, Qt::AlignCenter, "[Image: " + path + "]");
-        return;
-    }
-    const int maxDim = 200;
-    pix = pix.scaled(maxDim, maxDim, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    const int x = r.left() + kAvatarSize + 12;
-    const int y = r.top() + kRowMargin;
-    p->setRenderHint(QPainter::SmoothPixmapTransform);
-    p->drawPixmap(x, y, pix);
-}
-
-void MessageDelegate::paintVoiceBubble(QPainter* p, const QStyleOptionViewItem& opt,
-                                       const QModelIndex& idx) const {
-    const QRect& r = opt.rect;
-    const QColor bubbleColor(0x374151);
-    p->setPen(Qt::NoPen);
-    p->setBrush(bubbleColor);
-    p->setRenderHint(QPainter::Antialiasing);
-    const int bw = 160, bh = 40;
-    const int x = r.left() + kAvatarSize + 12;
-    const int y = r.top() + kRowMargin;
-    p->drawRoundedRect(x, y, bw, bh, kBubbleRadius, kBubbleRadius);
-
-    // Microphone icon placeholder
-    p->setPen(Qt::white);
-    p->drawText(QRect(x, y, bw, bh), Qt::AlignCenter, "🎤 Voice message");
+    return {viewWidth, qMax(totalHeight, kAvatarSize + 2 * kRowMargin)};
 }
 
 }  // namespace CodeHex

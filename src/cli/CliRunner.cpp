@@ -1,5 +1,11 @@
 #include "CliRunner.h"
 #include <QDebug>
+#include <QDir> // Added for QDir::homePath()
+#include <QJsonDocument>
+#include <QRegularExpression>
+//#include <QTextCodec> // Removed
+#include "CliProfile.h"
+#include "../data/ToolCall.h" // Ensure this is included for ToolCall type
 
 namespace CodeHex {
 
@@ -12,10 +18,22 @@ CliRunner::CliRunner(QObject* parent) : QObject(parent) {
             this, &CliRunner::onProcessFinished);
     connect(&m_process, &QProcess::errorOccurred,
             this, &CliRunner::onProcessError);
+
+    // New connections for simple process
+    connect(&m_simpleProcess, &QProcess::readyReadStandardOutput,
+            this, &CliRunner::onSimpleReadyReadStdout);
+    connect(&m_simpleProcess, &QProcess::readyReadStandardError,
+            this, &CliRunner::onSimpleReadyReadStderr);
+    connect(&m_simpleProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &CliRunner::onSimpleProcessFinished);
+    connect(&m_simpleProcess, &QProcess::errorOccurred,
+            this, &CliRunner::onSimpleProcessError);
 }
 
 CliRunner::~CliRunner() {
     stop();
+    m_simpleProcess.terminate(); // Terminate simple process as well
+    m_simpleProcess.waitForFinished(100);
 }
 
 void CliRunner::setProfile(std::unique_ptr<CliProfile> profile) {
@@ -26,70 +44,201 @@ CliProfile* CliRunner::profile() const {
     return m_profile.get();
 }
 
-void CliRunner::send(const QString& prompt, const QString& workDir) {
+void CliRunner::send(const QString& prompt,
+                      const QString& workDir,
+                      const QStringList& imagePaths,
+                      const QList<Message>& history) {
     if (!m_profile) {
-        emit errorChunk("No CLI profile set.");
+        qWarning() << "CliRunner: no profile set";
+        emit errorChunk("Error: No AI profile selected.");
+        emit finished(1);
         return;
     }
-    if (m_process.state() != QProcess::NotRunning) {
-        stop();
-    }
 
-    if (!workDir.isEmpty()) {
-        m_process.setWorkingDirectory(workDir);
-    }
-
-    const QStringList args = m_profile->buildArguments(prompt, workDir);
-    m_process.start(m_profile->executable(), args);
-    if (!m_process.waitForStarted(3000)) {
-        emit errorChunk(QString("Failed to start '%1': %2")
-                        .arg(m_profile->executable(), m_process.errorString()));
+    if (isRunning()) {
+        qWarning() << "CliRunner: already running";
+        emit errorChunk("Error: Already generating a response.");
+        emit finished(1);
         return;
     }
-    m_process.closeWriteChannel();
+
+    // Stop m_simpleProcess if it's running
+    if (m_simpleProcess.state() == QProcess::Running) {
+        m_simpleProcess.terminate();
+        m_simpleProcess.waitForFinished(1000);
+    }
+
+    // Apply any extra environment variables declared by the profile.
+    const auto extra = m_profile->extraEnvironment();
+    if (!extra.isEmpty()) {
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        for (auto it = extra.cbegin(); it != extra.cend(); ++it)
+            env.insert(it.key(), it.value());
+        m_process.setProcessEnvironment(env);
+    }
+
+    // Build final argument list:
+    //   baseArgs  = profile's standard args (includes -p <prompt> at the end)
+    //   imgArgs   = --image <path> ... (must come before -p for claude)
+    // Strategy: find -p in baseArgs and splice imgArgs just before it.
+    // Use 3-arg overload when history is provided to enable multi-turn context.
+    QStringList baseArgs = history.isEmpty()
+        ? m_profile->buildArguments(prompt, workDir)
+        : m_profile->buildArguments(prompt, workDir, history);
+    if (!imagePaths.isEmpty()) {
+        const QStringList imgArgs = m_profile->imageArguments(imagePaths);
+        if (!imgArgs.isEmpty()) {
+            const int pIdx = baseArgs.indexOf("-p");
+            if (pIdx >= 0) {
+                for (int i = imgArgs.size() - 1; i >= 0; --i)
+                    baseArgs.insert(pIdx, imgArgs[i]);
+            } else {
+                baseArgs << imgArgs;  // fallback: append
+            }
+        }
+    }
+
+    m_process.setProgram(m_profile->executable()); // Corrected cliPath to executable
+    m_process.setArguments(baseArgs); // Use baseArgs here
+    m_process.setWorkingDirectory(workDir);
+
+    m_lineBuf.clear();
+    m_process.start();
+
+    if (!m_process.waitForStarted()) {
+        qWarning() << "CliRunner: failed to start process:" << m_process.errorString();
+        emit errorChunk(QString("Error: Failed to start CLI process: %1").arg(m_process.errorString()));
+        emit finished(1);
+        return;
+    }
     emit started();
 }
 
 void CliRunner::stop() {
-    if (m_process.state() != QProcess::NotRunning) {
-        m_process.kill();
-        m_process.waitForFinished(2000);
+    if (m_process.state() == QProcess::Running) {
+        m_process.terminate();
+        m_process.waitForFinished(1000); // Wait up to 1 second
+    }
+    if (m_simpleProcess.state() == QProcess::Running) {
+        m_simpleProcess.terminate();
+        m_simpleProcess.waitForFinished(1000);
     }
 }
 
 bool CliRunner::isRunning() const {
-    return m_process.state() != QProcess::NotRunning;
+    return m_process.state() == QProcess::Running || m_simpleProcess.state() == QProcess::Running;
+}
+
+// New: for running simple bash commands
+void CliRunner::runSimpleCommand(const QString& command, const QString& workingDirectory) {
+    if (m_simpleProcess.state() == QProcess::Running || m_process.state() == QProcess::Running) {
+        qWarning() << "CliRunner: a command is already running (simple or profile-based)";
+        emit simpleCommandFinished(1, "", "Error: Another command is already running.");
+        return;
+    }
+
+    m_simpleOutputBuf.clear();
+    m_simpleErrorBuf.clear();
+
+    m_simpleProcess.setProgram("bash");
+    m_simpleProcess.setArguments({"-c", command});
+    if (!workingDirectory.isEmpty()) {
+        m_simpleProcess.setWorkingDirectory(workingDirectory);
+    } else {
+        m_simpleProcess.setWorkingDirectory(QDir::homePath()); // Default to home if not specified
+    }
+
+    m_simpleProcess.start();
+
+    if (!m_simpleProcess.waitForStarted()) {
+        qWarning() << "CliRunner: failed to start simple process:" << m_simpleProcess.errorString();
+        emit simpleCommandFinished(1, "", QString("Error: Failed to start simple CLI process: %1").arg(m_simpleProcess.errorString()));
+        return;
+    }
+    emit simpleCommandStarted();
 }
 
 void CliRunner::onReadyReadStdout() {
-    while (m_process.canReadLine()) {
-        const QByteArray line = m_process.readLine();
-        const QString parsed = m_profile ? m_profile->parseStreamChunk(line)
-                                         : QString::fromUtf8(line);
-        if (!parsed.isEmpty()) emit outputChunk(parsed);
+    m_lineBuf += m_process.readAllStandardOutput();
+    int start = 0;
+    while (true) {
+        const int nl = m_lineBuf.indexOf('\n', start);
+        if (nl < 0) break;
+        processLine(m_lineBuf.mid(start, nl - start + 1));
+        start = nl + 1;
     }
-    // Also grab partial output (non-line-buffered CLIs)
-    const QByteArray remaining = m_process.readAllStandardOutput();
-    if (!remaining.isEmpty()) {
-        const QString parsed = m_profile ? m_profile->parseStreamChunk(remaining)
-                                         : QString::fromUtf8(remaining);
-        if (!parsed.isEmpty()) emit outputChunk(parsed);
-    }
+    m_lineBuf = m_lineBuf.mid(start);
 }
 
 void CliRunner::onReadyReadStderr() {
-    const QString err = QString::fromUtf8(m_process.readAllStandardError());
+    const QString err = QString::fromLocal8Bit(m_process.readAllStandardError());
     if (!err.isEmpty()) emit errorChunk(err);
 }
 
 void CliRunner::onProcessFinished(int exitCode, QProcess::ExitStatus /*status*/) {
-    // Drain any remaining stdout
-    onReadyReadStdout();
+    onReadyReadStdout(); // Drain any remaining stdout
+    if (!m_lineBuf.isEmpty()) { // Flush any leftover bytes
+        processLine(m_lineBuf);
+        m_lineBuf.clear();
+    }
     emit finished(exitCode);
 }
 
 void CliRunner::onProcessError(QProcess::ProcessError error) {
     emit errorChunk(QString("Process error: %1").arg(static_cast<int>(error)));
+}
+
+void CliRunner::processLine(const QByteArray& line) {
+    // Current behavior: emit raw output, then attempt to parse tool_use JSON
+    // If it's a tool_use, don't emit outputChunk to ChatView.
+    // If not, emit the full line as an outputChunk.
+
+    // Always emit raw output to console for full visibility
+    emit rawOutput(QString::fromLocal8Bit(line));
+
+    // Tool use parsing (for Claude CLI)
+    static const QRegularExpression kToolUseRx(
+        R"(\{ *\"tool_code\" *: *\d+, *\"tool_name\" *: *\"([^\"]+)\" *, *\"input\" *: *(\{.*?\}) *\})");
+
+    QRegularExpressionMatch match = kToolUseRx.match(QString::fromLocal8Bit(line));
+    if (match.hasMatch()) {
+        // qWarning() << "CliRunner: detected tool_use!";
+        const QString toolName = match.captured(1);
+        const QString jsonStr = match.captured(2);
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+        if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+            emit toolCallReady(ToolCall{QString(), toolName, doc.object()});
+            return; // Don't emit as regular outputChunk
+        } else {
+            qWarning() << "CliRunner: failed to parse tool_use JSON:" << parseError.errorString();
+            // Fall through, emit as regular outputChunk
+        }
+    }
+
+    emit outputChunk(QString::fromLocal8Bit(line));
+}
+
+void CliRunner::onSimpleReadyReadStdout() {
+    m_simpleOutputBuf.append(m_simpleProcess.readAllStandardOutput());
+}
+
+void CliRunner::onSimpleReadyReadStderr() {
+    m_simpleErrorBuf.append(m_simpleProcess.readAllStandardError());
+}
+
+void CliRunner::onSimpleProcessFinished(int exitCode, QProcess::ExitStatus status) {
+    Q_UNUSED(status);
+    emit simpleCommandFinished(exitCode, QString::fromLocal8Bit(m_simpleOutputBuf), QString::fromLocal8Bit(m_simpleErrorBuf));
+    m_simpleOutputBuf.clear();
+    m_simpleErrorBuf.clear();
+}
+
+void CliRunner::onSimpleProcessError(QProcess::ProcessError error) {
+    qWarning() << "CliRunner: simple process error:" << error << m_simpleProcess.errorString();
+    emit simpleCommandFinished(1, "", QString("Simple CLI process error: %1").arg(m_simpleProcess.errorString()));
+    m_simpleOutputBuf.clear();
+    m_simpleErrorBuf.clear();
 }
 
 }  // namespace CodeHex

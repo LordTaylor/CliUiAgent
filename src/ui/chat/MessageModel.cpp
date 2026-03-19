@@ -1,4 +1,6 @@
 #include "MessageModel.h"
+#include <QFileInfo>
+#include <QVariant> // For QVariant::fromValue
 
 namespace CodeHex {
 
@@ -29,6 +31,24 @@ void MessageModel::appendMessage(const Message& msg) {
     m_loadedOffset++;
     endInsertRows();
 }
+
+void MessageModel::updateLastMessage(const QString& text) {
+    if (m_visible.isEmpty()) return;
+    const int lastRow = m_visible.size() - 1;
+    // Assuming the last message always has at least one text block and we're updating it
+    if (!m_visible[lastRow].contentBlocks.isEmpty() && m_visible[lastRow].contentBlocks.first().type == BlockType::Text) {
+        m_visible[lastRow].contentBlocks.first().content = text;
+    } else {
+        // If no text block exists, create one (e.g., initial streaming response)
+        m_visible[lastRow].contentBlocks.clear(); // Clear existing content if types are mixed
+        m_visible[lastRow].contentBlocks.append(CodeBlock{text, BlockType::Text});
+        m_visible[lastRow].contentTypes.clear(); // Clear existing content types if types are mixed
+        m_visible[lastRow].contentTypes.append(Message::ContentType::Text);
+    }
+    const QModelIndex idx = index(lastRow);
+    emit dataChanged(idx, idx, {TextRole, ContentBlocksRole, ContentTypesRole}); // Notify about changed content
+}
+
 
 void MessageModel::loadMoreMessages() {
     if (!canLoadMore()) return;
@@ -71,12 +91,24 @@ QVariant MessageModel::data(const QModelIndex& index, int role) const {
 
     switch (role) {
         case Qt::DisplayRole:
-        case TextRole:        return msg.text;
+        case TextRole:        return msg.textFromContentBlocks();
         case RoleRole:        return static_cast<int>(msg.role);
-        case ContentTypeRole: return static_cast<int>(msg.contentType);
+        case ContentBlocksRole: return QVariant::fromValue(msg.contentBlocks); // New
+        case ContentTypesRole:  return QVariant::fromValue(msg.contentTypes);  // New
         case TimestampRole:   return msg.timestamp;
-        case FilePathRole:    return msg.filePath;
         case TokenCountRole:  return msg.tokenCount;
+        case AttachmentsRole: {
+            // Return a QStringList of "type:filename" for each attachment so the
+            // delegate can render a compact badge without knowing Attachment details.
+            QStringList badge;
+            for (const Attachment& a : msg.attachments) {
+                const QString icon = (a.type == Attachment::Type::Image)  ? "🖼" :
+                                     (a.type == Attachment::Type::Audio)  ? "🎤" : "📄";
+                badge << icon + " " + QFileInfo(a.filePath).fileName();
+            }
+            return badge;
+        }
+        case RawMessageRole: return QVariant::fromValue(msg); // New
         default: return {};
     }
 }
@@ -85,10 +117,12 @@ QHash<int, QByteArray> MessageModel::roleNames() const {
     return {
         {TextRole,        "text"},
         {RoleRole,        "role"},
-        {ContentTypeRole, "contentType"},
         {TimestampRole,   "timestamp"},
-        {FilePathRole,    "filePath"},
         {TokenCountRole,  "tokenCount"},
+        {AttachmentsRole, "attachments"},
+        {ContentBlocksRole, "contentBlocks"}, // New
+        {ContentTypesRole, "contentTypes"},   // New
+        {RawMessageRole,  "rawMessage"},     // New
     };
 }
 

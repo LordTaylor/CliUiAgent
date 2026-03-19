@@ -8,7 +8,7 @@ static Message makeMsg(const QString& text, Message::Role role = Message::Role::
     Message m;
     m.id = QUuid::createUuid();
     m.role = role;
-    m.text = text;
+    m.contentBlocks.append(CodeBlock{text, BlockType::Text});
     m.timestamp = QDateTime::currentDateTimeUtc();
     return m;
 }

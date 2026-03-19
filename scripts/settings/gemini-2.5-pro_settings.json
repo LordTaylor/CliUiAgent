@@ -1,0 +1,7 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://generativelanguage.googleapis.com",
+    "ANTHROPIC_API_KEY": "AIzaSyDO5q62Oa4CwPid4E04Hm6XmfO8tej6HuY",
+    "ANTHROPIC_MODEL": "gemini/gemini-2.5"
+  }
+}

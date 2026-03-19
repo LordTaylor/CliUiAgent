@@ -10,8 +10,8 @@ TEST_CASE("Message round-trips through JSON", "[data]") {
     Message msg;
     msg.id = QUuid::createUuid();
     msg.role = Message::Role::Assistant;
-    msg.contentType = Message::ContentType::Text;
-    msg.text = "Hello, world!";
+    msg.contentBlocks.append(CodeBlock{"Hello, world!", BlockType::Text});
+    msg.contentTypes.append(Message::ContentType::Text);
     msg.timestamp = QDateTime::currentDateTimeUtc();
     msg.tokenCount = 42;
 
@@ -20,7 +20,7 @@ TEST_CASE("Message round-trips through JSON", "[data]") {
 
     CHECK(restored.id == msg.id);
     CHECK(restored.role == msg.role);
-    CHECK(restored.text == msg.text);
+    CHECK(restored.textFromContentBlocks() == msg.textFromContentBlocks());
     CHECK(restored.tokenCount == msg.tokenCount);
 }
 
@@ -31,7 +31,8 @@ TEST_CASE("Session serializes and deserializes messages", "[data]") {
     Message m1;
     m1.id = QUuid::createUuid();
     m1.role = Message::Role::User;
-    m1.text = "Question?";
+    m1.contentBlocks.append(CodeBlock{"Question?", BlockType::Text});
+    m1.contentTypes.append(Message::ContentType::Text);
     m1.timestamp = QDateTime::currentDateTimeUtc();
 
     s.appendMessage(m1);
@@ -41,7 +42,7 @@ TEST_CASE("Session serializes and deserializes messages", "[data]") {
 
     CHECK(restored.title == s.title);
     CHECK(restored.messages.size() == 1);
-    CHECK(restored.messages.first().text == "Question?");
+    CHECK(restored.messages.first().textFromContentBlocks() == "Question?");
 }
 
 TEST_CASE("JsonSerializer writes and reads file", "[data]") {

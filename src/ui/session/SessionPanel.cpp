@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include "../../core/SessionManager.h"
+#include "../../data/Session.h"
 
 namespace CodeHex {
 
@@ -25,8 +26,13 @@ SessionPanel::SessionPanel(SessionManager* manager, QWidget* parent)
     btnRow->addWidget(m_deleteBtn);
     layout->addLayout(btnRow);
 
+    // Single-click → navigate to session; double-click → rename inline
+    connect(m_list, &QListWidget::itemClicked,
+            this, &SessionPanel::onItemClicked);
     connect(m_list, &QListWidget::itemDoubleClicked,
             this, &SessionPanel::onItemDoubleClicked);
+    connect(m_list, &QListWidget::itemChanged,
+            this, &SessionPanel::onItemChanged);
     connect(m_newBtn,    &QPushButton::clicked, this, &SessionPanel::onNewClicked);
     connect(m_deleteBtn, &QPushButton::clicked, this, &SessionPanel::onDeleteClicked);
 
@@ -45,10 +51,32 @@ void SessionPanel::refresh() {
     }
 }
 
-void SessionPanel::onItemDoubleClicked() {
-    const auto* item = m_list->currentItem();
+void SessionPanel::onItemClicked(QListWidgetItem* item) {
     if (!item) return;
     emit sessionSelected(item->data(Qt::UserRole).toString());
+}
+
+void SessionPanel::onItemDoubleClicked(QListWidgetItem* item) {
+    if (!item) return;
+    // Enable editing for this item so the user can rename the session inline.
+    // The rename is committed in onItemChanged().
+    item->setFlags(item->flags() | Qt::ItemIsEditable);
+    m_list->editItem(item);
+}
+
+void SessionPanel::onItemChanged(QListWidgetItem* item) {
+    if (!item) return;
+    const QString id = item->data(Qt::UserRole).toString();
+    const QString newTitle = item->text().trimmed();
+    if (newTitle.isEmpty()) return;
+
+    Session* s = m_manager->openSession(id);
+    if (!s) return;
+    s->title = newTitle;
+    s->save();
+
+    // Remove editable flag after rename so accidental clicks don't re-enter edit mode
+    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 }
 
 void SessionPanel::onNewClicked() {

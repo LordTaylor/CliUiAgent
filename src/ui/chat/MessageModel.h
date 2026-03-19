@@ -2,6 +2,7 @@
 #include <QAbstractListModel>
 #include "../../data/Message.h"
 #include "../../data/Session.h"
+#include "../../data/CodeBlock.h" // Added for CodeBlock
 
 namespace CodeHex {
 
@@ -11,17 +12,21 @@ public:
     enum Roles {
         TextRole = Qt::UserRole,
         RoleRole,
-        ContentTypeRole,
+        // ContentTypeRole, // Removed, will get from RawMessageRole
         TimestampRole,
-        FilePathRole,
         TokenCountRole,
         AttachmentsRole,
+        ContentBlocksRole,   // New role for QList<CodeBlock>
+        ContentTypesRole,    // New role for QList<Message::ContentType>
+        RawMessageRole,      // New role to pass the entire Message object
     };
 
     explicit MessageModel(QObject* parent = nullptr);
 
     void setSession(Session* session);
     void appendMessage(const Message& msg);
+    // Update the text of the last visible message in-place (live streaming).
+    void updateLastMessage(const QString& text);
     void loadMoreMessages();
     bool canLoadMore() const;
     void clear();

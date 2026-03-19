@@ -13,7 +13,11 @@ public:
     QString executable() const override { return "ollama"; }
     QString defaultModel() const override { return m_model; }
 
-    QStringList buildArguments(const QString& prompt, const QString& workDir) const override;
+    QStringList buildArguments(const QString& prompt,
+                               const QString& workDir) const override;
+    QStringList buildArguments(const QString& prompt,
+                               const QString& workDir,
+                               const QList<Message>& history) const override;
     QString parseStreamChunk(const QByteArray& raw) const override;
 
 private:

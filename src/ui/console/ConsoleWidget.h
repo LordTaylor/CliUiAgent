@@ -22,7 +22,8 @@ private:
     QPlainTextEdit* m_edit;
     QPushButton* m_toggleBtn;
     QPropertyAnimation* m_anim;
-    bool m_expanded = false;
+    bool m_expanded   = false;
+    bool m_hadOutput  = false;  // auto-expand on first output
 
     static constexpr int kCollapsedHeight = 24;
     static constexpr int kExpandedHeight  = 200;

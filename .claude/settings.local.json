@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew list:*)",
+      "Bash(cmake --version)",
+      "Bash(xcode-select -p)",
+      "Bash(clang --version)",
+      "Bash(python3 -c \"import sysconfig; print\\(sysconfig.get_config_var\\(''prefix''\\)\\)\")",
+      "Bash(python3 -c \"import sysconfig; print\\(sysconfig.get_path\\(''include''\\)\\)\")",
+      "Bash(ls ~/.claude/*.json)",
+      "Bash(chmod +x ~/.claude/scripts/select-settings.sh)",
+      "Bash(mv ~/.claude/scripts/select-settings.sh ~/Documents/LordTaylor/CodeHex/scripts/)",
+      "Bash(mv ~/.claude/lmstudio_settings.json ~/Documents/LordTaylor/CodeHex/scripts/settings/)",
+      "Bash(rmdir ~/.claude/scripts)",
+      "Bash(chmod +x ~/Documents/LordTaylor/CodeHex/scripts/select-settings.sh)"
+    ]
+  }
+}

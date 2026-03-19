@@ -1,8 +1,9 @@
 add_library(codehex_core STATIC
-    AppConfig.h    AppConfig.cpp
-    TokenCounter.h TokenCounter.cpp
+    AppConfig.h      AppConfig.cpp
+    TokenCounter.h   TokenCounter.cpp
     SessionManager.h SessionManager.cpp
     ChatController.h ChatController.cpp
+    ToolExecutor.h   ToolExecutor.cpp
 )
 
 target_include_directories(codehex_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

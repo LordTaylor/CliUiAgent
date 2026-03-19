@@ -18,6 +18,7 @@ signals:
 
 protected:
     void scrollContentsBy(int dx, int dy) override;
+    void contextMenuEvent(QContextMenuEvent* event) override;
 
 private:
     MessageModel* m_msgModel = nullptr;

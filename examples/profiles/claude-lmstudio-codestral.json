@@ -1,0 +1,8 @@
+{
+  "name": "claude-lmstudio-codestral",
+  "displayName": "Claude Code → LM Studio (Codestral 22B)",
+  "type": "claude",
+  "proxyUrl": "http://localhost:8082",
+  "model": "codestral-22b",
+  "systemPrompt": "You are an expert coding assistant. Help the user write clean, efficient code."
+}
