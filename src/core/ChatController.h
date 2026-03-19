@@ -8,6 +8,7 @@
 #include "../data/CodeBlock.h" // Added
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
+#include "../data/ToolResult.h" // Added for ToolResult
 
 namespace CodeHex {
 
@@ -55,12 +56,15 @@ private slots:
     void onToolCallReady(const CodeHex::ToolCall& call);
     // New slot for simple command results
     void onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
+    // New slot for ToolExecutor results
+    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result); // Modified signature
 
 private:
     void buildAssistantMessage(const QList<CodeBlock>& contentBlocks,
                                const QList<Message::ContentType>& contentTypes,
                                const QString& plainText); // Modified signature
     void executeBashCommand(const QString& command); // New: for executing simple bash commands
+    void onToolCallReadyAndExecute(const CodeHex::ToolCall& call); // New: intermediate slot for ToolExecutor
     static QString formatToolCallLog(const ToolCall& call);
 
     AppConfig*      m_config;
