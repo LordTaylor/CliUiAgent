@@ -84,12 +84,13 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 - [x] **Zewnętrzne pliki Promptów:** Przeniesienie system-promptów do zewnętrznych plików `.txt`. (ZAKOŃCZONE)
 
 #### Krok 5.2: Autonomiczne Zarządzanie Kontekstem (Compaction)
-- [ ] **Mechanizm Compaction:** Automatyczne podsumowywanie historii.
-- [ ] **Pruning:** Usuwanie starych wyników narzędzi.
+- [x] **Mechanizm Compaction:** Automatyczne podsumowywanie historii.
+- [x] **Pruning:** Usuwanie starych wyników narzędzi.
 
-#### Krok 5.3: Granularny System Uprawnień
-- [x] **Allow/Ask/Deny:** Reguły dla narzędzi (Zawsze pozwalaj na Read, pytaj o Write/Bash). (ZAKOŃCZONE w AgentEngine)
-- [ ] **Sandbox:** Blokowanie dostępu do określonych katalogów.
+#### Krok 5.3: Granular Permissions & Sandbox
+    - [x] Allow/Ask/Deny: Implementowane w `AgentEngine.cpp`.
+    - [x] Sandbox: `isPathAllowed` blokuje dostęp poza `/CodeHex`.
+    - [x] Tool Approval UI: `ToolApprovalDialog` dla krytycznych akcji.
 
 #### Krok 5.4: Modułowe "Skills" (Refaktoryzacja ToolExecutor)
 - [x] **Wtyczki narzędzi:** (ZAKOŃCZONE w ramach refaktoryzacji fundamentów).
