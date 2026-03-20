@@ -37,6 +37,9 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolPermissions["Grep"]          = Permission::Allow;
     m_toolPermissions["Replace"]       = Permission::Allow;
 
+    m_embeddings = new EmbeddingManager(this);
+    m_indexer = new CodebaseIndexer(m_embeddings, this);
+
     // Register tool
     m_toolExecutor->registerTool(std::make_shared<SearchRepoTool>(m_indexer));
 

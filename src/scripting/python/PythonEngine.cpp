@@ -30,7 +30,7 @@ PythonEngine::~PythonEngine() {
 bool PythonEngine::initialize() {
     if (m_initialized) return true;
     try {
-        py::initialize_interpreter();
+        // Interpreter is now managed by Application
         registerCodeHexModule();
         m_initialized = true;
     } catch (const std::exception& e) {
@@ -89,7 +89,7 @@ QVariant PythonEngine::callHook(const QString& hookName, const QVariantMap& args
 
 void PythonEngine::shutdown() {
     if (m_initialized) {
-        py::finalize_interpreter();
+        // Interpreter is now managed by Application
         m_initialized = false;
     }
 }

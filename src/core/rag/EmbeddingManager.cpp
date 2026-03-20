@@ -22,11 +22,11 @@ EmbeddingManager::EmbeddingManager(QObject* parent) : QObject(parent) {
 }
 
 EmbeddingManager::~EmbeddingManager() {
-    // scoped_interpreter will take care of shutdown
 }
 
 void EmbeddingManager::initializePython() {
     if (m_initialized) return;
+    py::gil_scoped_acquire acquire;
 
     // Add scripts directory to python path
     py::module_ sys = py::module_::import("sys");
@@ -54,6 +54,7 @@ QList<std::vector<float>> EmbeddingManager::getEmbeddings(const QStringList& tex
 
     QList<std::vector<float>> results;
     try {
+        py::gil_scoped_acquire acquire;
         py::list pyTexts;
         for (const auto& t : texts) pyTexts.append(t.toStdString());
 

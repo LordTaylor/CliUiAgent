@@ -32,7 +32,6 @@ private:
     void initializePython();
 
     bool m_initialized = false;
-    pybind11::scoped_interpreter m_guard;
     pybind11::object m_embeddingFunc;
 };
 

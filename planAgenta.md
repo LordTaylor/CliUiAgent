@@ -96,7 +96,7 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 - [x] **Wtyczki narzędzi:** (ZAKOŃCZONE w ramach refaktoryzacji fundamentów).
 
 #### Krok 5.5: Codebase Awareness (RAG/Embeddings)
-- [ ] **Indeksowanie projektu:** Badanie wektorowych baz danych.
+- [x] **Indeksowanie projektu:** Badanie wektorowych baz danych i implementacja RAG.
 
 ## Faza 6: Ekosystem i Pamięć Długotrwała
 - [ ] **6.1. Obsługa Model Context Protocol (MCP).**
