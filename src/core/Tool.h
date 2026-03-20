@@ -37,6 +37,11 @@ public:
      * @return ToolResult containing the output or error.
      */
     virtual ToolResult execute(const QJsonObject& input, const QString& workDir) = 0;
+
+    /**
+     * @brief Aborts the current tool execution if supported.
+     */
+    virtual void abort() {}
 };
 
 } // namespace CodeHex

@@ -79,7 +79,10 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
     }
 
     if (m_tools.contains(resolvedName)) {
-        result = m_tools[resolvedName]->execute(call.input, workDir);
+        Tool* tool = m_tools[resolvedName].get();
+        m_activeTool = tool;
+        result = tool->execute(call.input, workDir);
+        m_activeTool = nullptr;
     } else {
         result = ToolResult{ {}, QString("Unknown tool: '%1'").arg(toolName), true };
     }
@@ -121,6 +124,13 @@ QString ToolExecutor::getToolDefinitions() const {
         defs += "```json\n" + doc.toJson(QJsonDocument::Indented) + "```\n\n";
     }
     return defs;
+}
+
+void ToolExecutor::stop() {
+    Tool* active = m_activeTool.load();
+    if (active) {
+        active->abort();
+    }
 }
 
 }  // namespace CodeHex

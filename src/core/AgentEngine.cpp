@@ -83,6 +83,17 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
         }
     }
 
+    // Always append user message to session for persistence and UI visibility
+    // Safety guard: Don't append if ID exists (prevents UI sync duplicates)
+    bool exists = false;
+    for (const auto& m : session->messages) {
+        if (m.id == userMsg.id) { exists = true; break; }
+    }
+    if (!exists) {
+        session->appendMessage(userMsg);
+        session->save();
+    }
+
     if (m_isRunning) {
         qDebug() << "[AgentEngine] Busy. Enqueuing request.";
         m_requestQueue.enqueue({userInput, attachments});
@@ -105,15 +116,6 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
         return;
     }
 
-    // Safety guard: Don't append if ID exists (prevents UI sync duplicates)
-    bool exists = false;
-    for (const auto& m : session->messages) {
-        if (m.id == userMsg.id) { exists = true; break; }
-    }
-    if (!exists) {
-        session->appendMessage(userMsg);
-    }
-    session->save();
 
     m_currentResponse.clear();
     m_isThinkingStream = false;
@@ -165,6 +167,7 @@ void AgentEngine::injectAutoContext(const QString& query) {
 void AgentEngine::stop() {
     m_isRunning = false;
     m_runner->stop();
+    m_toolExecutor->stop();
     m_requestQueue.clear();
 }
 
@@ -299,7 +302,7 @@ void AgentEngine::setToolPermission(const QString& toolName, Permission p) {
 bool AgentEngine::isPathAllowed(const QString& path) const {
     if (path.isEmpty()) return true;
     
-    QString workDir = m_config->workingFolder();
+    QString workDir = QDir(m_config->workingFolder()).absolutePath();
     
     // Resolve relative paths against working directory, NOT process CWD
     QFileInfo info(QDir(workDir), path);
@@ -375,6 +378,7 @@ void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
     session->save();
 
     emit toolCallStarted(call.name, call.input);
+    m_isRunning = true; // Stay in running state during tool execution
     if (m_syncTools) {
         m_toolExecutor->executeSync(call, m_config->workingFolder());
     } else {
@@ -440,9 +444,13 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
             // If it was an error, just notify the user/model without automatic continue if preferred
             // but usually agent should try to fix the error.
              QString sp = systemPrompt();
+             m_isRunning = true; // We are sending a nudge, so we are still running
              m_runner->send("Tool execution failed. Analyze the error and try a different approach.", 
                            m_config->workingFolder(), {}, session->messages, sp);
         }
+    } else {
+        // If we are NOT running the nudge, then we might be finished
+        // But usually onToolResultReceived is followed by a nudge or a thought.
     }
 }
 
@@ -531,6 +539,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     } else {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
+        processNextQueueItem(); // Finally process next item if queue exists
     }
 }
 

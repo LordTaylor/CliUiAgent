@@ -5,6 +5,7 @@
 #include <QMap>
 #include <memory>
 #include <QtConcurrent>
+#include <atomic>
 #include "../data/ToolCall.h"
 #include "Tool.h"
 
@@ -34,6 +35,11 @@ public:
      */
     QString getToolDefinitions() const;
 
+    /**
+     * @brief Aborts the currently running tool.
+     */
+    void stop();
+
 signals:
     void toolStarted(const QString& toolName, const QJsonObject& input);
     void toolFinished(const QString& toolName, const CodeHex::ToolResult& result);
@@ -41,6 +47,7 @@ signals:
 private:
     QMap<QString, std::shared_ptr<Tool>> m_tools;
     QMap<QString, QString> m_aliases;
+    std::atomic<Tool*> m_activeTool{nullptr};
 };
 
 }  // namespace CodeHex
