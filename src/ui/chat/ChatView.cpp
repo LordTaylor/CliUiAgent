@@ -30,6 +30,9 @@ void ChatView::scrollToBottom() {
     }
 }
 
+bool ChatView::autoScrollEnabled() const { return m_autoScroll; }
+void ChatView::setAutoScrollEnabled(bool enabled) { m_autoScroll = enabled; }
+
 void ChatView::contextMenuEvent(QContextMenuEvent* event) {
     const QModelIndex idx = indexAt(event->pos());
     if (!idx.isValid()) return;

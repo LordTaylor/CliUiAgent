@@ -13,6 +13,9 @@ public:
     void setMessageModel(MessageModel* model);
     void scrollToBottom();
 
+    bool autoScrollEnabled() const;
+    void setAutoScrollEnabled(bool enabled);
+
 signals:
     void loadMoreRequested();
 
@@ -22,6 +25,7 @@ protected:
 
 private:
     MessageModel* m_msgModel = nullptr;
+    bool m_autoScroll = true;
 };
 
 }  // namespace CodeHex

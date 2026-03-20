@@ -73,6 +73,8 @@ MainWindow::MainWindow(AppConfig* config,
             this, &MainWindow::onGenerationStopped);
     connect(m_controller, &ChatController::errorOccurred,
             m_console, &ConsoleWidget::appendText);
+    connect(m_controller, &ChatController::statusChanged,
+            this, [this](const QString& status) { m_statusLabel->setText(status); });
     connect(m_controller, &ChatController::sessionRenamed,
             this, [this](const QString& /*id*/, const QString& title) {
                 m_sessionPanel->refresh();
@@ -154,13 +156,54 @@ void MainWindow::setupUi() {
 
     rightLayout->addWidget(toolbar);
 
-    // Chat view
+    // Chat view container for floating buttons
+    auto* chatContainer = new QWidget(rightWidget);
+    auto* chatGrid = new QGridLayout(chatContainer);
+    chatGrid->setContentsMargins(0, 0, 0, 0);
+
     m_messageModel = new MessageModel(this);
-    m_chatView = new ChatView(rightWidget);
+    m_chatView = new ChatView(chatContainer);
     m_chatView->setMessageModel(m_messageModel);
     connect(m_chatView, &ChatView::loadMoreRequested,
             m_messageModel, &MessageModel::loadMoreMessages);
-    rightLayout->addWidget(m_chatView, 1);
+    chatGrid->addWidget(m_chatView, 0, 0, 3, 3);
+
+    // Floating Buttons (Right-Bottom corner)
+    auto* btnOverlay = new QWidget(chatContainer);
+    auto* overlayLayout = new QVBoxLayout(btnOverlay);
+    overlayLayout->setAlignment(Qt::AlignBottom | Qt::AlignRight);
+    overlayLayout->setSpacing(10);
+    overlayLayout->setContentsMargins(0, 0, 20, 20);
+
+    m_autoScrollBtn = new QPushButton("🧲", btnOverlay);
+    m_autoScrollBtn->setCheckable(true);
+    m_autoScrollBtn->setChecked(true);
+    m_autoScrollBtn->setFixedSize(40, 40);
+    m_autoScrollBtn->setToolTip("Keep auto-scroll (Magnet)");
+    m_autoScrollBtn->setObjectName("magnetBtn");
+    overlayLayout->addWidget(m_autoScrollBtn);
+
+    m_scrollToBottomBtn = new QPushButton("↓", btnOverlay);
+    m_scrollToBottomBtn->setFixedSize(40, 40);
+    m_scrollToBottomBtn->setToolTip("Scroll to bottom");
+    m_scrollToBottomBtn->setObjectName("scrollDownBtn");
+    overlayLayout->addWidget(m_scrollToBottomBtn);
+
+    btnOverlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    chatGrid->addWidget(btnOverlay, 0, 0, 3, 3, Qt::AlignBottom | Qt::AlignRight);
+
+    // Status Label (Floating at bottom-left or center-bottom)
+    m_statusLabel = new QLabel(chatContainer);
+    m_statusLabel->setObjectName("agentStatusLabel");
+    m_statusLabel->setVisible(false);
+    m_statusLabel->setStyleSheet("background: rgba(31, 41, 55, 0.8); color: #10B981; padding: 4px 12px; border-radius: 12px;");
+    chatGrid->addWidget(m_statusLabel, 2, 0, 1, 3, Qt::AlignHCenter | Qt::AlignBottom);
+
+    rightLayout->addWidget(chatContainer, 1);
+
+    // Wire navigation
+    connect(m_scrollToBottomBtn, &QPushButton::clicked, m_chatView, &ChatView::scrollToBottom);
+    connect(m_autoScrollBtn, &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
 
     // Input panel
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
@@ -391,7 +434,9 @@ void MainWindow::onTokenBufferTimeout() {
         m_streamingText += tokens;
         m_messageModel->updateLastMessage(m_streamingText);
     }
-    m_chatView->scrollToBottom();
+    if (m_chatView->autoScrollEnabled()) {
+        m_chatView->scrollToBottom();
+    }
 }
 
 void MainWindow::onCursorBlink() {
@@ -427,6 +472,8 @@ void MainWindow::onGenerationStarted() {
     m_cursorTimer->start();
     m_inputPanel->setSendEnabled(false);
     m_inputPanel->setStopEnabled(true);
+    m_statusLabel->setVisible(true);
+    m_statusLabel->setText("Agent is working...");
     statusBar()->showMessage("Generating…");
 }
 
@@ -436,6 +483,7 @@ void MainWindow::onGenerationStopped() {
     m_cursorVisible = false;
     m_inputPanel->setSendEnabled(true);
     m_inputPanel->setStopEnabled(false);
+    m_statusLabel->setVisible(false);
     statusBar()->clearMessage();
     updateTokenLabel();
 }

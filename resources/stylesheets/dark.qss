@@ -227,3 +227,30 @@ QSplitter::handle {
     background-color: #374151;
     width: 1px;
 }
+
+/* ---- Floating UI ---- */
+#magnetBtn, #scrollDownBtn {
+    background-color: rgba(31, 41, 55, 0.85);
+    border: 1px solid #4B5563;
+    border-radius: 20px;
+    font-size: 18px;
+    color: #F3F4F6;
+}
+#magnetBtn:hover, #scrollDownBtn:hover {
+    background-color: rgba(55, 65, 81, 0.95);
+    border-color: #60A5FA;
+}
+#magnetBtn:checked {
+    background-color: rgba(37, 99, 235, 0.9);
+    border-color: #3B82F6;
+    color: #FFFFFF;
+}
+#agentStatusLabel {
+    background-color: rgba(17, 24, 39, 0.9);
+    border: 1px solid #10B981;
+    color: #10B981;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 16px;
+    margin-bottom: 20px;
+}

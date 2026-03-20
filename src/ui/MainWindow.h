@@ -1,6 +1,7 @@
 #pragma once
 #include <QComboBox>
 #include <QCheckBox>
+#include <QPushButton>
 #include <QLabel>
 #include <QMainWindow>
 #include <QSplitter>
@@ -75,6 +76,9 @@ private:
     WorkFolderSelector* m_folderSelector;
     QComboBox*          m_profileCombo;
     QCheckBox*          m_agentModeCheck;
+    QPushButton*        m_scrollToBottomBtn;
+    QPushButton*        m_autoScrollBtn; // Magnet button
+    QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
 
     // Streaming state
