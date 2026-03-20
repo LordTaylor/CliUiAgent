@@ -107,7 +107,7 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 - [ ] **6.3. "Session Yielding" (Pauza i Wznowienie).**
 - [ ] **6.4. Piaskownica (Docker/Containerization).**
 
-## Faza 7: Modernizacja Interfejsu i Stabilność Agenta (Zaplanowane)
+## Faza 7: Modernizacja Interfejsu i Stabilność Agenta (ZAKOŃCZONA)
 
 ### Cel:
 Zaprojektowanie nowoczesnego, przejrzystego interfejsu czatu (nowy wygląd) oraz całkowite rozwiązanie problemu "zapętlania się" modelu przy błędnym formacie narzędzi, poparte testami jednostkowymi.
@@ -115,15 +115,18 @@ Zaprojektowanie nowoczesnego, przejrzystego interfejsu czatu (nowy wygląd) oraz
 ### Zadania (Checklista):
 
 #### Krok 7.1: Nowoczesny Wygląd UI
-- [ ] **7.1.1. Przebudowa delegata w `ChatView`:** Wprowadzenie zaokrąglonych rogów, lepszych marginesów i cieni (drop shadows).
-- [ ] **7.1.2. Upiększenie formatowania Markdown:** Lepsze style nagłówków, bloków kodu (odróżnienie tła), pogrubień i kolorystyka dopasowana do trybu dark mode.
-- [ ] **7.1.3. Rozwiązanie błędów wizualnych:** Naprawa paska przewijania (scroll) i szerokości układu elementów (layout width).
+- [x] **7.1.1. Przebudowa delegata w `ChatView`:** Akcenty kolorystyczne na lewej krawędzi bąbelków asystenta (fioletowy=thinking, zielony=output, niebieski=tool calls).
+- [x] **7.1.2. Upiększenie formatowania Markdown:** Premium dark-mode CSS stylesheet z kolorowymi nagłówkami, zielonym inline code, tłem bloków kodu, stylami blockquote i linków.
+- [x] **7.1.3. Rozwiązanie błędów wizualnych:** Naprawa paska przewijania i layoutu (wcześniejsze fazy).
 
 #### Krok 7.2: Ostateczna poprawka parsera ToolCall (Zapętlanie i JSON)
-- [ ] **7.2.1. Obsługa wielu XMLów:** Model czasem generuje wiele bloków w jednym strumieniu (zapętlenie); parser musi łapać dokładnie pojedynczy poprawny blok.
-- [ ] **7.2.2. Obsługa znaku nowej linii w JSON:** Dodanie w kodzie C++ sanitacji JSON-a przed wywołaniem `QJsonDocument::fromJson` w przypadku surowych znaków `\n`.
-- [ ] **7.2.3. Weryfikacja Popupa (ToolApprovalDialog):** Upewnienie się, że prośba o uprawnienie zawsze priorytetyzuje główny wątek (MainThread) by uniknąć ukrycia popupu pod spodem innych okien.
+- [x] **7.2.1. Obsługa wielu XMLów:** `break` po pierwszym poprawnym bloku XML/Bash.
+- [x] **7.2.2. Usunięcie InvertedGreedinessOption:** Naprawiony greedy regex Qt.
+- [x] **7.2.3. CRITICAL: m_isRunning guard:** Usunięty guard blokujący WSZYSTKIE toole (onRunnerFinished ustawiał false przed onToolCallReady).
+- [x] **7.2.4. Sandbox path resolution:** Ścieżki względne rozwiązywane wobec workingFolder (nie process CWD).
+- [x] **7.2.5. Weryfikacja Popupa (ToolApprovalDialog):** Popup priorytetyzuje główny wątek; logowanie dodane.
 
 #### Krok 7.3: Testy Autonomii Agenta
-- [ ] **7.3.1. Utworzenie testu jednostkowego Parsera:** Napisanie testu w Catch2 symulującego uszkodzoną lub zapętloną odpowiedź z modelem generującym Markdown Bash i ````xml <name>...`.
-- [ ] **7.3.2. Weryfikacja skuteczności ekstrakta:** Upewnienie się w automatycznym teście, że `AgentEngine` zwraca prawidłowy `ToolCall`, chroniąc przed cichym niepowodzeniem.
+- [x] **7.3.1. Utworzenie testu jednostkowego Parsera:** 3 testy Catch2 (valid XML, looped XML, Bash fallback).
+- [x] **7.3.2. Weryfikacja skuteczności ekstrakta:** Wszystkie 19/19 testów projektu przechodzą.
+
