@@ -268,7 +268,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
 
     // Parse LLM-agnostic XML tool calls (relaxed regex to catch missing outer <tool_call> tags wrapper)
     QRegularExpression re("<name>\\s*([^<]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
-                          QRegularExpression::DotMatchesEverythingOption | QRegularExpression::InvertedGreedinessOption);
+                          QRegularExpression::DotMatchesEverythingOption);
     
     QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
     QList<ToolCall> parsedCalls;
@@ -293,7 +293,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     // This perfectly supports Faza 1 behavior for generic OSS coding models
     if (parsedCalls.isEmpty()) {
         QRegularExpression bashRe("```bash\\n(.*?)```", 
-                              QRegularExpression::DotMatchesEverythingOption | QRegularExpression::InvertedGreedinessOption);
+                              QRegularExpression::DotMatchesEverythingOption);
         QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(m_currentResponse);
         while (bashIter.hasNext()) {
             QRegularExpressionMatch match = bashIter.next();
