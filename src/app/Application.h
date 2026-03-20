@@ -3,6 +3,12 @@
 #include <memory>
 #include "../cli/ProfileEntry.h"
 
+#ifdef slots
+#undef slots
+#endif
+#include <pybind11/embed.h>
+#define slots Q_SLOTS
+
 namespace CodeHex {
 
 class AppConfig;
@@ -29,6 +35,7 @@ private:
     void setupComponents();
     void discoverProfiles();   // scans ~/.codehex/profiles/*.json
 
+    pybind11::scoped_interpreter m_pythonGuard; // Initialize Python for the whole app
     std::unique_ptr<AppConfig>      m_config;
     std::unique_ptr<SessionManager> m_sessions;
     std::unique_ptr<CliRunner>      m_runner;
