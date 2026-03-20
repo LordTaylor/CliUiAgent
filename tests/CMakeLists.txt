@@ -9,6 +9,7 @@ add_executable(codehex_tests
     test_tool_executor.cpp
     test_chat_controller.cpp
     test_agent_engine_parser.cpp
+    test_lmstudio_integration.cpp
 )
 
 target_link_libraries(codehex_tests PRIVATE

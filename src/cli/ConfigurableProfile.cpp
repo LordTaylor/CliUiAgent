@@ -24,8 +24,6 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
     const QString typeStr = obj["type"].toString("openai-compatible");
     if (typeStr == "ollama")
         p->m_type = ApiType::Ollama;
-    else if (typeStr == "claude")
-        p->m_type = ApiType::ClaudeProxy;
     else
         p->m_type = ApiType::OpenAICompatible;
 
@@ -36,7 +34,6 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
     p->m_model       = obj["model"].toString("local-model");
     p->m_systemPrompt = obj["systemPrompt"].toString(
         "You are an expert coding assistant. Be concise and precise.");
-    p->m_proxyUrl    = obj["proxyUrl"].toString("http://localhost:8082");
 
     return p;
 }
@@ -44,23 +41,16 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
 // ── executable ────────────────────────────────────────────────────────────────
 
 QString ConfigurableProfile::executable() const {
-    return (m_type == ApiType::ClaudeProxy) ? "claude" : "curl";
+    return "curl";
 }
 
 // ── extraEnvironment ──────────────────────────────────────────────────────────
 
 QMap<QString, QString> ConfigurableProfile::extraEnvironment() const {
-    if (m_type != ApiType::ClaudeProxy) return {};
-    return {
-        {"ANTHROPIC_BASE_URL", m_proxyUrl},
-        {"ANTHROPIC_API_KEY",  "litellm-proxy"},
-    };
+    return {};
 }
 
 // ── buildArguments ────────────────────────────────────────────────────────────
-//
-// For openai-compatible / ollama: we use curl directly.
-// For claude: we call the `claude` CLI with stream-json output.
 
 static constexpr int kMaxHistoryMessages = 20;
 
@@ -73,27 +63,6 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
     if (!systemPrompt.isEmpty()) {
         if (effectiveSystem.isEmpty()) effectiveSystem = systemPrompt;
         else effectiveSystem += "\n\n" + systemPrompt;
-    }
-
-    // For ClaudeProxy: prepend chat history as context text (like ClaudeProfile).
-    if (m_type == ApiType::ClaudeProxy) {
-        const int histEnd   = history.size() - 1;
-        const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
-        QString context;
-        if (!effectiveSystem.isEmpty()) {
-            context += "[System]: " + effectiveSystem + "\n\n";
-        }
-        for (int i = histStart; i < histEnd; ++i) {
-            const Message& msg = history.at(i);
-            if (msg.role == Message::Role::User)
-                context += "[User]: " + msg.textFromContentBlocks() + "\n";
-            else if (msg.role == Message::Role::Assistant)
-                context += "[Assistant]: " + msg.textFromContentBlocks() + "\n";
-        }
-        const QString fullPrompt = context.isEmpty()
-            ? prompt
-            : context + "\n[User]: " + prompt;
-        return buildArguments(fullPrompt, workDir);
     }
 
     // For OpenAI-compatible: build full messages array from history.
@@ -155,18 +124,7 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
 
 QStringList ConfigurableProfile::buildArguments(const QString& prompt,
                                                 const QString& workDir) const {
-    if (m_type == ApiType::ClaudeProxy) {
-        QStringList args;
-        args << "--print"
-             << "--verbose"
-             << "--output-format" << "stream-json"
-             << "--include-partial-messages"
-             << "--model" << m_model
-             << "-p" << prompt;
-        if (!workDir.isEmpty())
-            args << "--allowedTools" << "all";
-        return args;
-    }
+    Q_UNUSED(workDir)
 
     QStringList args;
     args << "-sN"          // silent + no progress, keep streaming alive
@@ -194,9 +152,6 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
              << QString::fromUtf8(QJsonDocument(body).toJson(QJsonDocument::Compact));
         args << m_baseUrl + "/chat/completions";
 
-        // NOTE: images are pre-embedded as base64 data URLs by imageArguments()
-        // which CliRunner splices into the JSON body before the -p flag.
-
     } else {
         // ── Ollama REST API (/api/generate) ────────────────────────────────
         QString fullPrompt = prompt;
@@ -223,35 +178,6 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
 QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
     QByteArray line = raw.trimmed();
     if (line.isEmpty()) return {};
-
-    // ── Handle ClaudeProxy (claude CLI --output-format stream-json) ───────────
-    if (m_type == ApiType::ClaudeProxy) {
-        const auto doc = QJsonDocument::fromJson(line);
-        if (doc.isNull()) {
-            // Robust fallback: if it's not JSON but starts with data: (SSE),
-            // maybe the proxy is bypassing claude's own format.
-            if (line.startsWith("data:")) return parseOpenAIStream(line);
-            return {};
-        }
-        const auto obj = doc.object();
-        const QString type = obj["type"].toString();
-
-        if (type == "stream_event") {
-            const auto event = obj["event"].toObject();
-            if (event["type"].toString() == "content_block_delta") {
-                const auto delta = event["delta"].toObject();
-                if (delta["type"].toString() == "text_delta")
-                    return delta["text"].toString();
-            }
-            return {};
-        }
-        if (type == "assistant") {
-            const auto content = obj["message"].toObject()["content"].toArray();
-            if (!content.isEmpty())
-                return content[0].toObject()["text"].toString();
-        }
-        return {};
-    }
 
     // ── Handle OpenAICompatible / SSE ─────────────────────────────────────────
     if (m_type == ApiType::OpenAICompatible || line.startsWith("data:")) {
@@ -290,24 +216,8 @@ QString ConfigurableProfile::parseOpenAIStream(const QByteArray& line) const {
 
 // ── imageArguments ────────────────────────────────────────────────────────────
 QStringList ConfigurableProfile::imageArguments(const QStringList& imagePaths) const {
-    if (imagePaths.isEmpty()) return {};
-
-    if (m_type == ApiType::ClaudeProxy) {
-        // claude CLI supports --image <path> natively
-        QStringList args;
-        for (const QString& p : imagePaths)
-            args << "--image" << p;
-        return args;
-    }
-
-    // OpenAI-compatible / Ollama: images must go inside the JSON body of
-    // --data-raw. CliRunner calls imageArguments() and splices extra flags
-    // around the -p token, but for curl-based profiles there is no -p token
-    // and the JSON is already fully built in buildArguments(). The correct
-    // solution is to pass imagePaths to buildArguments() — this is tracked as
-    // a future improvement. For now, ChatController embeds images as
-    // base64 data-URL strings inside the text prompt, which multimodal models
-    // such as LM Studio's vision variants can parse.
+    Q_UNUSED(imagePaths)
+    // Images are embedded as base64 data URLs inside the prompt by ChatController.
     return {};
 }
 

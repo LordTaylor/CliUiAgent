@@ -18,9 +18,7 @@
 #include "help/HelpDialog.h"
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
-#include "../cli/ClaudeProfile.h"
 #include "../cli/CliRunner.h"
-#include "../cli/GptProfile.h"
 #include "../cli/OllamaProfile.h"
 #include "../core/AppConfig.h"
 #include "../core/ChatController.h"
@@ -318,7 +316,6 @@ void MainWindow::setupMenuBar() {
         {"&Interface Guide",       "ui-guide",             ""},
         {"&Sessions",              "sessions",             ""},
         {"&CLI Profiles & Models", "cli-profiles",         ""},
-        {"Claude Code &Wizard",    "wizard-claude-code",   ""},
         {"Sc&ripting (Lua/Python)","scripting",            ""},
         {"&Voice && Attachments",  "voice-and-attachments",""},
         {"&Keyboard Shortcuts",    "keyboard-shortcuts",   ""},
@@ -357,8 +354,8 @@ void MainWindow::onAbout() {
     about.setIconPixmap(QPixmap(":/resources/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     about.setText("<h2>CodeHex 0.1.0</h2>"
         "<p>A desktop coding chatbot for developers.</p>"
-        "<p>Supports <b>Claude CLI</b>, <b>Ollama</b>, and <b>OpenAI</b> "
-        "backends with Lua/Python scripting hooks.</p>"
+        "<p>Supports <b>LM Studio</b>, <b>Ollama</b>, and other local "
+        "OpenAI-compatible LLMs with Lua/Python scripting hooks.</p>"
         "<p>Built with Qt6/C++ · <a href='https://github.com/LordTaylor/CliUiAgent'>"
         "GitHub</a></p>");
     about.exec();
@@ -375,10 +372,8 @@ void MainWindow::populateProfileCombo() {
     m_profileCombo->blockSignals(true);
     m_profileCombo->clear();
 
-    // ── Built-in profiles ─────────────────────────────────────────
-    m_profileCombo->addItem("Claude CLI",  "claude");
+    // ── Built-in profiles (local-only) ────────────────────────────
     m_profileCombo->addItem("Ollama",      "ollama");
-    m_profileCombo->addItem("OpenAI/sgpt", "gpt");
 
     // ── Extra profiles from ~/.codehex/profiles/ ──────────────────
     if (!m_extraProfiles.isEmpty()) {

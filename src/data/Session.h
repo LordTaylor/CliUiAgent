@@ -18,7 +18,7 @@ public:
     QUuid id;
     QString title;
     QString modelName;
-    QString profileName;  // "claude" | "ollama" | "gpt"
+    QString profileName;  // "ollama" | "openai-compatible" (LM Studio, etc.)
     QDateTime createdAt;
     QDateTime updatedAt;
     TokenStats tokens;

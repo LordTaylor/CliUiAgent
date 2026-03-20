@@ -2,9 +2,7 @@ add_library(codehex_cli STATIC
     CliProfile.h
     ProfileEntry.h
     CliRunner.h            CliRunner.cpp
-    ClaudeProfile.h        ClaudeProfile.cpp
     OllamaProfile.h        OllamaProfile.cpp
-    GptProfile.h           GptProfile.cpp
     ConfigurableProfile.h  ConfigurableProfile.cpp
 )
 

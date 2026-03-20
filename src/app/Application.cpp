@@ -3,10 +3,8 @@
 #include <QDir>
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
-#include "../cli/ClaudeProfile.h"
 #include "../cli/CliRunner.h"
 #include "../cli/ConfigurableProfile.h"
-#include "../cli/GptProfile.h"
 #include "../cli/OllamaProfile.h"
 #include "../core/AppConfig.h"
 #include "../core/ChatController.h"
@@ -109,14 +107,12 @@ void Application::setupCliRunner() {
         }
     }
 
-    // Built-in profiles
+    // Built-in profiles (local-only)
     std::unique_ptr<CliProfile> p;
     if (profile == "ollama") {
         p = std::make_unique<OllamaProfile>();
-    } else if (profile == "gpt") {
-        p = std::make_unique<GptProfile>();
     } else {
-        p = std::make_unique<ClaudeProfile>();
+        p = std::make_unique<OllamaProfile>();  // Default fallback
     }
     m_runner->setProfile(std::move(p));
 }
