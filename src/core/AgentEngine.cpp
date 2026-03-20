@@ -174,6 +174,24 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     }
 }
 
+void AgentEngine::sendContinueRequest(const QString& nudge) {
+    auto session = m_sessions->currentSession();
+    if (!session) return;
+
+    m_isRunning = true;
+    resetStreamState();
+
+    bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
+
+    if (useJsonSchema) {
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, nudge, session->messages, tools, 31999, true);
+        m_runner->sendJson(request, m_config->workingFolder());
+    } else {
+        m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+    }
+}
+
 void AgentEngine::injectAutoContext(const QString& query) {
     m_autoContext.clear();
     auto chunks = m_indexer->search(query, 3); // Top 3 snippets
@@ -370,16 +388,12 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
                 // For local models, a explicit nudge helps prevent hallucinations
                 QString nudge = QString("Tool Executed: %1\nOutput: %2\n\nPlease ANALYZE this output and decide on the NEXT STEP or FINALIZE the task if no more actions are needed.")
                                 .arg(toolName, result.content);
-                resetStreamState();
-                m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, sp);
+                sendContinueRequest(nudge);
             }
         } else {
             // If it was an error, just notify the user/model without automatic continue if preferred
             // but usually agent should try to fix the error.
-             m_isRunning = true; // We are sending a nudge, so we are still running
-             resetStreamState();
-             m_runner->send("Tool execution failed. Analyze the error and try a different approach.", 
-                           m_config->workingFolder(), {}, session->messages, sp);
+             sendContinueRequest("Tool execution failed. Analyze the error and try a different approach.");
         }
     } else {
         // If we are NOT running the nudge, then we might be finished
@@ -405,10 +419,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         qWarning() << "[AgentEngine] LOOP DETECTED. Assistant repeated itself exactly.";
         emit statusChanged("Loop detected. Nudging agent...");
         
-        // Don't append the duplicate message. Instead, send a nudge.
-        m_isRunning = true;
-        m_runner->send("WARNING: You just sent the EXACT SAME response. DO NOT repeat your previous thought or tool call. If you are stuck because the tool output is not what you expected, try a DIFFERENT approach or a DIFFERENT tool. If the task is finished, simply state 'TASK COMPLETE'.", 
-                      m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        sendContinueRequest("WARNING: You just sent the EXACT SAME response. DO NOT repeat your previous thought or tool call. If you are stuck because the tool output is not what you expected, try a DIFFERENT approach or a DIFFERENT tool. If the task is finished, simply state 'TASK COMPLETE'.");
         return;
     }
 
@@ -423,8 +434,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
                          "Focus on numbers, dates, technical details, and logical assumptions.\n\n"
                          "### YOUR RESPONSE:\n" + m_currentResponse;
         
-        m_isRunning = true;
-        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        sendContinueRequest(prompt);
         return;
     } else if (m_coveState == CoVeState::VerifyingQuestions) {
         qDebug() << "[AgentEngine] CoVe: VerifyingQuestions -> Answering";
@@ -434,8 +444,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         QString prompt = "### CHAIN-OF-VERIFICATION (CoVe) - STEP 3: ANSWER QUESTIONS ###\n"
                          "Answer the verification questions you just generated. Be objective and factual.\n";
         
-        m_isRunning = true;
-        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        sendContinueRequest(prompt);
         return;
     } else if (m_coveState == CoVeState::Answering) {
         qDebug() << "[AgentEngine] CoVe: Answering -> Finalizing";
@@ -446,8 +455,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
                          "Incorporate the findings from your verification steps. If you found errors, correct them. "
                          "Provide the final, verified response to the user. DO NOT include the internal CoVe steps in the final output.";
         
-        m_isRunning = true;
-        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        sendContinueRequest(prompt);
         return;
     }
     

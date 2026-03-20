@@ -127,6 +127,7 @@ private:
     QString m_autoContext; 
     bool m_isThinkingStream = false;
     QString m_thoughtBuffer;
+    void sendContinueRequest(const QString& nudge);
     void injectAutoContext(const QString& query);
 
     bool isPathAllowed(const QString& path) const;
