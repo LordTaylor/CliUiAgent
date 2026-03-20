@@ -41,8 +41,12 @@ public:
         QDirIterator it(root, QStringList{pattern},
                         QDir::Files | QDir::NoSymLinks,
                         QDirIterator::Subdirectories);
-        while (it.hasNext() && matches.size() < 100)
-            matches << QDir(workDir).relativeFilePath(it.next());
+        while (it.hasNext() && matches.size() < 100) {
+            const QString filePath = it.next();
+            const QString relPath = QDir(workDir).relativeFilePath(filePath);
+            if (ToolUtils::isIgnored(relPath)) continue;
+            matches << relPath;
+        }
 
         if (matches.isEmpty())
             return ToolUtils::okResult("(no files matched the pattern)");

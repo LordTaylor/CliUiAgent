@@ -30,6 +30,14 @@ public:
     static ToolResult errResult(const QString& msg) {
         return ToolResult{ {}, msg, true };
     }
+
+    static bool isIgnored(const QString& relPath) {
+        if (relPath.startsWith("node_modules/") || relPath.contains("/node_modules/")) return true;
+        if (relPath.startsWith("build/") || relPath.contains("/build/")) return true;
+        if (relPath.startsWith(".git/") || relPath.contains("/.git/")) return true;
+        if (relPath.startsWith(".agent/") || relPath.contains("/.agent/")) return true;
+        return false;
+    }
 };
 
 } // namespace CodeHex

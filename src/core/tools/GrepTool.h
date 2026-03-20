@@ -44,6 +44,9 @@ public:
         QDirIterator it(root, QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
         while (it.hasNext() && results.size() < 100) {
             const QString filePath = it.next();
+            const QString relPath = QDir(workDir).relativeFilePath(filePath);
+            if (ToolUtils::isIgnored(relPath)) continue;
+
             QFileInfo info(filePath);
             if (info.size() > 1024 * 1024) continue; // skip files > 1MB
 
