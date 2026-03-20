@@ -110,6 +110,7 @@ private:
 
     CodeHex::HelpDialog* m_helpDialog = nullptr;
 
-    void updateTokenLabel();
+    void updateTokenLabel(int in = -1, int out = -1);
+    void updateButtonIcons();
     void onCursorBlink();
 };

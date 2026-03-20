@@ -30,6 +30,7 @@ ChatController::ChatController(AppConfig* config,
     // Tunnel AgentEngine signals to UI
     connect(m_agent, &AgentEngine::statusChanged,          this, &ChatController::statusChanged);
     connect(m_agent, &AgentEngine::tokenReceived,           this, &ChatController::tokenReceived);
+    connect(m_agent, &AgentEngine::tokenStatsUpdated,    this, &ChatController::tokenStatsUpdated);
     connect(m_agent, &AgentEngine::consoleOutput,           this, &ChatController::consoleOutput);
     connect(m_agent, &AgentEngine::toolCallStarted,        this, &ChatController::toolCallStarted);
     connect(m_agent, &AgentEngine::toolApprovalRequested,   this, &ChatController::toolApprovalRequested);

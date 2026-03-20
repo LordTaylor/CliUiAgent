@@ -3,7 +3,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QSysInfo>
+#include <QOperatingSystemVersion>
 #include "ToolExecutor.h"
+#include "ResponseFilter.h"
+#include "PromptManager.h"
 #include "tools/ToolUtils.h"
 #include "tools/SearchRepoTool.h"
 #include "tools/SearchReplaceTool.h"
@@ -43,6 +47,8 @@ AgentEngine::AgentEngine(AppConfig* config,
 
     m_embeddings = new EmbeddingManager(this);
     m_indexer = new CodebaseIndexer(m_embeddings, this);
+    m_filter = new ResponseFilter(this);
+    m_prompts = new PromptManager(m_config, this);
 
     // Register tools
     m_toolExecutor->registerTool(std::make_shared<SearchReplaceTool>());
@@ -54,6 +60,13 @@ AgentEngine::AgentEngine(AppConfig* config,
     connect(m_runner, &CliRunner::errorChunk,     this, &AgentEngine::onErrorChunk);
     connect(m_runner, &CliRunner::toolCallReady,  this, &AgentEngine::onToolCallReady);
     connect(m_runner, &CliRunner::finished,       this, &AgentEngine::onRunnerFinished);
+    connect(m_runner, &CliRunner::tokenStats, this, [this](int in, int out) {
+        auto* session = m_sessions->currentSession();
+        if (session) {
+            session->updateTokens(in, out);
+            emit tokenStatsUpdated(in, out);
+        }
+    });
     
     m_auditor = new ProjectAuditor(this);
     m_auditor->setWorkingDirectory(m_config->workingFolder());
@@ -113,14 +126,13 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
                                    "Format as a JSON block: {\"memory_update\": \"...\"}. "
                                    "Then, tell the user you have archived the history.";
         m_isRunning = true;
-        m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, systemPrompt());
+        m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
         return;
     }
 
 
-    m_currentResponse.clear();
-    m_isThinkingStream = false;
-    m_thoughtBuffer.clear();
+    m_requestQueue.clear();
+    resetStreamState();
     m_isRunning = true;
     
     // Background indexing (Codebase Awareness)
@@ -150,7 +162,7 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     }
     m_runner->setProfile(std::move(profile));
     
-    m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages, systemPrompt());
+    m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages, getSystemPrompt());
 }
 
 void AgentEngine::injectAutoContext(const QString& query) {
@@ -178,9 +190,7 @@ void AgentEngine::stop() {
 void AgentEngine::reset() {
     stop();
     m_pendingCalls.clear();
-    m_currentResponse.clear();
-    m_isThinkingStream = false;
-    m_thoughtBuffer.clear();
+    resetStreamState();
 }
 
 bool AgentEngine::isRunning() const {
@@ -188,112 +198,20 @@ bool AgentEngine::isRunning() const {
 }
 
 void AgentEngine::onOutputChunk(const QString& chunk) {
-    m_currentResponse += chunk;
-
-    // Detect tag start
-    if (!m_isThinkingStream && m_currentResponse.contains("<thought>")) {
-        m_isThinkingStream = true;
-        m_thoughtBuffer.clear(); // Start fresh thought tracking
-        emit statusChanged("🧠 Reasoning...");
-        return; 
+    QString filtered = m_filter->processChunk(chunk);
+    if (!filtered.isEmpty()) {
+        emit tokenReceived(filtered);
     }
-    
-    // While in thinking mode, suppress tokens and update status banner
-    if (m_isThinkingStream) {
-        m_thoughtBuffer += chunk;
-        if (m_currentResponse.contains("</thought>")) {
-            m_isThinkingStream = false;
-            emit statusChanged("💡 Thought finalized.");
-        } else {
-            // Show a snippet of the current thought in the banner
-            QString glimpse = m_thoughtBuffer.trimmed();
-            if (glimpse.length() > 50) glimpse = "..." + glimpse.right(47);
-            emit statusChanged("🧠 " + glimpse);
-        }
-        return;
-    }
-
-    // Suppress tool tags too
-    if (m_currentResponse.contains("<name>") || m_currentResponse.contains("<input>")) {
-        return; 
-    }
-
-    emit tokenReceived(chunk);
 }
 
 void AgentEngine::onRawOutput(const QString& raw) {
     emit consoleOutput(raw);
 }
 
-QString AgentEngine::loadRolePrompt(Role role) const {
-    QString fileName;
-    switch (role) {
-        case Role::Base:     fileName = "base.txt"; break;
-        case Role::Explorer: fileName = "explorer.txt"; break;
-        case Role::Executor: fileName = "executor.txt"; break;
-        case Role::Reviewer: fileName = "reviewer.txt"; break;
-    }
-    
-    // Load from Qt Resources instead of working directory
-    QFile file(":/resources/prompts/" + fileName);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return QString::fromUtf8(file.readAll());
-    }
-    qWarning() << "[AgentEngine] Failed to load prompt from resource:" << file.fileName();
-    return QString();
-}
-
-QString AgentEngine::systemPrompt() const {
-    QString base = loadRolePrompt(m_currentRole);
-    if (m_currentRole != Role::Base) {
-        // Optionally append Base rules if the specific role prompt is too narrow
-        // but for now, let's assume each role prompt is self-contained or 
-        // we append the base rules explicitly if needed.
-    }
-    
-    // 🧠 AGENT BRAIN: Load persistent memory
-    QString memoryPath = m_config->workingFolder() + "/.agent/memory.md";
-    QFile memFile(memoryPath);
-    if (memFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        base += "\n\n### PROJECT MEMORY (Read to avoid repeating errors):\n" + 
-                QString::fromUtf8(memFile.readAll());
-    }
-
-    // 📜 PROJECT RULES: Load mandatory constraints
-    QString rulesPath = m_config->workingFolder() + "/.agent/rules.md";
-    QFile rulesFile(rulesPath);
-    if (rulesFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        base += "\n\n### MANDATORY PROJECT RULES & GUIDELINES (STRICT ADHERENCE REQUIRED):\n" + 
-                QString::fromUtf8(rulesFile.readAll());
-    }
-
-    base += "\n\n### INTERNAL TOOLS & SCRATCHPAD:\n"
-            "- You have a dedicated directory `.agent/scratchpad/` for internal scripts.\n"
-            "- If you encounter a complex task that standard tools can't solve easily, "
-            "WRITE a custom script (Python/Bash) into that folder and EXECUTE it.\n"
-            "- This is for your own automation and data processing needs.\n"
-            "- 🍏 **MacOS:** Use `osascript -e 'tell app \"Terminal\" to do script \"python3 %1\"'` to open a real window.\n"
-            "- 🪟 **Windows:** Use `cmd /c start powershell -Command \"python %1; Read-Host 'Press Enter to exit'\"`.\n"
-            "- 🐧 **Linux:** Use `x-terminal-emulator -e \"bash -c 'python3 %1; read -p \\\"Press Enter to exit\\\"'\"`.\n"
-            "You CAN open windows on the user's computer.";
-
-    if (m_toolExecutor) {
-        base += "\n\n" + m_toolExecutor->getToolDefinitions();
-    }
-
-    if (!m_autoContext.isEmpty()) {
-        base += m_autoContext;
-    }
-    
-    if (m_currentRole == Role::Base) return base;
-    
-    QString rolePrompt = loadRolePrompt(m_currentRole);
-    return base + "\n\n" + rolePrompt;
-}
-
 void AgentEngine::onErrorChunk(const QString& chunk) {
     emit consoleOutput("[stderr] " + chunk);
 }
+
 
 void AgentEngine::setManualApproval(bool enabled) {
     m_manualApproval = enabled;
@@ -437,19 +355,20 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
 
     // Automatically trigger the next agent turn if the profile isn't already doing something
     if (!m_runner->isProfileRunning()) {
+        QString sp = getSystemPrompt();
         if (!result.isError) {
-            QString sp = systemPrompt();
             if (m_runner) {
                 // For local models, a explicit nudge helps prevent hallucinations
                 QString nudge = QString("Tool Executed: %1\nOutput: %2\n\nPlease ANALYZE this output and decide on the NEXT STEP or FINALIZE the task if no more actions are needed.")
                                 .arg(toolName, result.content);
+                resetStreamState();
                 m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, sp);
             }
         } else {
             // If it was an error, just notify the user/model without automatic continue if preferred
             // but usually agent should try to fix the error.
-             QString sp = systemPrompt();
              m_isRunning = true; // We are sending a nudge, so we are still running
+             resetStreamState();
              m_runner->send("Tool execution failed. Analyze the error and try a different approach.", 
                            m_config->workingFolder(), {}, session->messages, sp);
         }
@@ -480,7 +399,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         // Don't append the duplicate message. Instead, send a nudge.
         m_isRunning = true;
         m_runner->send("WARNING: You just sent the EXACT SAME response. DO NOT repeat your previous thought or tool call. If you are stuck because the tool output is not what you expected, try a DIFFERENT approach or a DIFFERENT tool. If the task is finished, simply state 'TASK COMPLETE'.", 
-                      m_config->workingFolder(), {}, session->messages, systemPrompt());
+                      m_config->workingFolder(), {}, session->messages, getSystemPrompt());
         return;
     }
 
@@ -627,6 +546,19 @@ void AgentEngine::processNextQueueItem() {
     PendingRequest next = m_requestQueue.dequeue();
     qDebug() << "[AgentEngine] Processing next queued request.";
     process(next.input, next.attachments);
+}
+
+void AgentEngine::resetStreamState() {
+    m_filter->reset();
+    m_pendingCalls.clear();
+}
+
+QString AgentEngine::getSystemPrompt() const {
+    QString sp = m_prompts->buildSystemPrompt(m_currentRole, m_autoContext);
+    if (m_toolExecutor) {
+        sp += "\n\n" + m_toolExecutor->getToolDefinitions();
+    }
+    return sp;
 }
 
 } // namespace CodeHex

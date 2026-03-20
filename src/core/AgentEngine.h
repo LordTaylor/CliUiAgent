@@ -17,6 +17,8 @@ class AppConfig;
 class CodebaseIndexer;
 class EmbeddingManager;
 class ProjectAuditor;
+class ResponseFilter;
+class PromptManager;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -71,6 +73,7 @@ public:
 signals:
     void statusChanged(const QString& status);
     void tokenReceived(const QString& token);
+    void tokenStatsUpdated(int input, int output);
     void consoleOutput(const QString& raw);
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
     void toolApprovalRequested(const QString& toolName, const QJsonObject& input);
@@ -96,6 +99,8 @@ private:
     EmbeddingManager* m_embeddings;
     CodebaseIndexer*  m_indexer;
     ProjectAuditor*   m_auditor;
+    ResponseFilter*   m_filter;
+    PromptManager*    m_prompts;
 
     bool m_manualApproval = false;
     QMap<QString, Permission> m_toolPermissions;
@@ -118,9 +123,9 @@ private:
     void injectAutoContext(const QString& query);
 
     bool isPathAllowed(const QString& path) const;
-    QString loadRolePrompt(Role role) const;
-    QString systemPrompt() const;
     void processNextQueueItem();
+    void resetStreamState();
+    QString getSystemPrompt() const;
     QString cleanToolTags(const QString& text) const;
 };
 

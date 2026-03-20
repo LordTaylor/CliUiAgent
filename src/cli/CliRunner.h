@@ -44,6 +44,9 @@ signals:
     // This signal is used for display and for tool execution loops.
     void toolCallReady(const CodeHex::ToolCall& call);
 
+    // Real-time token usage
+    void tokenStats(int input, int output);
+
     // New signals for simple commands
     void simpleCommandStarted();
     void simpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);

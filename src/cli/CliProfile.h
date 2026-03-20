@@ -13,8 +13,10 @@ namespace CodeHex {
 // Returned by CliProfile::parseLine() for each complete stdout line.
 // At most one of textToken / toolCall is populated per call.
 struct StreamResult {
-    QString                 textToken;  // non-empty → streaming text token
-    std::optional<ToolCall> toolCall;   // set → a tool call was fully parsed
+    QString                 textToken;   // non-empty → streaming text token
+    std::optional<ToolCall> toolCall;    // set → a tool call was fully parsed
+    std::optional<int>      inputTokens; // total input tokens used so far
+    std::optional<int>      outputTokens;// total output tokens generated so far
 };
 
 // ── CliProfile ────────────────────────────────────────────────────────────────

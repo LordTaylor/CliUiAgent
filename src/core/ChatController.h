@@ -39,6 +39,7 @@ public slots:
 signals:
     void userMessageReady(const Message& msg);
     void tokenReceived(const QString& token);
+    void tokenStatsUpdated(int input, int output);
     void responseComplete(const Message& msg);
     void errorOccurred(const QString& error);
     void consoleOutput(const QString& raw);

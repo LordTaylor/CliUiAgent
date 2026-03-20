@@ -189,8 +189,8 @@ void CliRunner::onProcessError(QProcess::ProcessError error) {
 }
 
 void CliRunner::processLine(const QByteArray& line) {
-    // Always emit raw output to console for full visibility
-    emit rawOutput(QString::fromLocal8Bit(line));
+    // Suppressed raw output to terminal for cleaner experience (JSON protocol hidden)
+    // emit rawOutput(QString::fromLocal8Bit(line));
 
     if (!m_profile) {
         emit outputChunk(QString::fromLocal8Bit(line));
@@ -207,6 +207,11 @@ void CliRunner::processLine(const QByteArray& line) {
     // 2. Tool calls (now handled by profile parser)
     if (res.toolCall) {
         emit toolCallReady(*res.toolCall);
+    }
+
+    // 3. Token usage
+    if (res.inputTokens || res.outputTokens) {
+        emit tokenStats(res.inputTokens.value_or(0), res.outputTokens.value_or(0));
     }
 }
 

@@ -17,6 +17,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QSlider>
+#include <QPainter>
+#include <QSvgRenderer>
 #include "../core/LlmDiscoveryService.h"
 #include "../core/AppConfig.h"
 #include "help/HelpDialog.h"
@@ -74,6 +76,9 @@ MainWindow::MainWindow(AppConfig* config,
         m_messageModel->appendToken(chunk);
         m_chatView->scrollToBottomSmooth();
     });
+    connect(m_controller, &ChatController::tokenStatsUpdated, this, [this](int in, int out) {
+        updateTokenLabel(in, out);
+    });
     connect(m_controller, &ChatController::responseComplete,
             this, &MainWindow::onResponseComplete);
     connect(m_controller, &ChatController::cliOutputReceived,
@@ -120,6 +125,7 @@ MainWindow::MainWindow(AppConfig* config,
         : m_sessions->allSessions().first();
     m_sessions->setCurrentSession(last);
     switchSession(last);
+    updateButtonIcons();
 }
 
 void MainWindow::setupUi() {
@@ -505,14 +511,15 @@ void MainWindow::switchSession(Session* session) {
     updateTokenLabel();
 }
 
-void MainWindow::updateTokenLabel() {
+void MainWindow::updateTokenLabel(int in, int out) {
     auto* s = m_sessions->currentSession();
-    if (!s || (s->tokens.input == 0 && s->tokens.output == 0)) {
-        m_terminalPanel->clear();
-        return;
+    if (!s || !m_tokenLabel) return;
+
+    if (in >= 0 && out >= 0) {
+        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out (streaming...)").arg(in).arg(out));
+    } else {
+        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out").arg(s->tokens.input).arg(s->tokens.output));
     }
-    m_tokenLabel->setText(
-        QString("Tokens: %1 in / %2 out").arg(s->tokens.input).arg(s->tokens.output));
 }
 
 void MainWindow::onSendRequested(const QString& text, const QList<Attachment>& attachments) {
@@ -697,6 +704,7 @@ void MainWindow::onThemeToggleRequested() {
     bool nextDark = !tm.isDark();
     tm.setTheme(nextDark);
     m_themeBtn->setText(nextDark ? "🌙" : "☀️");
+    updateButtonIcons();
 }
 
 void MainWindow::onCommandRequested(const QString& cmd, const QStringList& args) {
@@ -724,9 +732,46 @@ void MainWindow::onCommandRequested(const QString& cmd, const QStringList& args)
     }
 }
 
-// Removed legacy LLM slider and model discovery from MainWindow
+void MainWindow::updateButtonIcons() {
+    bool isDark = ThemeManager::instance().isDark();
+    QColor iconColor = isDark ? QColor("#E5E7EB") : QColor("#374151");
+    
+    auto tint = [&](const QString& path) -> QIcon {
+        QPixmap pixmap(64, 64);
+        pixmap.fill(Qt::transparent);
+        QPainter painter(&pixmap);
+        QSvgRenderer renderer(path);
+        renderer.render(&painter);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        painter.fillRect(pixmap.rect(), iconColor);
+        painter.end();
+        return QIcon(pixmap);
+    };
 
-// Removed legacy LLM slider and model discovery from MainWindow as it is now managed via ProviderSettingsDialog
-
+    // Find children buttons with icons (or just update the ones we know)
+    // We can use the member variables
+    // Note: Some buttons might be created in setupUi and not have members if they were local,
+    // but the key ones were requested. I'll update the ones I have members for.
+    
+    // We need to find the settings buttons again if they aren't members.
+    // They were local in setupUi. Let's make them members if needed, 
+    // or just find them by tooltips/object names.
+    
+    // Let's find all QPushButtons in the toolbar
+    auto toolbar = findChild<QWidget*>("toolbar");
+    if (toolbar) {
+        for (auto* btn : toolbar->findChildren<QPushButton*>()) {
+            QString iconPath;
+            if (btn->toolTip().contains("Settings", Qt::CaseInsensitive)) iconPath = ":/resources/icons/settings.svg";
+            else if (btn->toolTip().contains("Skills", Qt::CaseInsensitive)) iconPath = ":/resources/icons/skills.svg";
+            else if (btn->toolTip().contains("Plugins", Qt::CaseInsensitive)) iconPath = ":/resources/icons/plugins.svg";
+            else if (btn->toolTip().contains("Manage LLM", Qt::CaseInsensitive)) iconPath = ":/resources/icons/power.svg";
+            
+            if (!iconPath.isEmpty()) {
+                btn->setIcon(tint(iconPath));
+            }
+        }
+    }
+}
 
 // End of MainWindow.cpp

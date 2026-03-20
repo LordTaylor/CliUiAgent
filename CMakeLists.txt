@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC OFF)
 
 # --- Qt6 ---
 find_package(Qt6 REQUIRED COMPONENTS
-    Core Widgets Multimedia MultimediaWidgets Network Concurrent Test
+    Core Widgets Multimedia MultimediaWidgets Network Concurrent Test Svg
 )
 qt_standard_project_setup()
 
@@ -98,7 +98,7 @@ target_link_libraries(CodeHex PRIVATE
     codehex_data
     codehex_audio
     codehex_scripting
-    Qt6::Core Qt6::Widgets Qt6::Multimedia Qt6::Network Qt6::Concurrent
+    Qt6::Core Qt6::Widgets Qt6::Multimedia Qt6::Network Qt6::Concurrent Qt6::Svg
     nlohmann_json::nlohmann_json
     lua::lua
     sol2::sol2

@@ -29,3 +29,6 @@
 
 ---
 *Failure to follow these rules is considered a regression. Always self-audit against this document.*
+
+## 5. Git & Version Control
+1. **Commit Changelog**: Każdy commit musi posiadać szczegółowy ChangeLog w treści wiadomości, informujący o zmienionych plikach i celu zmian.

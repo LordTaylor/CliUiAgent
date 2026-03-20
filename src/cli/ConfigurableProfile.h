@@ -56,6 +56,7 @@ public:
                                const QString& workDir,
                                const QList<Message>& history,
                                const QString& systemPrompt = {}) const override;
+    StreamResult parseLine(const QByteArray& line) const override;
     QString parseStreamChunk(const QByteArray& raw) const override;
 
     void reset() override {}

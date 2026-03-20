@@ -27,5 +27,5 @@ target_link_libraries(codehex_ui PUBLIC
     codehex_core
     codehex_cli
     codehex_audio
-    Qt6::Core Qt6::Widgets
+    Qt6::Core Qt6::Widgets Qt6::Svg
 )

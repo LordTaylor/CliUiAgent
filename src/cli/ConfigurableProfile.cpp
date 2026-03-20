@@ -112,6 +112,7 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
             {"model",       m_model},
             {"messages",    messages},
             {"stream",      true},
+            {"stream_options", QJsonObject{{"include_usage", true}}},
             {"temperature", 0.2},
         };
         args << "--data-raw"
@@ -165,6 +166,7 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
             {"model",    m_model},
             {"messages", messages},
             {"stream",   true},
+            {"stream_options", QJsonObject{{"include_usage", true}}},
             {"temperature", 0.2},
         };
 
@@ -195,19 +197,53 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
 
 // ── parseStreamChunk ──────────────────────────────────────────────────────────
 
-QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
-    QByteArray line = raw.trimmed();
-    if (line.isEmpty()) return {};
+StreamResult ConfigurableProfile::parseLine(const QByteArray& line) const {
+    QByteArray trimmed = line.trimmed();
+    if (trimmed.isEmpty()) return {};
+
+    StreamResult res;
 
     // ── Handle OpenAICompatible / SSE ─────────────────────────────────────────
-    if (m_type == ApiType::OpenAICompatible || line.startsWith("data:")) {
-        return parseOpenAIStream(line);
+    if (m_type == ApiType::OpenAICompatible || trimmed.startsWith("data:")) {
+        res.textToken = parseOpenAIStream(trimmed);
+        
+        // Some providers send usage at the end of the stream in the same format
+        if (trimmed.startsWith("data: ")) {
+            QByteArray data = trimmed.mid(6).trimmed();
+            if (data != "[DONE]") {
+                const auto doc = QJsonDocument::fromJson(data);
+                if (!doc.isNull() && doc.isObject()) {
+                    auto usage = doc.object()["usage"].toObject();
+                    if (!usage.isEmpty()) {
+                        res.inputTokens = usage["prompt_tokens"].toInt();
+                        res.outputTokens = usage["completion_tokens"].toInt();
+                    }
+                }
+            }
+        }
+        return res;
     }
 
     // ── Handle Ollama (native REST API) ───────────────────────────────────────
-    const auto doc = QJsonDocument::fromJson(line);
+    const auto doc = QJsonDocument::fromJson(trimmed);
     if (doc.isNull()) return {};
-    return doc.object()["response"].toString();
+    
+    auto obj = doc.object();
+    res.textToken = obj["response"].toString();
+    
+    // Ollama sends tokens in the last chunk (done: true)
+    if (obj.contains("prompt_eval_count")) {
+        res.inputTokens = obj["prompt_eval_count"].toInt();
+    }
+    if (obj.contains("eval_count")) {
+        res.outputTokens = obj["eval_count"].toInt();
+    }
+    
+    return res;
+}
+
+QString ConfigurableProfile::parseStreamChunk(const QByteArray& raw) const {
+    return parseLine(raw).textToken;
 }
 
 // Helper to parse OpenAI/SSE stream chunks
