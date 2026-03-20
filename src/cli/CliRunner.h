@@ -27,6 +27,10 @@ public:
               const QStringList& imagePaths  = {},
               const QList<Message>& history  = {},
               const QString& systemPrompt    = {});
+
+    // For structured JSON requests
+    virtual void sendJson(const QJsonObject& jsonRequest,
+                        const QString& workDir = {});
     void stop();
     bool isRunning() const;
     bool isProfileRunning() const;

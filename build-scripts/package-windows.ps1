@@ -37,10 +37,17 @@ conan install . `
     -s compiler=msvc `
     -s compiler.version=193
 
+# Find toolchain file robustly
+$ToolchainFile = (Get-ChildItem -Path "build\release" -Filter "conan_toolchain.cmake" -Recurse | Select-Object -First 1).FullName
+if (-not $ToolchainFile) {
+    Write-Error "conan_toolchain.cmake not found in build\release"
+}
+Write-Host "    Using toolchain: $ToolchainFile" -ForegroundColor Gray
+
 cmake -B build\release\cmake `
     -G "Ninja" `
     -DCMAKE_BUILD_TYPE=Release `
-    "-DCMAKE_TOOLCHAIN_FILE=$ProjectDir\build\release\build\Release\generators\conan_toolchain.cmake" `
+    "-DCMAKE_TOOLCHAIN_FILE=$ToolchainFile" `
     "-DCMAKE_PREFIX_PATH=$QtDir\lib\cmake\Qt6" `
     -Wno-dev
 

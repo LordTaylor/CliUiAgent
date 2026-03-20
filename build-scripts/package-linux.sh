@@ -28,11 +28,17 @@ conan install . \
     -s compiler.cppstd=20
 
 echo "==> Configuring CMake (Release)..."
+TOOLCHAIN_FILE=$(find build/release -name "conan_toolchain.cmake" | head -n 1)
+if [ -z "$TOOLCHAIN_FILE" ]; then
+    echo "ERROR: conan_toolchain.cmake not found"
+    exit 1
+fi
+
 cmake -B build/release/cmake \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
-    -DCMAKE_TOOLCHAIN_FILE=build/release/build/Release/generators/conan_toolchain.cmake \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_PREFIX_PATH="$QT_DIR/lib/cmake/Qt6" \
     -Wno-dev
 

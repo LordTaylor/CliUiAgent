@@ -4,6 +4,9 @@
 # ============================================================
 set -euo pipefail
 
+# Ensure Homebrew is in PATH (important for GHA runners)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ---- Environment Detect ----
 QT_DIR="${QT_DIR:-${Qt6_DIR:-/opt/homebrew/opt/qt@6}}"
 QT_BIN="${QT_BIN:-$QT_DIR/bin}"
@@ -34,10 +37,19 @@ conan install . \
     -s compiler.cppstd=20
 
 echo "==> Configuring CMake (Release)..."
+# Find toolchain file robustly
+TOOLCHAIN_FILE=$(find build/release -name "conan_toolchain.cmake" | head -n 1)
+if [ -z "$TOOLCHAIN_FILE" ]; then
+    echo "ERROR: conan_toolchain.cmake not found in build/release"
+    find build/release -maxdepth 4
+    exit 1
+fi
+echo "    Using toolchain: $TOOLCHAIN_FILE"
+
 cmake -B build/release/cmake \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_TOOLCHAIN_FILE=build/release/build/Release/generators/conan_toolchain.cmake \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_PREFIX_PATH="${QT_DIR}/lib/cmake/Qt6" \
     -Wno-dev
 

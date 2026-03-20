@@ -15,17 +15,13 @@ using namespace CodeHex;
 class MockCliRunner : public CliRunner {
 public:
     using CliRunner::CliRunner;
-    void send(const QString& prompt, 
-              const QString& workDir, 
-              const QStringList& imagePaths, 
-              const QList<Message>& history,
-              const QString& systemPrompt = {}) override {
-        lastPrompt = prompt;
-        lastSystemPrompt = systemPrompt;
+    void sendJson(const QJsonObject& jsonRequest, const QString& workDir = {}) override {
+        lastJsonRequest = jsonRequest;
         sendCount++;
     }
     QString lastPrompt;
     QString lastSystemPrompt;
+    QJsonObject lastJsonRequest;
     int sendCount = 0;
 };
 

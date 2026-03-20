@@ -7,6 +7,9 @@
 #include "CliProfile.h"
 #include "../data/ToolCall.h" // Ensure this is included for ToolCall type
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 namespace CodeHex {
 
 CliRunner::CliRunner(QObject* parent) : QObject(parent) {
@@ -213,6 +216,28 @@ void CliRunner::processLine(const QByteArray& line) {
     if (res.inputTokens || res.outputTokens) {
         emit tokenStats(res.inputTokens.value_or(0), res.outputTokens.value_or(0));
     }
+}
+
+void CliRunner::sendJson(const QJsonObject& jsonRequest, const QString& workDir) {
+    if (!m_profile) {
+        emit errorChunk("Error: No AI profile selected.");
+        emit finished(1);
+        return;
+    }
+
+    if (isRunning()) {
+        emit errorChunk("Error: Already generating a response.");
+        emit finished(1);
+        return;
+    }
+
+    // Default implementation: serialize to string and treat as prompt
+    // Profiles can be updated later to handle JSON natively via specific flags
+    QJsonDocument doc(jsonRequest);
+    QString jsonStr = doc.toJson(QJsonDocument::Compact);
+    
+    // For now, reuse the standard send mechanism but passing the serialized JSON as prompt
+    send(jsonStr, workDir, {}, {}, "");
 }
 
 void CliRunner::onSimpleReadyReadStdout() {

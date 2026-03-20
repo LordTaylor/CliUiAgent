@@ -1,11 +1,13 @@
 #pragma once
-#include <QJsonObject>
+
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <memory>
-#include <QtConcurrent>
 #include <atomic>
+
 #include "Tool.h"
 #include "ToolCall.h"
 
@@ -34,6 +36,7 @@ public:
      * @brief Returns a formatted string describing all registered tools.
      */
     QString getToolDefinitions() const;
+    QJsonArray getToolDefinitionsJson() const;
 
     /**
      * @brief Aborts the currently running tool.

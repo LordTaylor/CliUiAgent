@@ -1,9 +1,13 @@
 #pragma once
 
-#include <QString>
 #include <QObject>
+#include <QString>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QList>
 
 #include "AgentEngine.h"
+#include "Message.h"
 
 namespace CodeHex {
 
@@ -21,6 +25,16 @@ public:
      * @brief Builds the full system prompt for the current role and state.
      */
     QString buildSystemPrompt(AgentEngine::Role role, const QString& autoContext) const;
+
+    /**
+     * @brief Builds a structured JSON request for Claude Code API.
+     */
+    QJsonObject buildRequestJson(AgentEngine::Role role, 
+                               const QString& userInput, 
+                               const QList<Message>& history, 
+                               const QJsonArray& tools,
+                               int thinkingBudget = 0,
+                               bool useCache = false) const;
 
     /**
      * @brief Strategy description for the given role.

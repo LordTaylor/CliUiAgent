@@ -128,6 +128,19 @@ QString ToolExecutor::getToolDefinitions() const {
     return defs;
 }
 
+QJsonArray ToolExecutor::getToolDefinitionsJson() const {
+    QJsonArray tools;
+    for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
+        auto tool = it.value();
+        QJsonObject toolObj;
+        toolObj["name"] = tool->name();
+        toolObj["description"] = tool->description();
+        toolObj["input_schema"] = tool->parameters(); // parameters() returns the JSON schema object
+        tools.append(toolObj);
+    }
+    return tools;
+}
+
 void ToolExecutor::stop() {
     Tool* active = m_activeTool.load();
     if (active) {

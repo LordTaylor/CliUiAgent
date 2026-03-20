@@ -126,4 +126,79 @@ QString PromptManager::loadRolePrompt(AgentEngine::Role role) const {
     return QString();
 }
 
+QJsonObject PromptManager::buildRequestJson(AgentEngine::Role role, 
+                                          const QString& userInput, 
+                                          const QList<Message>& history, 
+                                          const QJsonArray& tools,
+                                          int thinkingBudget,
+                                          bool useCache) const {
+    QJsonObject request;
+
+    // 1. System Prompt (Array of blocks)
+    QJsonArray system;
+    QJsonObject systemBlock;
+    systemBlock["type"] = "text";
+    systemBlock["text"] = buildSystemPrompt(role, QString());
+    
+    if (useCache) {
+        QJsonObject cacheControl;
+        cacheControl["type"] = "ephemeral";
+        cacheControl["ttl"] = "1h";
+        systemBlock["cache_control"] = cacheControl;
+    }
+    system.append(systemBlock);
+    request["system"] = system;
+
+    // 2. Tools
+    request["tools"] = tools;
+
+    // 3. Messages
+    QJsonArray messages;
+    for (const auto& msg : history) {
+        QJsonObject msgObj;
+        msgObj["role"] = (msg.role == Message::Role::Assistant) ? "assistant" : "user";
+        
+        QJsonArray content;
+        QJsonObject textBlock;
+        textBlock["type"] = "text";
+        textBlock["text"] = msg.textFromContentBlocks();
+        content.append(textBlock);
+        
+        // Handle tool calls if any (not implemented in this simplified schema mapper yet, 
+        // but can be extended if msg has tool_use blocks)
+        
+        msgObj["content"] = content;
+        messages.append(msgObj);
+    }
+    
+    // Append current user input if not already in history
+    if (!userInput.isEmpty()) {
+        QJsonObject userMsg;
+        userMsg["role"] = "user";
+        QJsonArray content;
+        QJsonObject textBlock;
+        textBlock["type"] = "text";
+        textBlock["text"] = userInput;
+        content.append(textBlock);
+        userMsg["content"] = content;
+        messages.append(userMsg);
+    }
+    request["messages"] = messages;
+
+    // 4. Thinking Configuration
+    if (thinkingBudget > 0) {
+        QJsonObject thinking;
+        thinking["type"] = "enabled";
+        thinking["budget_tokens"] = thinkingBudget;
+        request["thinking"] = thinking;
+    }
+
+    // 5. Output Configuration
+    QJsonObject outputConfig;
+    outputConfig["effort"] = "medium";
+    request["output_config"] = outputConfig;
+
+    return request;
+}
+
 } // namespace CodeHex

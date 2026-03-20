@@ -5,6 +5,9 @@
 #include <QTimer>
 #include <QSysInfo>
 #include <QOperatingSystemVersion>
+#include <QtConcurrent>
+#include <QUuid>
+#include <QDateTime>
 #include "ToolExecutor.h"
 #include "ResponseFilter.h"
 #include "PromptManager.h"
@@ -108,14 +111,8 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
 
     // Always append user message to session for persistence and UI visibility
     // Safety guard: Don't append if ID exists (prevents UI sync duplicates)
-    bool exists = false;
-    for (const auto& m : session->messages) {
-        if (m.id == userMsg.id) { exists = true; break; }
-    }
-    if (!exists) {
-        session->appendMessage(userMsg);
-        session->save();
-    }
+    session->appendMessage(userMsg);
+    session->save();
 
     if (m_isRunning) {
         qDebug() << "[AgentEngine] Busy. Enqueuing request.";
@@ -128,41 +125,26 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     if (session->messages.size() > 15) {
         qDebug() << "[AgentEngine] Session too long. Triggering compression...";
         emit statusChanged("📦 Compressing conversation history...");
-        // Hidden internal command to summarize
         QString compactionPrompt = "### INTERNAL COMPACTION REQUEST ###\n"
-                                   "The conversation is too long. Please provide a CONCISE SUMMARY of all "
-                                   "technical decisions, file changes, and current status in 5-8 bullet points. "
-                                   "Format as a JSON block: {\"memory_update\": \"...\"}. "
-                                   "Then, tell the user you have archived the history.";
+                                   "The conversation is too long. Please provide a CONCISE SUMMARY...";
         m_isRunning = true;
         m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
         return;
     }
 
-
     m_requestQueue.clear();
     resetStreamState();
     m_isRunning = true;
     
-    // Background indexing (Codebase Awareness)
+    // Background indexing
     QtConcurrent::run([this]() {
         m_indexer->indexDirectory(m_config->workingFolder());
     });
     
     emit statusChanged("Agent is thinking...");
-
-    // Build enriched prompt (Auto-RAG)
-    emit statusChanged("🔍 Analyzing codebase for context...");
     injectAutoContext(userInput);
     
     QString implicitGoals = m_prompts->detectImplicitGoals(userInput);
-    QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + userInput; 
-    
-    // Update input token stats
-    const int inputTokens = TokenCounter::estimate(enrichedPrompt);
-    session->updateTokens(inputTokens, 0);
-
-    emit statusChanged("🧠 Thinking...");
     
     // Select and configure LLM profile from active provider
     const auto provider = m_config->activeProvider();
@@ -171,8 +153,25 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
         profile->setModel(m_selectedModel);
     }
     m_runner->setProfile(std::move(profile));
-    
-    m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages, getSystemPrompt());
+
+    // Determine if we use the new Structured JSON Schema
+    bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
+
+    if (useJsonSchema) {
+        emit statusChanged("🧠 Reasoning (JSON Schema)...");
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, userInput, session->messages, tools, 31999, true);
+        m_runner->sendJson(request, m_config->workingFolder());
+    } else {
+        emit statusChanged("🧠 Thinking...");
+        QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + userInput; 
+        
+        // Estimate tokens for non-JSON path
+        const int inputTokens = TokenCounter::estimate(enrichedPrompt);
+        session->updateTokens(inputTokens, 0);
+
+        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+    }
 }
 
 void AgentEngine::injectAutoContext(const QString& query) {

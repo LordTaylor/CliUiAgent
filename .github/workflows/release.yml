@@ -44,7 +44,7 @@ jobs:
           version: '6.7.0'
           host: ${{ matrix.os == 'macos-latest' && 'mac' || (matrix.os == 'windows-latest' && 'windows' || 'linux') }}
           target: 'desktop'
-          arch: ${{ matrix.os == 'windows-latest' && 'msvc2019_64' || '' }}
+          arch: ${{ matrix.os == 'windows-latest' && 'win64_msvc2019_64' || '' }}
 
       - name: Install Build Tools (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -54,7 +54,10 @@ jobs:
 
       - name: Install Build Tools (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install ninja
+        run: |
+          brew install ninja
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Install Build Tools (Windows)
         if: matrix.os == 'windows-latest'
