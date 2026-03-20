@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QScrollBar>
 #include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
@@ -49,7 +50,7 @@ MainWindow::MainWindow(AppConfig* config,
       m_player(player),
       m_extraProfiles(extraProfiles) {
     setWindowTitle("CodeHex");
-    setWindowIcon(QIcon(":/icons/app.png"));
+    setWindowIcon(QIcon(":/resources/icons/app.png"));
     setMinimumSize(900, 600);
     resize(1200, 800);
 
@@ -228,6 +229,15 @@ void MainWindow::setupUi() {
     connect(m_autoScrollBtn, &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
     connect(m_stopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
 
+    // Uncheck magnet if user scrolls up manually
+    connect(m_chatView->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int value) {
+        if (value < m_chatView->verticalScrollBar()->maximum() - 20) {
+            if (m_autoScrollBtn->isChecked()) {
+                m_autoScrollBtn->setChecked(false);
+            }
+        }
+    });
+
     // Input panel
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
     rightLayout->addWidget(m_inputPanel);
@@ -344,7 +354,7 @@ void MainWindow::onHelpRequested(const QString& page) {
 void MainWindow::onAbout() {
     QMessageBox about(this);
     about.setWindowTitle("About CodeHex");
-    about.setIconPixmap(QPixmap(":/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    about.setIconPixmap(QPixmap(":/resources/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     about.setText("<h2>CodeHex 0.1.0</h2>"
         "<p>A desktop coding chatbot for developers.</p>"
         "<p>Supports <b>Claude CLI</b>, <b>Ollama</b>, and <b>OpenAI</b> "

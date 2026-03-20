@@ -101,12 +101,15 @@ void MessageModel::precomputeLayout(Message& msg) const {
             bl.doc->setPlainText(block.content);
         }
 
-        // Set width and force layout
+        // Set width constraint and force layout
         bl.doc->setTextWidth(textW);
         
-        // Calculate required width: the smaller of maxW or the document's actual content width
-        int contentWidth = static_cast<int>(bl.doc->size().width());
+        // Use idealWidth to get the actual minimum width needed for the text
+        int contentWidth = static_cast<int>(std::ceil(bl.doc->idealWidth()));
         bl.width = qMax(60, qMin(maxW, contentWidth + 2 * kBubblePadding));
+        
+        // Re-set text width to the final bubble content width to get accurate height
+        bl.doc->setTextWidth(bl.width - 2 * kBubblePadding);
         
         // Calculate height with specific header offsets
         int headerOffset = 0;
