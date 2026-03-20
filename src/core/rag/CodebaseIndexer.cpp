@@ -13,8 +13,7 @@ CodebaseIndexer::CodebaseIndexer(EmbeddingManager* embeddings, QObject* parent)
     : QObject(parent), m_embeddings(embeddings) {}
 
 void CodebaseIndexer::indexDirectory(const QString& root) {
-    if (m_isIndexing) return;
-    m_isIndexing = true;
+    if (m_isIndexing.exchange(true)) return;
     emit indexingStarted();
 
     const QStringList files = findFiles(root);
@@ -27,9 +26,12 @@ void CodebaseIndexer::indexDirectory(const QString& root) {
 
         if (!m_fileState.contains(path) || m_fileState[path] < lastMod) {
             // Remove old chunks for this file
-            m_index.erase(std::remove_if(m_index.begin(), m_index.end(),
-                          [&](const IndexChunk& c) { return c.filePath == path; }),
-                          m_index.end());
+            {
+                QMutexLocker locker(&m_mutex);
+                m_index.erase(std::remove_if(m_index.begin(), m_index.end(),
+                              [&](const IndexChunk& c) { return c.filePath == path; }),
+                              m_index.end());
+            }
 
             // Add new chunks
             QList<IndexChunk> chunks = chunkFile(path);
@@ -41,9 +43,11 @@ void CodebaseIndexer::indexDirectory(const QString& root) {
             auto embeds = m_embeddings->getEmbeddings(texts);
             for (int i = 0; i < chunks.size() && i < embeds.size(); ++i) {
                 chunks[i].embedding = embeds[i];
+                QMutexLocker locker(&m_mutex);
                 m_index.append(chunks[i]);
             }
 
+            QMutexLocker locker(&m_mutex);
             m_fileState[path] = lastMod;
         }
 
@@ -67,9 +71,12 @@ QList<IndexChunk> CodebaseIndexer::search(const QString& query, int limit) {
     };
 
     QList<ScoredChunk> scored;
-    for (const auto& chunk : m_index) {
-        float s = cosineSimilarity(queryEmbed, chunk.embedding);
-        scored.append({chunk, s});
+    {
+        QMutexLocker locker(&m_mutex);
+        for (const auto& chunk : m_index) {
+            float s = cosineSimilarity(queryEmbed, chunk.embedding);
+            scored.append({chunk, s});
+        }
     }
 
     // Sort by score descending

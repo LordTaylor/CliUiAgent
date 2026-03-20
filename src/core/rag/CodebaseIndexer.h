@@ -4,6 +4,8 @@
 #include <QList>
 #include <QDateTime>
 #include <vector>
+#include <QMutex>
+#include <atomic>
 
 namespace CodeHex {
 
@@ -48,7 +50,8 @@ private:
     EmbeddingManager* m_embeddings;
     QList<IndexChunk> m_index;
     QMap<QString, QDateTime> m_fileState; // filePath -> lastModified
-    bool m_isIndexing = false;
+    std::atomic<bool> m_isIndexing{false};
+    mutable QMutex m_mutex;
 };
 
 } // namespace CodeHex

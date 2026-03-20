@@ -54,6 +54,7 @@ QList<std::vector<float>> EmbeddingManager::getEmbeddings(const QStringList& tex
 
     QList<std::vector<float>> results;
     try {
+        py::gil_scoped_acquire acquire;
         py::list pyTexts;
         for (const auto& t : texts) pyTexts.append(t.toStdString());
 
