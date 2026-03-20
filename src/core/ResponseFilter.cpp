@@ -8,41 +8,98 @@ ResponseFilter::ResponseFilter(QObject* parent) : QObject(parent) {}
 void ResponseFilter::reset() {
     m_currentResponse.clear();
     m_thoughtBuffer.clear();
+    m_tailBuffer.clear();
     m_isThinkingStream = false;
+    m_isSuppressed = false;
+    m_suppressClosingTag.clear();
 }
 
 QString ResponseFilter::processChunk(const QString& chunk) {
-    int prevLen = m_currentResponse.length();
     m_currentResponse += chunk;
+    
+    // Combine with buffered tail from previous chunk
+    QString pending = m_tailBuffer + chunk;
+    m_tailBuffer.clear();
 
-    // 🧠 Handle Thinking Stream
-    if (chunk.contains("<thinking>")) {
-        m_isThinkingStream = true;
-        emit thinkingStarted();
-    }
-    if (m_isThinkingStream) {
-        m_thoughtBuffer += chunk;
-        if (chunk.contains("</thinking>")) {
-            m_isThinkingStream = false;
-            emit thinkingFinished();
-        }
-        return QString(); // Suppress thinking from chat UI
-    }
-
-    // 🏷 Transition-aware Tool Tag Filtering
-    static const QStringList tags = {"<name>", "<input>", "<tool_call>"};
-    for (const auto& tag : tags) {
-        if (m_currentResponse.contains(tag)) {
-            int tagIdx = m_currentResponse.indexOf(tag);
-            if (tagIdx > prevLen) {
-                QString prefix = m_currentResponse.mid(prevLen, tagIdx - prevLen);
-                return prefix;
+    // 1. If we are currently suppressed, look for the closing tag
+    if (m_isSuppressed) {
+        m_thoughtBuffer += chunk; // Thought buffer stores EVERYTHING while suppressed
+        
+        int endIdx = pending.indexOf(m_suppressClosingTag);
+        if (endIdx >= 0) {
+            QString closingTag = m_suppressClosingTag;
+            m_isSuppressed = false;
+            m_suppressClosingTag.clear();
+            
+            if (m_isThinkingStream) {
+                m_isThinkingStream = false;
+                emit thinkingFinished();
             }
-            return QString(); // Suppress the tag itself and everything after
+            
+            QString remainder = pending.mid(endIdx + closingTag.length());
+            return processChunk(remainder);
+        }
+        return QString();
+    }
+
+    // 2. Check for start of suppression
+    static const QMap<QString, QString> suppressMap = {
+        {"<thought>", "</thought>"},
+        {"<thinking>", "</thinking>"},
+        {"<name>", "</name>"},
+        {"<input>", "</input>"},
+        {"<tool_call>", "</tool_call>"},
+        {"```xml", "```"},
+        {"```bash", "```"},
+        {"```", "```"}
+    };
+
+    for (auto it = suppressMap.cbegin(); it != suppressMap.cend(); ++it) {
+        QString startTag = it.key();
+        int idx = pending.indexOf(startTag);
+        if (idx >= 0) {
+            // Start suppression
+            m_isSuppressed = true;
+            m_suppressClosingTag = it.value();
+            
+            if (startTag == "<thought>" || startTag == "<thinking>") {
+                m_isThinkingStream = true;
+                emit thinkingStarted();
+            }
+            
+            QString prefix = pending.left(idx);
+            QString remainder = pending.mid(idx + startTag.length());
+            m_thoughtBuffer += startTag; // include the tag itself in the buffer
+            
+            return prefix + processChunk(remainder);
         }
     }
 
-    return chunk;
+    // 3. Look-ahead for Partial Tags (Buffer matches)
+    int maxPartial = 0;
+    // We check ALL start/end tags for partial matches to be safe
+    static const QStringList allTags = {
+        "<thought>", "</thought>", "<thinking>", "</thinking>",
+        "<name>", "</name>", "<input>", "</input>", 
+        "<tool_call>", "</tool_call>",
+        "```xml", "```bash", "```"
+    };
+
+    for (const auto& tag : allTags) {
+        for (int i = tag.length() - 1; i >= 1; --i) {
+            if (pending.endsWith(tag.left(i))) {
+                maxPartial = qMax(maxPartial, i);
+                break;
+            }
+        }
+    }
+
+    if (maxPartial > 0) {
+        m_tailBuffer = pending.right(maxPartial);
+        return pending.left(pending.length() - maxPartial);
+    }
+
+    return pending;
 }
 
 QString ResponseFilter::cleanToolTags(const QString& text) const {

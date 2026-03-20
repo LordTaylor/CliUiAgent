@@ -7,6 +7,7 @@
 #include <QList>
 
 #include "AgentEngine.h"
+#include "ContextManager.h"
 #include "Message.h"
 
 namespace CodeHex {

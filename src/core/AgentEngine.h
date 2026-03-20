@@ -9,6 +9,8 @@
 #include "ToolCall.h"
 #include "Attachment.h"
 
+#include "ResponseParser.h"
+
 namespace CodeHex {
 
 class CliRunner;
@@ -96,7 +98,7 @@ public slots:
 
 private:
     void runLoop(const QString& prompt, const QStringList& imagePaths);
-    void buildAssistantMessage(const QString& plainText);
+    void buildAssistantMessage(const ResponseParser::ParseResult& result);
 
     SessionManager* m_sessions;
     CliRunner*      m_runner;
@@ -133,7 +135,6 @@ private:
     void processNextQueueItem();
     void resetStreamState();
     QString getSystemPrompt() const;
-    QString cleanToolTags(const QString& text) const;
 };
 
 }  // namespace CodeHex

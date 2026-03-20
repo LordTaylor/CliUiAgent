@@ -153,9 +153,21 @@ QJsonObject PromptManager::buildRequestJson(AgentEngine::Role role,
     // 2. Tools
     request["tools"] = tools;
 
-    // 3. Messages
+    // 3. Messages (with Pruning)
+    QList<Message> fullHistory = history;
+    if (!userInput.isEmpty()) {
+        Message userMsg;
+        userMsg.role = Message::Role::User;
+        userMsg.addText(userInput);
+        fullHistory.append(userMsg);
+    }
+
+    ContextManager::PruningOptions pruneOptions;
+    pruneOptions.maxTokens = 32000; // Safe default for most modern models
+    QList<Message> prunedHistory = ContextManager::prune(fullHistory, pruneOptions);
+
     QJsonArray messages;
-    for (const auto& msg : history) {
+    for (const auto& msg : prunedHistory) {
         QJsonObject msgObj;
         msgObj["role"] = (msg.role == Message::Role::Assistant) ? "assistant" : "user";
         
@@ -165,24 +177,8 @@ QJsonObject PromptManager::buildRequestJson(AgentEngine::Role role,
         textBlock["text"] = msg.textFromContentBlocks();
         content.append(textBlock);
         
-        // Handle tool calls if any (not implemented in this simplified schema mapper yet, 
-        // but can be extended if msg has tool_use blocks)
-        
         msgObj["content"] = content;
         messages.append(msgObj);
-    }
-    
-    // Append current user input if not already in history
-    if (!userInput.isEmpty()) {
-        QJsonObject userMsg;
-        userMsg["role"] = "user";
-        QJsonArray content;
-        QJsonObject textBlock;
-        textBlock["type"] = "text";
-        textBlock["text"] = userInput;
-        content.append(textBlock);
-        userMsg["content"] = content;
-        messages.append(userMsg);
     }
     request["messages"] = messages;
 

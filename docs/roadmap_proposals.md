@@ -17,10 +17,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 10. **Vector DB**: Migrate from in-memory search to an optimized local vector database (e.g., Faiss C++).
 
 ### Tooling & Execution
-11. **Safety**: Implement a "Sandboxed Execution" mode for potentially destructive shell commands.
-12. **Permissions**: Add a "Session-wide Permission" toggle (Allow all tools for 1 hour).
-13. **Visualization**: Show a real-time diff view when `ReplaceFileContent` is called.
-14. **Git**: Auto-stage files modified by the agent to avoid "forgotten" changes.
 15. **Git**: Detect existing merge conflicts and urge the user to resolve them before agent work.
 16. **Environment**: Automatically detect and report Python/Node.js/Qt versions in the system prompt.
 17. **Debugger**: Provide the agent with a `ReadStacktrace` tool for analyzing crashes.
@@ -31,11 +27,9 @@ This document outlines 60 proposed technical and user experience improvements, a
 ### UI & UX
 21. **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
 22. **Animations**: Add subtle transition effects when switching between thinking/responding states.
-23. **Themes**: Add a "Glassmorphism" theme option for a premium feel.
 24. **Search**: Add a global search bar for finding content within previous sessions.
 25. **Attachments**: Allow drag-and-drop of images directly into the chat for Vision analysis.
 26. **Shortcuts**: Customizable hotkeys for "Stop Generation" and "Clear Chat".
-27. **Mobile**: Responsive layout for working on smaller screens or tablets.
 28. **Feedback**: Add "Thumbs Up/Down" for agent responses to fine-tune future prompts.
 29. **Progress**: Show a radial progress indicator for long-running indexing tasks.
 30. **Typography**: Support for custom developer fonts (e.g., Fira Code, JetBrains Mono).
@@ -43,11 +37,9 @@ This document outlines 60 proposed technical and user experience improvements, a
 ### Architecture & Stability
 31. **Signals**: Use `queued` connections where appropriate to avoid GUI thread blocking.
 32. **Memory**: Audit `AgentEngine` for potential cyclic shared_ptr references.
-33. **Tests**: Increase unit test coverage for `ToolExecutor` and `CliRunner`.
 34. **Logging**: Implement a "Debug Console" window showing raw model I/O.
 35. **Profiles**: Validation for `profiles.json` to prevent app crashes on malformed config.
 36. **Update**: Add an "Check for Updates" mechanism for the binary itself.
-37. **I18n**: Enhance Polish translation coverage in all dialogs.
 38. **Audio**: Optimize sample rate conversion in `AudioRecorder` for better whisper accuracy.
 39. **Network**: Support for proxy configurations (SOCKS5/HTTP).
 40. **Plugins**: Standardize the Tool interface to allow easy creation of new tools.
@@ -61,13 +53,9 @@ This document outlines 60 proposed technical and user experience improvements, a
 46. **Context**: Add "Include File" button in the file explorer to manually push files into context.
 47. **Search**: Highlighting of matched keywords in search results.
 48. **Audio**: Visual sound waveform during voice recording.
-49. **Privacy**: Option to "Anonymize" paths before sending them to external LLMs.
 50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
 51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
 52. **Performance**: Use `mmap` for reading large files in `ViewFile`.
-53. **Git**: Show branch name in the project explorer.
-54. **Diffs**: Support for side-by-side diff views in the agent response.
-55. **Editor**: Basic syntax-aware text editor for quick manual fixes.
 56. **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
 57. **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).

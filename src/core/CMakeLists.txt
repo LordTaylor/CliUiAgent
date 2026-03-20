@@ -7,6 +7,8 @@ add_library(codehex_core STATIC
     AgentEngine.h    AgentEngine.cpp
     ResponseFilter.h ResponseFilter.cpp
     PromptManager.h  PromptManager.cpp
+    ResponseParser.h ResponseParser.cpp
+    ContextManager.h ContextManager.cpp
     LlmDiscoveryService.h LlmDiscoveryService.cpp
     Tool.h
     tools/ToolUtils.h

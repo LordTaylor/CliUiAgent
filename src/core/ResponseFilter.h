@@ -39,7 +39,10 @@ signals:
 private:
     QString m_currentResponse;
     QString m_thoughtBuffer;
+    QString m_tailBuffer;
     bool m_isThinkingStream = false;
+    bool m_isSuppressed = false;
+    QString m_suppressClosingTag;
 };
 
 } // namespace CodeHex

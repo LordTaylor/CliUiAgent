@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QSysInfo>
 #include <QOperatingSystemVersion>
+#include "ResponseParser.h"
 #include <QtConcurrent>
 #include <QUuid>
 #include <QDateTime>
@@ -462,72 +463,22 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     
     m_coveState = CoVeState::None; // Reset after completion
 
-    buildAssistantMessage(currentResp);
+    ResponseParser::ParseResult result = ResponseParser::parse(currentResp);
+    buildAssistantMessage(result);
 
-    // 1. Optimized XML Parser (Lax mode for local LLMs)
-    // We look for <name> and <input> blocks. They may or may not be inside <tool_call>.
-    // Using a more robust regex that ignores leading/trailing whitespace and block tags.
-    QRegularExpression re("<name>\\s*([^<\\s]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
-                          QRegularExpression::DotMatchesEverythingOption);
-    
-    QRegularExpressionMatchIterator i = re.globalMatch(currentResp);
-    QList<ToolCall> parsedCalls;
-    while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        QString tname = match.captured(1).trimmed();
-        QString jsonStr = match.captured(2).trimmed();
-        
-        qDebug() << "[AgentEngine] Found potential tool call:" << tname << "with input length:" << jsonStr.length();
-
-        ToolCall call;
-        call.id = QUuid::createUuid().toString();
-        call.name = tname;
-        
-        QJsonParseError err;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
-        if (!doc.isNull() && doc.isObject()) {
-            call.input = doc.object();
-            parsedCalls.append(call);
-            qDebug() << "[AgentEngine] Successfully parsed tool:" << tname;
-            break; // Parse only the first valid one
-        } else {
-            qWarning() << "[AgentEngine] FAILED to parse JSON for tool" << tname << ":" << err.errorString();
-            qDebug() << "[AgentEngine] Bad JSON snippet:" << jsonStr.left(100) << "...";
-        }
-    }
-
-    // Fallback: Parse standard Markdown Bash blocks if no explicit tools found
-    // This perfectly supports Faza 1 behavior for generic OSS coding models
-    if (parsedCalls.isEmpty()) {
-        QRegularExpression bashRe("```bash\\n(.*?)```", 
-                              QRegularExpression::DotMatchesEverythingOption);
-        QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(currentResp);
-        while (bashIter.hasNext()) {
-            QRegularExpressionMatch match = bashIter.next();
-            ToolCall call;
-            call.id = QUuid::createUuid().toString();
-            call.name = "Bash";
-            QJsonObject input;
-            input["command"] = match.captured(1).trimmed();
-            call.input = input;
-            parsedCalls.append(call);
-            break; // Parse only the first Bash block
-        }
-    }
-
-    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parsedCalls.size();
-    if (!parsedCalls.isEmpty()) {
-        qDebug() << "[AgentEngine] Dispatching tool:" << parsedCalls.first().name;
-        onToolCallReady(parsedCalls.first());
+    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << result.toolCalls.size();
+    if (!result.toolCalls.isEmpty()) {
+        qDebug() << "[AgentEngine] Dispatching tool:" << result.toolCalls.first().name;
+        onToolCallReady(result.toolCalls.first());
     } else {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
-        processNextQueueItem(); // Finally process next item if queue exists
+        processNextQueueItem(); 
     }
 }
 
 
-void AgentEngine::buildAssistantMessage(const QString& plainText) {
+void AgentEngine::buildAssistantMessage(const ResponseParser::ParseResult& result) {
     auto* session = m_sessions->currentSession();
     if (!session) return;
 
@@ -536,39 +487,19 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
     msg.role = Message::Role::Assistant;
     msg.timestamp = QDateTime::currentDateTime();
 
-    int lastPos = 0;
-    QRegularExpression thoughtRe("<thought>(.*?)</thought>", QRegularExpression::DotMatchesEverythingOption);
-    QRegularExpressionMatchIterator it = thoughtRe.globalMatch(plainText);
-    
-    while (it.hasNext()) {
-        QRegularExpressionMatch match = it.next();
-        
-        // 1. Handle Text BEFORE the thought
-        QString textBefore = plainText.mid(lastPos, match.capturedStart() - lastPos);
-        textBefore = cleanToolTags(textBefore).trimmed();
-        if (!textBefore.isEmpty()) {
-            msg.addText(textBefore); // Compact helper
-        }
-        
-        // 2. Handle the Thought itself
-        QString thought = match.captured(1).trimmed();
-        if (!thought.isEmpty()) {
-            CodeBlock b;
-            b.type = BlockType::Thinking;
-            b.content = thought;
-            b.isCollapsed = true;
-            msg.contentBlocks << b;
-            msg.contentTypes << Message::ContentType::Thinking;
-        }
-        
-        lastPos = match.capturedEnd();
+    // 1. Add Thoughts
+    for (const auto& thought : result.thoughts) {
+        CodeBlock b;
+        b.type = BlockType::Thinking;
+        b.content = thought.content;
+        b.isCollapsed = thought.isCollapsed;
+        msg.contentBlocks << b;
+        msg.contentTypes << Message::ContentType::Thinking;
     }
     
-    // 3. Handle Remaining Text AFTER the last thought
-    QString remainingText = plainText.mid(lastPos);
-    remainingText = cleanToolTags(remainingText).trimmed();
-    if (!remainingText.isEmpty()) {
-        msg.addText(remainingText);
+    // 2. Add Main Text
+    if (!result.cleanText.isEmpty()) {
+        msg.addText(result.cleanText);
     }
 
     // Handle session auto-rename if first message
@@ -585,14 +516,6 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
     emit statusChanged("");
 }
 
-QString AgentEngine::cleanToolTags(const QString& text) const {
-    QString clean = text;
-    clean.remove(QRegularExpression("<name>.*?</name>", QRegularExpression::DotMatchesEverythingOption));
-    clean.remove(QRegularExpression("<input>.*?</input>", QRegularExpression::DotMatchesEverythingOption));
-    clean.remove("<tool_call>");
-    clean.remove("</tool_call>");
-    return clean;
-}
 
 void AgentEngine::onAuditSuggestion(const QString& suggestion) {
     qDebug() << "[AgentEngine] Project Audit Suggestion:" << suggestion;
