@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ---- Environment Detect ----
-QT_DIR="${QT_DIR:-/opt/homebrew/opt/qt@6}"
+QT_DIR="${QT_DIR:-${Qt6_DIR:-/opt/homebrew/opt/qt@6}}"
 QT_BIN="${QT_BIN:-$QT_DIR/bin}"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build/release/cmake"
@@ -19,7 +19,8 @@ echo "    Version: $VERSION"
 echo ""
 
 # ---- Release build ----
-export Qt6_DIR=/opt/homebrew/opt/qt@6/lib/cmake/Qt6
+# Allow override from env
+export Qt6_DIR="${QT_DIR}"
 
 # ---- Conan Profile Setup ----
 conan profile detect --force 2>/dev/null || true
@@ -27,7 +28,7 @@ conan profile detect --force 2>/dev/null || true
 echo "==> Installing Conan deps (Release)..."
 cd "$PROJECT_DIR"
 conan install . \
-    --output-folder=build/release/build/Release \
+    --output-folder=build/release \
     --build=missing \
     -s build_type=Release \
     -s compiler.cppstd=20
@@ -37,7 +38,7 @@ cmake -B build/release/cmake \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE=build/release/build/Release/generators/conan_toolchain.cmake \
-    -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt@6/lib/cmake/Qt6 \
+    -DCMAKE_PREFIX_PATH="${QT_DIR}/lib/cmake/Qt6" \
     -Wno-dev
 
 echo "==> Building..."

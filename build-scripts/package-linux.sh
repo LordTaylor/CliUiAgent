@@ -22,7 +22,7 @@ conan profile detect --force 2>/dev/null || true
 echo "==> Installing Conan deps (Release)..."
 cd "$PROJECT_DIR"
 conan install . \
-    --output-folder=build/release/build/Release \
+    --output-folder=build/release \
     --build=missing \
     -s build_type=Release \
     -s compiler.cppstd=20

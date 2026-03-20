@@ -66,6 +66,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         env:
           QT_DIR: ${{ env.Qt6_DIR }}
+          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
           chmod +x build-scripts/package-macos.sh
           ./build-scripts/package-macos.sh

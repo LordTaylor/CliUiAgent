@@ -30,7 +30,7 @@ Write-Host "==> Release build..." -ForegroundColor Yellow
 Set-Location $ProjectDir
 
 conan install . `
-    --output-folder="build\release\build\Release" `
+    --output-folder="build\release" `
     --build=missing `
     -s build_type=Release `
     -s compiler.cppstd=20 `
