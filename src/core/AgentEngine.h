@@ -113,7 +113,6 @@ private:
     QMap<QString, Permission> m_toolPermissions;
     Role m_currentRole = Role::Base;
     AppConfig* m_config;
-    QString m_currentResponse;
     QList<ToolCall> m_pendingCalls;
     struct PendingRequest {
         QString input;

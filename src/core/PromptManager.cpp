@@ -3,6 +3,7 @@
 #include <QSysInfo>
 #include <QFile>
 #include <QDebug>
+#include <QDir>
 #include <QOperatingSystemVersion>
 
 namespace CodeHex {
@@ -14,7 +15,7 @@ QString PromptManager::buildSystemPrompt(AgentEngine::Role role, const QString& 
     QString base = "### CURRENT HOST CONTEXT:\n"
                    "- **Operating System**: " + QSysInfo::prettyProductName() + "\n"
                    "- **CPU Architecture**: " + QSysInfo::currentCpuArchitecture() + "\n"
-                   "- **Working Directory**: " + m_config->workingFolder() + "\n"
+                   "- **Working Directory**: " + QDir(m_config->workingFolder()).absolutePath() + "\n"
                    "- **Current Role**: " + (role == AgentEngine::Role::Executor ? "Executor" : 
                                             (role == AgentEngine::Role::Reviewer ? "Reviewer" : 
                                             (role == AgentEngine::Role::Explorer ? "Explorer" : "Base"))) + "\n\n";

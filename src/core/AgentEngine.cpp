@@ -415,7 +415,8 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         }
     }
 
-    if (!lastAssistantContent.isEmpty() && m_currentResponse.trimmed() == lastAssistantContent) {
+    QString currentResp = m_filter->currentResponse();
+    if (!lastAssistantContent.isEmpty() && currentResp.trimmed() == lastAssistantContent) {
         qWarning() << "[AgentEngine] LOOP DETECTED. Assistant repeated itself exactly.";
         emit statusChanged("Loop detected. Nudging agent...");
         
@@ -424,7 +425,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     }
 
     // --- Phase 1.5: Chain-of-Verification (CoVe) ---
-    if (m_coveState == CoVeState::None && !m_currentResponse.contains("<tool_call>")) {
+    if (m_coveState == CoVeState::None && !currentResp.contains("<tool_call>")) {
         qDebug() << "[AgentEngine] CoVe: Entering Drafting -> VerifyingQuestions";
         emit statusChanged("🧐 Verifying facts (CoVe)...");
         m_coveState = CoVeState::VerifyingQuestions;
@@ -432,7 +433,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         QString prompt = "### CHAIN-OF-VERIFICATION (CoVe) - STEP 2: GENERATE QUESTIONS ###\n"
                          "Based on your previous response, generate a list of verification questions to cross-check any facts or claims you made. "
                          "Focus on numbers, dates, technical details, and logical assumptions.\n\n"
-                         "### YOUR RESPONSE:\n" + m_currentResponse;
+                         "### YOUR RESPONSE:\n" + currentResp;
         
         sendContinueRequest(prompt);
         return;
@@ -461,7 +462,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     
     m_coveState = CoVeState::None; // Reset after completion
 
-    buildAssistantMessage(m_currentResponse);
+    buildAssistantMessage(currentResp);
 
     // 1. Optimized XML Parser (Lax mode for local LLMs)
     // We look for <name> and <input> blocks. They may or may not be inside <tool_call>.
@@ -469,7 +470,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     QRegularExpression re("<name>\\s*([^<\\s]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
                           QRegularExpression::DotMatchesEverythingOption);
     
-    QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
+    QRegularExpressionMatchIterator i = re.globalMatch(currentResp);
     QList<ToolCall> parsedCalls;
     while (i.hasNext()) {
         QRegularExpressionMatch match = i.next();
@@ -500,7 +501,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     if (parsedCalls.isEmpty()) {
         QRegularExpression bashRe("```bash\\n(.*?)```", 
                               QRegularExpression::DotMatchesEverythingOption);
-        QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(m_currentResponse);
+        QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(currentResp);
         while (bashIter.hasNext()) {
             QRegularExpressionMatch match = bashIter.next();
             ToolCall call;
