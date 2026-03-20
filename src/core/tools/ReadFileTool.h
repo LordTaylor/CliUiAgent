@@ -9,6 +9,18 @@ class ReadFileTool : public Tool {
 public:
     QString name() const override { return "ReadFile"; }
     QString description() const override { return "Reads a file from the work directory (max 100 KB)."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"path", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Path to the file to read"}
+                }}
+            }},
+            {"required", QJsonArray{"path"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString path = ToolUtils::resolvePath(input["path"].toString(), workDir);

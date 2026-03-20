@@ -11,6 +11,22 @@ class WriteFileTool : public Tool {
 public:
     QString name() const override { return "WriteFile"; }
     QString description() const override { return "Writes content to a file in the work directory."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"path", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Path to the file to write"}
+                }},
+                {"content", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Full content to write to the file"}
+                }}
+            }},
+            {"required", QJsonArray{"path", "content"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString path    = ToolUtils::resolvePath(input["path"].toString(), workDir);

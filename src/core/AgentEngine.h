@@ -13,6 +13,8 @@ class CliRunner;
 class ToolExecutor;
 class SessionManager;
 class AppConfig;
+class CodebaseIndexer;
+class EmbeddingManager;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -80,6 +82,8 @@ private:
     SessionManager* m_sessions;
     CliRunner*      m_runner;
     ToolExecutor*   m_toolExecutor;
+    EmbeddingManager* m_embeddings;
+    CodebaseIndexer*  m_indexer;
 
     bool m_manualApproval = false;
     QMap<QString, Permission> m_toolPermissions;

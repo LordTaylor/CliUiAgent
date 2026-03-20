@@ -9,6 +9,22 @@ class SearchFilesTool : public Tool {
 public:
     QString name() const override { return "SearchFiles"; }
     QString description() const override { return "Glob search for files matching a pattern."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"pattern", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Glob pattern (e.g. *.cpp)"}
+                }},
+                {"root", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Directory to search in (default: .)"}
+                }}
+            }},
+            {"required", QJsonArray{"pattern"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString pattern = input["pattern"].toString();

@@ -10,6 +10,26 @@ class GrepTool : public Tool {
 public:
     QString name() const override { return "Search"; }
     QString description() const override { return "Grep-like content search in files."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"query", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Text pattern to search for"}
+                }},
+                {"root", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Directory to search in (default: .)"}
+                }},
+                {"case_sensitive", QJsonObject{
+                    {"type", "boolean"},
+                    {"description", "Whether search is case-sensitive (default: false)"}
+                }}
+            }},
+            {"required", QJsonArray{"query"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString query = input["query"].toString();

@@ -21,6 +21,11 @@ public:
     virtual QString name() const = 0;
 
     /**
+     * @brief JSON schema for the tool's parameters.
+     */
+    virtual QJsonObject parameters() const = 0;
+
+    /**
      * @brief Human-readable description of what the tool does.
      */
     virtual QString description() const = 0;

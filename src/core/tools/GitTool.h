@@ -29,6 +29,27 @@ public:
         return "Git helper";
     }
 
+    QJsonObject parameters() const override {
+        switch (m_mode) {
+            case Mode::Status: return QJsonObject{{"type", "object"}, {"properties", QJsonObject{}}, {"required", QJsonArray{}}};
+            case Mode::Diff: return QJsonObject{
+                {"type", "object"},
+                {"properties", QJsonObject{
+                    {"file", QJsonObject{{"type", "string"}, {"description", "Optional file to diff"}}}
+                }},
+                {"required", QJsonArray{}}
+            };
+            case Mode::Log: return QJsonObject{
+                {"type", "object"},
+                {"properties", QJsonObject{
+                    {"n", QJsonObject{{"type", "integer"}, {"description", "Number of commits (default: 10)"}}}
+                }},
+                {"required", QJsonArray{}}
+            };
+        }
+        return QJsonObject();
+    }
+
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         BashTool bash;
         QString cmd;

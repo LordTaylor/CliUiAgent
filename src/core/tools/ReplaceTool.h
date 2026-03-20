@@ -10,6 +10,26 @@ class ReplaceTool : public Tool {
 public:
     QString name() const override { return "Replace"; }
     QString description() const override { return "Regex-based text replacement in a file."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"path", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Path to the file to modify"}
+                }},
+                {"pattern", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Regex pattern to match"}
+                }},
+                {"replacement", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Replacement text"}
+                }}
+            }},
+            {"required", QJsonArray{"path", "pattern", "replacement"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString path    = ToolUtils::resolvePath(input["path"].toString(), workDir);
