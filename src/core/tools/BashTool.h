@@ -9,6 +9,22 @@ class BashTool : public Tool {
 public:
     QString name() const override { return "Bash"; }
     QString description() const override { return "Runs a command via bash -c (default timeout: 30 s)."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"command", QJsonObject{
+                    {"type", "string"},
+                    {"description", "The shell command to execute"}
+                }},
+                {"timeout_ms", QJsonObject{
+                    {"type", "integer"},
+                    {"description", "Timeout in milliseconds (default: 30000)"}
+                }}
+            }},
+            {"required", QJsonArray{"command"}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString command = input["command"].toString();

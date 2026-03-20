@@ -3,6 +3,10 @@
 #include <QJsonDocument>
 #include <QTimer>
 #include "ToolExecutor.h"
+#include "tools/ToolUtils.h"
+#include "tools/SearchRepoTool.h"
+#include "rag/EmbeddingManager.h"
+#include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
 #include "AppConfig.h"
 #include "TokenCounter.h"
@@ -32,6 +36,9 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolPermissions["SearchFiles"]   = Permission::Allow;
     m_toolPermissions["Grep"]          = Permission::Allow;
     m_toolPermissions["Replace"]       = Permission::Allow;
+
+    // Register tool
+    m_toolExecutor->registerTool(std::make_shared<SearchRepoTool>(m_indexer));
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
@@ -69,6 +76,12 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
 
     m_currentResponse.clear();
     m_isRunning = true;
+    
+    // Background indexing (Codebase Awareness)
+    QtConcurrent::run([this]() {
+        m_indexer->indexDirectory(m_config->workingFolder());
+    });
+    
     emit statusChanged("Agent is thinking...");
 
     // Build enriched prompt

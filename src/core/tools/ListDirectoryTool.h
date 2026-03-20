@@ -11,6 +11,22 @@ class ListDirectoryTool : public Tool {
 public:
     QString name() const override { return "ListDirectory"; }
     QString description() const override { return "Lists directory contents with details (max depth 3)."; }
+    QJsonObject parameters() const override {
+        return QJsonObject{
+            {"type", "object"},
+            {"properties", QJsonObject{
+                {"path", QJsonObject{
+                    {"type", "string"},
+                    {"description", "Path to the directory to list"}
+                }},
+                {"depth", QJsonObject{
+                    {"type", "integer"},
+                    {"description", "Maximum depth to list (default: 3)"}
+                }}
+            }},
+            {"required", QJsonArray{}}
+        };
+    }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
         const QString rawPath = input["path"].toString();

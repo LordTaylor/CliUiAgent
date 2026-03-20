@@ -26,15 +26,14 @@ public:
      * Use primarily for testing or when already in a worker thread.
      */
     ToolResult executeSync(const ToolCall& call, const QString& workDir);
+    void registerTool(std::shared_ptr<Tool> tool);
+    void registerAlias(const QString& alias, const QString& originalName);
 
 signals:
     void toolStarted(const QString& toolName, const QJsonObject& input);
     void toolFinished(const QString& toolName, const CodeHex::ToolResult& result);
 
 private:
-    void registerTool(std::shared_ptr<Tool> tool);
-    void registerAlias(const QString& alias, const QString& originalName);
-
     QMap<QString, std::shared_ptr<Tool>> m_tools;
     QMap<QString, QString> m_aliases;
 };
