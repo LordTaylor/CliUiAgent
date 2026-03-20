@@ -215,8 +215,17 @@ void MainWindow::setupUi() {
     // Status Label (Floating at bottom-left or center-bottom)
     m_statusLabel = new QLabel(chatContainer);
     m_statusLabel->setObjectName("agentStatusLabel");
-    m_statusLabel->setVisible(false);
-    m_statusLabel->setStyleSheet("background: rgba(31, 41, 55, 0.9); color: #10B981; padding: 6px 16px; border-radius: 12px; border: 1px solid #10B981;");
+    m_statusLabel->setVisible(true);
+    m_statusLabel->setText("Ready");
+    m_statusLabel->setStyleSheet(
+        "background: rgba(31, 41, 55, 0.95); "
+        "color: #9CA3AF; "
+        "padding: 8px 20px; "
+        "border-radius: 14px; "
+        "border: 1px solid #4B5563; "
+        "font-weight: bold; "
+        "font-size: 13px;"
+    );
     chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
     m_statusLabel->raise();
 
@@ -498,8 +507,9 @@ void MainWindow::onGenerationStarted() {
     m_inputPanel->setStopEnabled(true);
     m_stopBtn->setVisible(true);
     m_statusLabel->setVisible(true);
-    m_statusLabel->setText("Agent is working...");
-    statusBar()->showMessage("Generating…");
+    m_statusLabel->setText("Agent is Thinking...");
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #3B82F6").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #3B82F6"));
+    statusBar()->showMessage("Processing…");
 }
 
 void MainWindow::onGenerationStopped() {
@@ -509,7 +519,8 @@ void MainWindow::onGenerationStopped() {
     m_inputPanel->setSendEnabled(true);
     m_inputPanel->setStopEnabled(false);
     m_stopBtn->setVisible(false);
-    m_statusLabel->setVisible(false);
+    m_statusLabel->setText("Ready");
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #9CA3AF").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #4B5563"));
     statusBar()->clearMessage();
     updateTokenLabel();
 }
@@ -520,16 +531,19 @@ void MainWindow::onStopRequested() {
 }
 
 void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObject& input) {
+    m_statusLabel->setText("Waiting for Tool Approval: " + toolName);
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #F59E0B").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #F59E0B"));
+    
     ToolCall call;
     call.name = toolName;
     call.input = input;
-    
-    ToolApprovalDialog dialog(call, this);
-    if (dialog.exec() == QDialog::Accepted) {
+    ToolApprovalDialog dlg(call, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        m_statusLabel->setText("Executing Tool: " + toolName);
+        m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #10B981").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #10B981"));
         m_controller->approveToolCall(call);
     } else {
-        // Stop generation if denied
-        m_controller->stopGeneration();
+        onGenerationStopped();
     }
 }
 
