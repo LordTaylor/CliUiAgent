@@ -121,6 +121,7 @@ private:
     QString loadRolePrompt(Role role) const;
     QString systemPrompt() const;
     void processNextQueueItem();
+    QString cleanToolTags(const QString& text) const;
 };
 
 } // namespace CodeHex

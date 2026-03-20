@@ -436,9 +436,10 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
         if (!result.isError) {
             QString sp = systemPrompt();
             if (m_runner) {
-                // For local models, a small nudge helps prevent loops or empty responses
-                m_runner->send("Tool executed successfully. Please continue or finalize the task.", 
-                              m_config->workingFolder(), {}, session->messages, sp);
+                // For local models, a explicit nudge helps prevent hallucinations
+                QString nudge = QString("Tool Executed: %1\nOutput: %2\n\nPlease ANALYZE this output and decide on the NEXT STEP or FINALIZE the task if no more actions are needed.")
+                                .arg(toolName, result.content);
+                m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, sp);
             }
         } else {
             // If it was an error, just notify the user/model without automatic continue if preferred
@@ -474,7 +475,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         
         // Don't append the duplicate message. Instead, send a nudge.
         m_isRunning = true;
-        m_runner->send("WARNING: You just sent the EXACT SAME response. DO NOT repeat yourself. If the task is done, say so. If not, take a NEW action or provide a NEW thought.", 
+        m_runner->send("WARNING: You just sent the EXACT SAME response. DO NOT repeat your previous thought or tool call. If you are stuck because the tool output is not what you expected, try a DIFFERENT approach or a DIFFERENT tool. If the task is finished, simply state 'TASK COMPLETE'.", 
                       m_config->workingFolder(), {}, session->messages, systemPrompt());
         return;
     }
@@ -553,11 +554,21 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
     msg.role = Message::Role::Assistant;
     msg.timestamp = QDateTime::currentDateTime();
 
-    // 1. Extract ALL <thought> blocks
+    int lastPos = 0;
     QRegularExpression thoughtRe("<thought>(.*?)</thought>", QRegularExpression::DotMatchesEverythingOption);
     QRegularExpressionMatchIterator it = thoughtRe.globalMatch(plainText);
+    
     while (it.hasNext()) {
         QRegularExpressionMatch match = it.next();
+        
+        // 1. Handle Text BEFORE the thought
+        QString textBefore = plainText.mid(lastPos, match.capturedStart() - lastPos);
+        textBefore = cleanToolTags(textBefore).trimmed();
+        if (!textBefore.isEmpty()) {
+            msg.addText(textBefore); // Compact helper
+        }
+        
+        // 2. Handle the Thought itself
         QString thought = match.captured(1).trimmed();
         if (!thought.isEmpty()) {
             CodeBlock b;
@@ -567,28 +578,21 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
             msg.contentBlocks << b;
             msg.contentTypes << Message::ContentType::Thinking;
         }
+        
+        lastPos = match.capturedEnd();
+    }
+    
+    // 3. Handle Remaining Text AFTER the last thought
+    QString remainingText = plainText.mid(lastPos);
+    remainingText = cleanToolTags(remainingText).trimmed();
+    if (!remainingText.isEmpty()) {
+        msg.addText(remainingText);
     }
 
-    // 2. Extract Clean Text (stripping all internal XML tags)
-    QString cleanText = plainText;
-    cleanText.remove(QRegularExpression("<thought>.*?</thought>", QRegularExpression::DotMatchesEverythingOption));
-    cleanText.remove(QRegularExpression("<name>.*?</name>", QRegularExpression::DotMatchesEverythingOption));
-    cleanText.remove(QRegularExpression("<input>.*?</input>", QRegularExpression::DotMatchesEverythingOption));
-    cleanText.remove("<tool_call>");
-    cleanText.remove("</tool_call>");
-    cleanText = cleanText.trimmed();
-
-    if (!cleanText.isEmpty()) {
-        CodeBlock b;
-        b.type = BlockType::Text;
-        b.content = cleanText;
-        msg.contentBlocks << b;
-        msg.contentTypes << Message::ContentType::Text;
-    }
-
-    // 3. Handle session auto-rename if first message
+    // Handle session auto-rename if first message
     if (session->messages.size() <= 2) { 
-        QString title = cleanText.section(QRegularExpression("[.!?]"), 0, 0).trimmed();
+        QString firstText = msg.textFromContentBlocks();
+        QString title = firstText.section(QRegularExpression("[.!?]"), 0, 0).trimmed();
         if (title.length() > 40) title = title.left(37) + "...";
         if (title.isEmpty()) title = "New Task";
         session->title = title;
@@ -597,6 +601,15 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
     session->appendMessage(msg);
     emit responseComplete(msg);
     emit statusChanged("");
+}
+
+QString AgentEngine::cleanToolTags(const QString& text) const {
+    QString clean = text;
+    clean.remove(QRegularExpression("<name>.*?</name>", QRegularExpression::DotMatchesEverythingOption));
+    clean.remove(QRegularExpression("<input>.*?</input>", QRegularExpression::DotMatchesEverythingOption));
+    clean.remove("<tool_call>");
+    clean.remove("</tool_call>");
+    return clean;
 }
 
 void AgentEngine::onAuditSuggestion(const QString& suggestion) {
