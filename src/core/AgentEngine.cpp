@@ -135,10 +135,6 @@ QString AgentEngine::loadRolePrompt(Role role) const {
 QString AgentEngine::systemPrompt() const {
     QString base = loadRolePrompt(Role::Base);
     
-    if (m_toolExecutor) {
-        base += "\n\n" + m_toolExecutor->getToolDefinitions();
-    }
-    
     if (m_currentRole == Role::Base) return base;
     
     QString rolePrompt = loadRolePrompt(m_currentRole);
