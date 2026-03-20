@@ -266,8 +266,8 @@ void AgentEngine::onRunnerFinished(int exitCode) {
 
     buildAssistantMessage(m_currentResponse);
 
-    // Parse LLM-agnostic XML tool calls
-    QRegularExpression re("<tool_call>\\s*<name>([^<]+)</name>\\s*<input>(.*?)</input>\\s*</tool_call>", 
+    // Parse LLM-agnostic XML tool calls (relaxed regex to catch missing outer <tool_call> tags wrapper)
+    QRegularExpression re("<name>\\s*([^<]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
                           QRegularExpression::DotMatchesEverythingOption | QRegularExpression::InvertedGreedinessOption);
     
     QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
