@@ -165,9 +165,18 @@ void MainWindow::setupUi() {
 
     m_messageModel = new MessageModel(this);
     m_chatView = new ChatView(chatContainer);
+    m_messageModel->setViewWidth(m_chatView->width());
     m_chatView->setMessageModel(m_messageModel);
     connect(m_chatView, &ChatView::loadMoreRequested,
             m_messageModel, &MessageModel::loadMoreMessages);
+
+    // Update layout width when user resizes the chat area
+    connect(m_splitter, &QSplitter::splitterMoved, this, [this]() {
+        if (m_messageModel && m_chatView) {
+            m_messageModel->setViewWidth(m_chatView->viewport()->width());
+        }
+    });
+
     chatGrid->addWidget(m_chatView, 0, 0, 3, 3);
 
     // Floating Buttons (Right-Bottom corner)

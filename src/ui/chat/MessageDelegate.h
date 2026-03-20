@@ -1,9 +1,9 @@
 #pragma once
 #include <QStyledItemDelegate>
 #include <QTextDocument>
-#include <QCache>
 #include <QMutex>
-#include "../../data/Message.h" // Include Message for the new paintMessageContent signature
+#include "PrecomputedLayout.h"
+#include "../../data/Message.h"
 
 namespace CodeHex {
 
@@ -33,20 +33,11 @@ private:
     // isMarkdown=true: renders CommonMark (assistant); false: plain text (user)
     QTextDocument* makeTextDoc(const QString& text, int maxWidth, bool isMarkdown) const;
 
-    // Cache for rendered documents to avoid re-parsing markdown on every paint
-    struct CacheKey {
-        QString text;
-        int width;
-        bool isMarkdown;
-
-        bool operator==(const CacheKey& other) const {
-            return width == other.width && isMarkdown == other.isMarkdown && text == other.text;
-        }
-    };
+    // Caching handled by Message/MessageModel
+    // struct CacheKey { ... } removed
     
-    // Using a simple QString key for QCache: "width|isMarkdown|text_hash"
-    mutable QCache<QString, QTextDocument> m_docCache;
-    mutable QMutex m_cacheMutex;
+    // mutable QCache<QString, QTextDocument> m_docCache; // Removed
+    // mutable QMutex m_cacheMutex; // Removed
 };
 
 }  // namespace CodeHex

@@ -1,47 +1,24 @@
 #include "MessageDelegate.h"
 #include <QAbstractTextDocumentLayout>
 #include <QPainter>
+#include <QColor>
 #include <QPixmap>
 #include <QTextDocument>
+#include <QStyleOptionViewItem>
+#include <QModelIndex>
 #include <memory>
 #include <QFileInfo> // Added
 #include "MessageModel.h"
+#include "PrecomputedLayout.h"
 #include "../../data/CodeBlock.h"
 #include "../../data/Message.h"
 
 namespace CodeHex {
 
 MessageDelegate::MessageDelegate(QObject* parent) 
-    : QStyledItemDelegate(parent), m_docCache(100) {}
+    : QStyledItemDelegate(parent) {}
 
-// ── makeTextDoc ───────────────────────────────────────────────────────────────
-// Creates a QTextDocument with the given text. When isMarkdown=true the text
-// is parsed as CommonMark (Qt6 setMarkdown); otherwise plain text is used.
-// The caller takes ownership of the returned pointer.
-QTextDocument* MessageDelegate::makeTextDoc(const QString& text, int maxWidth,
-                                             bool isMarkdown) const {
-    const QString cacheKey = QString("%1|%2|%3").arg(maxWidth).arg(isMarkdown).arg(qHash(text));
-    
-    QMutexLocker locker(&m_cacheMutex);
-    if (auto* cached = m_docCache.object(cacheKey)) {
-        return cached; 
-    }
-    locker.unlock();
-
-    auto* doc = new QTextDocument();
-    doc->setPageSize({qreal(maxWidth), -1.0});
-    if (isMarkdown)
-        doc->setMarkdown(text);
-    else
-        doc->setPlainText(text);
-    
-    locker.relock();
-    // QCache takes ownership, but we want to return a pointer that won't be deleted 
-    // immediately if it falls out of cache. Actually QCache is fine if we use it carefully.
-    // For simplicity in a delegate, we'll return the pointer and QCache will manage it.
-    m_docCache.insert(cacheKey, doc);
-    return doc;
-}
+// makeTextDoc REMOVED - Logic moved to MessageModel::precomputeLayout
 
 // ── paintMessageContent ───────────────────────────────────────────────────────
 // Generic method to paint message content blocks.
@@ -76,128 +53,96 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         }
     }
 
-    for (const CodeBlock& block : msg.contentBlocks) {
-        if (block.type == BlockType::Text) {
-            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, !isUser);
-            // Don't use unique_ptr because makeTextDoc now returns a cached pointer owned by m_docCache
-            doc->setDefaultFont(opt.font);
-            doc->setTextWidth(maxW - 2 * kBubblePadding);
-            const int docH = static_cast<int>(doc->size().height());
-            const int bubbleH = docH + 2 * kBubblePadding;
-            const int bubbleW = qMin(maxW, static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding);
+    if (!msg.layoutCache) return;
+    const auto& layout = *msg.layoutCache;
 
-            int x;
-            if (isUser) {
-                x = viewWidth - bubbleW - kAvatarSize - 12;
-            } else {
-                x = kAvatarSize + 12;
-            }
+    int currentBlockIdx = 0;
+    for (const CodeBlock& block : msg.contentBlocks) {
+        if (currentBlockIdx >= layout.blocks.size()) break;
+        const auto& bl = layout.blocks[currentBlockIdx++];
+
+        if (block.type == BlockType::Text) {
+            int x = isUser ? viewWidth - bl.width - kAvatarSize - 12 : kAvatarSize + 12;
 
             // Bubble background
             const QColor bubbleColor = isUser ? QColor(0x2563EB) : QColor(0x374151);
             p->setPen(Qt::NoPen);
             p->setBrush(bubbleColor);
             p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
 
             // Text
             p->save();
             p->translate(x + kBubblePadding, currentY + kBubblePadding);
-            p->setPen(Qt::white);
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, Qt::white);
-            doc->documentLayout()->draw(p, ctx);
+            bl.doc->documentLayout()->draw(p, ctx);
             p->restore();
-            currentY += bubbleH + kRowMargin; // Move Y for next block
-        } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
-            // Render code block
-            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, true); // Code is always markdown
-            doc->setDefaultFont(opt.font);
-            doc->setTextWidth(maxW - 2 * kBubblePadding);
-            const int docH = static_cast<int>(doc->size().height());
-            const int bubbleH = docH + 2 * kBubblePadding;
-            const int bubbleW = qMin(maxW, static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding);
 
-            int x;
-            x = kAvatarSize + 12; // Code blocks always align left (assistant output)
+            currentY += bl.height + kRowMargin;
+        } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
+            int x = kAvatarSize + 12;
 
             // Bubble background (gray for code)
             const QColor codeColor(0x1F2937);
             p->setPen(Qt::NoPen);
             p->setBrush(codeColor);
             p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
 
             // Text
             p->save();
             p->translate(x + kBubblePadding, currentY + kBubblePadding);
-            p->setPen(QColor(0x9CA3AF)); // Lighter text for code
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, QColor(0x9CA3AF));
-            doc->documentLayout()->draw(p, ctx);
+            bl.doc->documentLayout()->draw(p, ctx);
             p->restore();
 
-            currentY += bubbleH + kRowMargin; // Move Y for next block
-            currentY += bubbleH + kRowMargin; // Move Y for next block
+            currentY += bl.height + kRowMargin;
         } else if (block.type == BlockType::Output) {
-            // Render CLI output block (Tool Result)
-            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, false); 
-            doc->setDefaultFont(opt.font);
-            doc->setTextWidth(maxW - 2 * kBubblePadding);
-
             const int headerH = 24;
-            const int docH = static_cast<int>(doc->size().height());
-            const int bubbleH = docH + 2 * kBubblePadding + headerH;
-            const int bubbleW = qMin(maxW, qMax(static_cast<int>(doc->idealWidth()) + 2 * kBubblePadding, 150));
-
             int x = kAvatarSize + 12;
 
-            // Bubble background (even darker gray for output)
+            // Bubble background
             const QColor outputColor(0x111827);
             p->setPen(Qt::NoPen);
             p->setBrush(outputColor);
             p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
 
-            // Header: "✅ Tool Result"
-            p->setPen(QColor(0x10B981)); // Greenish for success/result
+            // Header
+            p->setPen(QColor(0x10B981));
             QFont headerFont = opt.font;
             headerFont.setBold(true);
             headerFont.setPointSizeF(headerFont.pointSizeF() * 0.9);
             p->setFont(headerFont);
-            p->drawText(QRect(x + kBubblePadding, currentY + 6, bubbleW - 2 * kBubblePadding, headerH), 
+            p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width - 2 * kBubblePadding, headerH), 
                         Qt::AlignVCenter | Qt::AlignLeft, "✅ Tool Result");
 
             // Text content
             p->save();
             p->translate(x + kBubblePadding, currentY + kBubblePadding + headerH);
-            p->setPen(QColor(0xD1D5DB));
             QAbstractTextDocumentLayout::PaintContext ctx;
             ctx.palette.setColor(QPalette::Text, QColor(0xD1D5DB));
-            doc->documentLayout()->draw(p, ctx);
+            bl.doc->documentLayout()->draw(p, ctx);
             p->restore();
 
-            p->setFont(opt.font); // Restore font
-            currentY += bubbleH + kRowMargin;
+            p->setFont(opt.font);
+            currentY += bl.height + kRowMargin;
         } else if (block.type == BlockType::ToolCall) {
-            // Render Tool Call block
-            const int bubbleH = 40;
             const int x = kAvatarSize + 12;
-            const int bubbleW = qMin(maxW, 300);
 
-            // Bubble background (subtle blue/gray)
             const QColor toolCallColor(0x374151);
             p->setPen(Qt::NoPen);
             p->setBrush(toolCallColor);
             p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bubbleW, bubbleH, kBubbleRadius, kBubbleRadius);
+            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
 
-            // Icon and Text: "⚙ <log content>"
-            p->setPen(QColor(0x60A5FA)); // Light blue for action/tool
-            p->drawText(QRect(x + kBubblePadding, currentY, bubbleW - 2 * kBubblePadding, bubbleH),
+            p->setPen(QColor(0x60A5FA));
+            p->drawText(QRect(x + kBubblePadding, currentY, bl.width - 2 * kBubblePadding, bl.height),
                         Qt::AlignCenter | Qt::AlignLeft, "⚙  " + block.content);
 
-            currentY += bubbleH + kRowMargin;
+            currentY += bl.height + kRowMargin;
         }
     }
 
@@ -249,32 +194,13 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
 QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
     const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
-    const int viewWidth = option.rect.width() > 0 ? option.rect.width() : 600;
-    const int maxW = qMin(kMaxBubbleWidth, viewWidth - 2 * kAvatarSize - 20);
-
-    int totalHeight = 0;
-    for (const CodeBlock& block : msg.contentBlocks) {
-        // Code blocks should be rendered as markdown for syntax highlighting
-        bool isMarkdown = (block.type != BlockType::Text);
-        
-        if (block.type == BlockType::Output) {
-            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, false);
-            doc->setDefaultFont(option.font);
-            totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + 24 + kRowMargin; // 24 for header
-        } else if (block.type == BlockType::ToolCall) {
-            totalHeight += 40 + kRowMargin;
-        } else {
-            QTextDocument* doc = makeTextDoc(block.content, maxW - 2 * kBubblePadding, isMarkdown);
-            doc->setDefaultFont(option.font);
-            totalHeight += static_cast<int>(doc->size().height()) + 2 * kBubblePadding + kRowMargin;
-        }
+    if (msg.layoutCache && msg.layoutCache->lastViewWidth == option.rect.width()) {
+        return {option.rect.width(), msg.layoutCache->totalHeight};
     }
 
-    // Extra height for attachment badge
-    if (!msg.attachments.isEmpty())
-        totalHeight += kBadgeHeight + kBadgeMargin;
-
-    return {viewWidth, qMax(totalHeight, kAvatarSize + 2 * kRowMargin)};
+    const int viewWidth = option.rect.width() > 0 ? option.rect.width() : 600;
+    // Fallback if not precomputed or width changed (should be handled by setViewWidth)
+    return {viewWidth, kAvatarSize + 2 * kRowMargin};
 }
 
 }  // namespace CodeHex

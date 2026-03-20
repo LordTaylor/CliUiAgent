@@ -6,8 +6,12 @@
 #include <QList>
 #include "Attachment.h"
 #include "CodeBlock.h"
+#include <memory>
 
 namespace CodeHex {
+
+// Forward declare for UI-specific data
+struct PrecomputedLayout;
 
 struct Message {
     enum class Role { User, Assistant, System };
@@ -20,6 +24,9 @@ struct Message {
     QDateTime timestamp;
     int tokenCount = 0;
     QList<Attachment> attachments;
+
+    // UI Cache (not serialized)
+    mutable std::shared_ptr<PrecomputedLayout> layoutCache;
 
     QJsonObject toJson() const;
     static Message fromJson(const QJsonObject& obj);
