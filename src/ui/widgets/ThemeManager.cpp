@@ -52,7 +52,7 @@ void ThemeManager::setTheme(bool dark) {
 }
 
 QString ThemeManager::currentStyleSheet() const {
-    QFile file(":/stylesheets/theme_template.qss");
+    QFile file(":/resources/stylesheets/theme_template.qss");
     if (!file.open(QIODevice::ReadOnly)) {
         qWarning() << "[ThemeManager] Could not open template QSS";
         return "";
