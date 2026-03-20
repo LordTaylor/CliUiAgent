@@ -135,6 +135,7 @@ private:
     void processNextQueueItem();
     void resetStreamState();
     QString getSystemPrompt() const;
+    void cleanupScratchpad();
 };
 
 }  // namespace CodeHex

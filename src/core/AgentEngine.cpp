@@ -116,7 +116,7 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     session->save();
 
     if (m_isRunning) {
-        qDebug() << "[AgentEngine] Busy. Enqueuing request.";
+        qDebug() << "[AgentEngine] Already running. Enqueuing request.";
         m_requestQueue.enqueue({userInput, attachments});
         emit statusChanged(QString("Request queued (%1 in queue)").arg(m_requestQueue.size()));
         return;
@@ -528,6 +528,16 @@ void AgentEngine::processNextQueueItem() {
     PendingRequest next = m_requestQueue.dequeue();
     qDebug() << "[AgentEngine] Processing next queued request.";
     process(next.input, next.attachments);
+}
+
+void AgentEngine::cleanupScratchpad() {
+    QString path = m_config->workingFolder() + "/.agent/scratchpad";
+    QDir dir(path);
+    if (dir.exists()) {
+        dir.removeRecursively();
+    }
+    dir.mkpath(".");
+    qDebug() << "[AgentEngine] Scratchpad cleaned up.";
 }
 
 void AgentEngine::resetStreamState() {
