@@ -28,6 +28,7 @@ signals:
     void sessionDeleted(const QString& id);
     void currentSessionChanged(Session* session);
     void sessionsLoaded();
+    void sessionRenamed(const QString& id, const QString& title);
 
 private:
     QString sessionFilePath(const QString& id) const;

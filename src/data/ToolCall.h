@@ -1,6 +1,7 @@
 #pragma once
 #include <QJsonObject>
 #include <QString>
+#include <QMetaType>
 
 namespace CodeHex {
 
@@ -22,3 +23,6 @@ struct ToolResult {
 };
 
 }  // namespace CodeHex
+
+Q_DECLARE_METATYPE(CodeHex::ToolCall)
+Q_DECLARE_METATYPE(CodeHex::ToolResult)

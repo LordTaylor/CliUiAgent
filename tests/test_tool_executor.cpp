@@ -16,7 +16,7 @@ TEST_CASE("ToolExecutor ReadFile", "[ToolExecutor]") {
 
     ToolExecutor executor;
     ToolCall call{"1", "ReadFile", {{"path", "test.txt"}}};
-    ToolResult result = executor.execute(call, dir.path());
+    ToolResult result = executor.executeSync(call, dir.path());
 
     REQUIRE(result.isError == false);
     REQUIRE(result.content == "Hello World");
@@ -26,7 +26,7 @@ TEST_CASE("ToolExecutor WriteFile", "[ToolExecutor]") {
     QTemporaryDir dir;
     ToolExecutor executor;
     ToolCall call{"2", "WriteFile", {{"path", "new.txt"}, {"content", "New Content"}}};
-    ToolResult result = executor.execute(call, dir.path());
+    ToolResult result = executor.executeSync(call, dir.path());
 
     REQUIRE(result.isError == false);
     QFile file(dir.path() + "/new.txt");
@@ -38,7 +38,7 @@ TEST_CASE("ToolExecutor WriteFile", "[ToolExecutor]") {
 TEST_CASE("ToolExecutor RunCommand", "[ToolExecutor]") {
     ToolExecutor executor;
     ToolCall call{"3", "RunCommand", {{"command", "echo 'hello'"}}};
-    ToolResult result = executor.execute(call, "");
+    ToolResult result = executor.executeSync(call, "");
 
     REQUIRE(result.isError == false);
     REQUIRE(result.content.trimmed() == "hello");
@@ -53,7 +53,7 @@ TEST_CASE("ToolExecutor ListDirectory", "[ToolExecutor]") {
 
     ToolExecutor executor;
     ToolCall call{"4", "ListDirectory", {{"path", "."}}};
-    ToolResult result = executor.execute(call, dir.path());
+    ToolResult result = executor.executeSync(call, dir.path());
 
     REQUIRE(result.isError == false);
     REQUIRE(result.content.contains("subdir"));
@@ -70,7 +70,7 @@ TEST_CASE("ToolExecutor Search", "[ToolExecutor]") {
 
     ToolExecutor executor;
     ToolCall call{"5", "Search", {{"query", "apple"}}};
-    ToolResult result = executor.execute(call, dir.path());
+    ToolResult result = executor.executeSync(call, dir.path());
 
     REQUIRE(result.isError == false);
     REQUIRE(result.content.contains("Line 1"));
@@ -87,7 +87,7 @@ TEST_CASE("ToolExecutor Replace", "[ToolExecutor]") {
 
     ToolExecutor executor;
     ToolCall call{"6", "Replace", {{"path", "replace_test.txt"}, {"pattern", "World"}, {"replacement", "CodeHex"}}};
-    ToolResult result = executor.execute(call, dir.path());
+    ToolResult result = executor.executeSync(call, dir.path());
 
     REQUIRE(result.isError == false);
     

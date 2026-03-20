@@ -14,12 +14,16 @@ QStringList OllamaProfile::buildArguments(const QString& prompt,
 
 QStringList OllamaProfile::buildArguments(const QString& prompt,
                                           const QString& workDir,
-                                          const QList<Message>& history) const {
+                                          const QList<Message>& history,
+                                          const QString& systemPrompt) const {
     // Prepend prior exchanges as a text context block before the current prompt.
     const int histEnd   = history.size() - 1;   // skip last (== current prompt)
     const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
 
     QString context;
+    if (!systemPrompt.isEmpty()) {
+        context += "System: " + systemPrompt + "\n";
+    }
     for (int i = histStart; i < histEnd; ++i) {
         const Message& msg = history.at(i);
         if (msg.role == Message::Role::User)

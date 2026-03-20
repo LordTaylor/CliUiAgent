@@ -47,7 +47,8 @@ CliProfile* CliRunner::profile() const {
 void CliRunner::send(const QString& prompt,
                       const QString& workDir,
                       const QStringList& imagePaths,
-                      const QList<Message>& history) {
+                      const QList<Message>& history,
+                      const QString& systemPrompt) {
     if (!m_profile) {
         qWarning() << "CliRunner: no profile set";
         emit errorChunk("Error: No AI profile selected.");
@@ -78,13 +79,8 @@ void CliRunner::send(const QString& prompt,
     }
 
     // Build final argument list:
-    //   baseArgs  = profile's standard args (includes -p <prompt> at the end)
-    //   imgArgs   = --image <path> ... (must come before -p for claude)
     // Strategy: find -p in baseArgs and splice imgArgs just before it.
-    // Use 3-arg overload when history is provided to enable multi-turn context.
-    QStringList baseArgs = history.isEmpty()
-        ? m_profile->buildArguments(prompt, workDir)
-        : m_profile->buildArguments(prompt, workDir, history);
+    QStringList baseArgs = m_profile->buildArguments(prompt, workDir, history, systemPrompt);
     if (!imagePaths.isEmpty()) {
         const QStringList imgArgs = m_profile->imageArguments(imagePaths);
         if (!imgArgs.isEmpty()) {

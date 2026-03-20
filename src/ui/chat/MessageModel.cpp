@@ -1,6 +1,13 @@
 #include "MessageModel.h"
 #include <QFileInfo>
-#include <QVariant> // For QVariant::fromValue
+#include <QVariant>
+#include <QTextDocument>
+#include <QAbstractTextDocumentLayout>
+#include <QModelIndex>
+#include <QHash>
+#include <QByteArray>
+#include <QStringList>
+#include "PrecomputedLayout.h"
 
 namespace CodeHex {
 
@@ -22,12 +29,9 @@ void MessageModel::setSession(Session* session) {
 }
 
 void MessageModel::appendMessage(const Message& msg) {
-    if (m_session) {
-        // session already has msg appended by ChatController
-        // just update the visible list
-    }
     beginInsertRows({}, m_visible.size(), m_visible.size());
     m_visible.append(msg);
+    precomputeLayout(m_visible.last());
     m_loadedOffset++;
     endInsertRows();
 }
@@ -35,18 +39,102 @@ void MessageModel::appendMessage(const Message& msg) {
 void MessageModel::updateLastMessage(const QString& text) {
     if (m_visible.isEmpty()) return;
     const int lastRow = m_visible.size() - 1;
-    // Assuming the last message always has at least one text block and we're updating it
-    if (!m_visible[lastRow].contentBlocks.isEmpty() && m_visible[lastRow].contentBlocks.first().type == BlockType::Text) {
-        m_visible[lastRow].contentBlocks.first().content = text;
+    Message& lastMsg = m_visible[lastRow];
+
+    if (!lastMsg.contentBlocks.isEmpty() && lastMsg.contentBlocks.first().type == BlockType::Text) {
+        lastMsg.contentBlocks.first().content = text;
     } else {
-        // If no text block exists, create one (e.g., initial streaming response)
-        m_visible[lastRow].contentBlocks.clear(); // Clear existing content if types are mixed
-        m_visible[lastRow].contentBlocks.append(CodeBlock{text, BlockType::Text});
-        m_visible[lastRow].contentTypes.clear(); // Clear existing content types if types are mixed
-        m_visible[lastRow].contentTypes.append(Message::ContentType::Text);
+        lastMsg.contentBlocks.clear();
+        lastMsg.contentBlocks.append(CodeBlock{text, BlockType::Text});
+        lastMsg.contentTypes.clear();
+        lastMsg.contentTypes.append(Message::ContentType::Text);
     }
+
+    precomputeLayout(lastMsg);
+
     const QModelIndex idx = index(lastRow);
-    emit dataChanged(idx, idx, {TextRole, ContentBlocksRole, ContentTypesRole}); // Notify about changed content
+    emit dataChanged(idx, idx, {TextRole, ContentBlocksRole, ContentTypesRole, RawMessageRole});
+}
+
+void MessageModel::setViewWidth(int width) {
+    if (m_viewWidth == width) return;
+    m_viewWidth = width;
+    // Recompute all visible layouts if width changes significantly
+    for (Message& msg : m_visible) {
+        precomputeLayout(msg);
+    }
+    if (!m_visible.isEmpty()) {
+        emit dataChanged(index(0), index(m_visible.size() - 1));
+    }
+}
+
+void MessageModel::precomputeLayout(Message& msg) const {
+    auto layout = std::make_shared<PrecomputedLayout>();
+    layout->lastViewWidth = m_viewWidth;
+
+    const int kAvatarSize = 32;
+    const int kBubblePadding = 12;
+    const int kMaxBubbleWidth = 520;
+    const int kRowMargin = 8;
+    const int kBadgeHeight = 20;
+
+    const int maxW = qMin(kMaxBubbleWidth, m_viewWidth - 2 * kAvatarSize - 20);
+    const int textW = maxW - 2 * kBubblePadding;
+
+    int totalHeight = 0;
+
+    for (const auto& block : msg.contentBlocks) {
+        PrecomputedLayout::BlockLayout bl;
+        bl.doc = std::make_shared<QTextDocument>();
+        
+        // Use a default font specifically for the document to match rendering
+        QFont docFont("Inter", 13);
+        bl.doc->setDefaultFont(docFont);
+        bl.doc->setDocumentMargin(0);
+
+        bool isMarkdown = (msg.role == Message::Role::Assistant && block.type == BlockType::Text) ||
+                          (block.type != BlockType::Text);
+
+        if (isMarkdown) {
+            bl.doc->setMarkdown(block.content);
+        } else {
+            bl.doc->setPlainText(block.content);
+        }
+
+        // Set width and force layout
+        bl.doc->setTextWidth(textW);
+        
+        // Calculate required width: the smaller of maxW or the document's actual content width
+        int contentWidth = static_cast<int>(bl.doc->size().width());
+        bl.width = qMax(60, qMin(maxW, contentWidth + 2 * kBubblePadding));
+        
+        // Calculate height with specific header offsets
+        int headerOffset = 0;
+        if (block.type == BlockType::Output || block.type == BlockType::Thinking) {
+            headerOffset = 24;
+        } else if (block.type == BlockType::ToolCall) {
+            headerOffset = 0; // ToolCall uses a fixed height below
+        }
+
+        int docHeight = static_cast<int>(bl.doc->size().height());
+        int blockH = docHeight + 2 * kBubblePadding + headerOffset;
+        
+        if (block.type == BlockType::ToolCall) {
+            blockH = 40; // Override for compact tool call
+            bl.width = qMin(maxW, 200); // Fixed roughly
+        }
+        
+        bl.height = blockH;
+        layout->blocks.append(bl);
+        totalHeight += blockH + kRowMargin;
+    }
+
+    if (!msg.attachments.isEmpty()) {
+        totalHeight += kBadgeHeight + 4; // kBadgeMargin = 4
+    }
+
+    layout->totalHeight = qMax(totalHeight, kAvatarSize + 2 * kRowMargin);
+    msg.layoutCache = layout;
 }
 
 

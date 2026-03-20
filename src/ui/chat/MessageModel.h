@@ -31,6 +31,10 @@ public:
     bool canLoadMore() const;
     void clear();
 
+    // Optimization: Pre-calculate layouts
+    void setViewWidth(int width);
+    void precomputeLayout(Message& msg) const;
+
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
@@ -41,6 +45,7 @@ private:
     Session* m_session = nullptr;
     QList<Message> m_visible;
     int m_loadedOffset = 0;  // index from the END of session->messages
+    int m_viewWidth = 600;
 };
 
 }  // namespace CodeHex

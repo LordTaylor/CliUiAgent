@@ -66,12 +66,23 @@ static constexpr int kMaxHistoryMessages = 20;
 
 QStringList ConfigurableProfile::buildArguments(const QString& prompt,
                                                 const QString& workDir,
-                                                const QList<Message>& history) const {
+                                                const QList<Message>& history,
+                                                const QString& systemPrompt) const {
+    // Combine m_systemPrompt (from config) with systemPrompt (from role)
+    QString effectiveSystem = m_systemPrompt;
+    if (!systemPrompt.isEmpty()) {
+        if (effectiveSystem.isEmpty()) effectiveSystem = systemPrompt;
+        else effectiveSystem += "\n\n" + systemPrompt;
+    }
+
     // For ClaudeProxy: prepend chat history as context text (like ClaudeProfile).
     if (m_type == ApiType::ClaudeProxy) {
         const int histEnd   = history.size() - 1;
         const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
         QString context;
+        if (!effectiveSystem.isEmpty()) {
+            context += "[System]: " + effectiveSystem + "\n\n";
+        }
         for (int i = histStart; i < histEnd; ++i) {
             const Message& msg = history.at(i);
             if (msg.role == Message::Role::User)
@@ -94,8 +105,8 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
              << "-H" << QStringLiteral("Authorization: Bearer %1").arg(m_apiKey);
 
         QJsonArray messages;
-        if (!m_systemPrompt.isEmpty())
-            messages.append(QJsonObject{{"role","system"},{"content", m_systemPrompt}});
+        if (!effectiveSystem.isEmpty())
+            messages.append(QJsonObject{{"role","system"},{"content", effectiveSystem}});
 
         const int histEnd   = history.size() - 1;
         const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
@@ -125,6 +136,9 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
         const int histEnd   = history.size() - 1;
         const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
         QString context;
+        if (!effectiveSystem.isEmpty()) {
+            context += "System: " + effectiveSystem + "\n\n";
+        }
         for (int i = histStart; i < histEnd; ++i) {
             const Message& msg = history.at(i);
             if (msg.role == Message::Role::User)

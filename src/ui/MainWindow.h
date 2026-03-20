@@ -11,6 +11,7 @@
 #include "../data/Message.h"
 #include "../data/Session.h"
 #include "help/HelpDialog.h"
+#include "chat/ToolApprovalDialog.h"
 
 namespace CodeHex {
 
@@ -47,6 +48,7 @@ private slots:
     void onResponseComplete(const Message& msg);
     void onGenerationStarted();
     void onGenerationStopped();
+    void onToolApprovalRequested(const QString& toolName, const QJsonObject& input);
     void onProfileChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();

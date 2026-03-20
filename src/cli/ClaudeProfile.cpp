@@ -36,13 +36,17 @@ QStringList ClaudeProfile::buildArguments(const QString& prompt,
 
 QStringList ClaudeProfile::buildArguments(const QString& prompt,
                                           const QString& workDir,
-                                          const QList<Message>& history) const {
+                                          const QList<Message>& history,
+                                          const QString& systemPrompt) const {
     // history contains all messages including the current user message at the end.
     // We format the prior exchanges as a conversation prefix and prepend to prompt.
     const int histEnd   = history.size() - 1;   // skip last (== current prompt)
     
     // Dynamic System Context
     QString systemContext;
+    if (!systemPrompt.isEmpty()) {
+        systemContext += systemPrompt + "\n\n";
+    }
     systemContext += "## System Information\n";
     systemContext += "- OS: " + QSysInfo::productType() + " " + QSysInfo::productVersion() + "\n";
     systemContext += "- Current Time: " + QDateTime::currentDateTime().toString() + "\n";

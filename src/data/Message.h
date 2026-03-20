@@ -6,12 +6,17 @@
 #include <QList>
 #include "Attachment.h"
 #include "CodeBlock.h"
+#include "ToolCall.h"
+#include <memory>
 
 namespace CodeHex {
 
+// Forward declare for UI-specific data
+struct PrecomputedLayout;
+
 struct Message {
     enum class Role { User, Assistant, System };
-    enum class ContentType { Text, Image, Voice, Code, Output }; // Added Code and Output types
+    enum class ContentType { Text, Image, Voice, Code, Output, Thinking }; // Added Thinking
 
     QUuid id;
     Role role = Role::User;
@@ -20,11 +25,17 @@ struct Message {
     QDateTime timestamp;
     int tokenCount = 0;
     QList<Attachment> attachments;
+    QList<ToolResult> toolResults;
+
+    // UI Cache (not serialized)
+    mutable std::shared_ptr<PrecomputedLayout> layoutCache;
 
     QJsonObject toJson() const;
     static Message fromJson(const QJsonObject& obj);
 
     QString textFromContentBlocks() const;
+    void addText(const QString& text);
+    void addAttachment(const Attachment& attr);
 
     static QString roleToString(Role r);
     static Role roleFromString(const QString& s);

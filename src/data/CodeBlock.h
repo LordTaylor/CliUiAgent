@@ -9,7 +9,8 @@ enum class BlockType {
     Python,
     Lua,
     Output, // For CLI command output
-    ToolCall // For tool invocation
+    ToolCall, // For tool invocation
+    Thinking // For agent reasoning
 };
 
 struct CodeBlock {

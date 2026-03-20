@@ -6,11 +6,12 @@
 
 using namespace CodeHex;
 
-TEST_CASE("SessionManager creates and lists sessions", "[core]") {
-    QTemporaryDir tmp;
-    REQUIRE(tmp.isValid());
+TEST_CASE("SessionManager creates and lists sessions", "[SessionManager]") {
+    QTemporaryDir tempDir;
+    REQUIRE(tempDir.isValid());
 
     AppConfig config;
+    config.setDataDir(tempDir.path());
     SessionManager mgr(&config);
     mgr.loadAll();
     CHECK(mgr.allSessions().isEmpty());

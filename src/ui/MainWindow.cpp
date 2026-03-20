@@ -77,6 +77,8 @@ MainWindow::MainWindow(AppConfig* config,
             m_console, &ConsoleWidget::appendText);
     connect(m_controller, &ChatController::statusChanged,
             this, [this](const QString& status) { m_statusLabel->setText(status); });
+    connect(m_controller, &ChatController::toolApprovalRequested,
+            this, &MainWindow::onToolApprovalRequested);
     connect(m_controller, &ChatController::sessionRenamed,
             this, [this](const QString& /*id*/, const QString& title) {
                 m_sessionPanel->refresh();
@@ -165,9 +167,18 @@ void MainWindow::setupUi() {
 
     m_messageModel = new MessageModel(this);
     m_chatView = new ChatView(chatContainer);
+    m_messageModel->setViewWidth(m_chatView->width());
     m_chatView->setMessageModel(m_messageModel);
     connect(m_chatView, &ChatView::loadMoreRequested,
             m_messageModel, &MessageModel::loadMoreMessages);
+
+    // Update layout width when user resizes the chat area
+    connect(m_splitter, &QSplitter::splitterMoved, this, [this]() {
+        if (m_messageModel && m_chatView) {
+            m_messageModel->setViewWidth(m_chatView->viewport()->width());
+        }
+    });
+
     chatGrid->addWidget(m_chatView, 0, 0, 3, 3);
 
     // Floating Buttons (Right-Bottom corner)
@@ -501,6 +512,20 @@ void MainWindow::onGenerationStopped() {
 void MainWindow::onStopRequested() {
     m_controller->stopGeneration();
     m_stopBtn->setVisible(false);
+}
+
+void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObject& input) {
+    ToolCall call;
+    call.name = toolName;
+    call.input = input;
+    
+    ToolApprovalDialog dialog(call, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        m_controller->approveToolCall(call);
+    } else {
+        // Stop generation if denied
+        m_controller->stopGeneration();
+    }
 }
 
 void MainWindow::onProfileChanged(int index) {
