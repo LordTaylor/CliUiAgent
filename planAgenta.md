@@ -89,6 +89,8 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 
 #### Krok 5.3: Granular Permissions & Sandbox
     - [x] Allow/Ask/Deny: Implementowane w `AgentEngine.cpp`.
+    - [x] Wstrzykiwanie schematów narzędzi (`getToolDefinitions()`) do promptów.
+    - [x] Pełna autonomia: wyłączenie zapytań o uprawnienia, gdy wyłączony jest tryb manualny.
     - [x] Sandbox: `isPathAllowed` blokuje dostęp poza `/CodeHex`.
     - [x] Tool Approval UI: `ToolApprovalDialog` dla krytycznych akcji.
 

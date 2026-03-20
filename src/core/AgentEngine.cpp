@@ -134,6 +134,11 @@ QString AgentEngine::loadRolePrompt(Role role) const {
 
 QString AgentEngine::systemPrompt() const {
     QString base = loadRolePrompt(Role::Base);
+    
+    if (m_toolExecutor) {
+        base += "\n\n" + m_toolExecutor->getToolDefinitions();
+    }
+    
     if (m_currentRole == Role::Base) return base;
     
     QString rolePrompt = loadRolePrompt(m_currentRole);
@@ -164,15 +169,14 @@ bool AgentEngine::isPathAllowed(const QString& path) const {
 }
 
 AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) const {
-    // Check global manual override
-    if (m_manualApproval) return Permission::Ask;
-    
-    // Always allow Read
-    if (toolName == "ReadFile" || toolName == "ListDir" || toolName == "Search") {
+    if (!m_manualApproval) {
         return Permission::Allow;
     }
     
-    // Default to Ask for everything else (Write, Bash, etc.)
+    if (m_toolPermissions.contains(toolName)) {
+        return m_toolPermissions.value(toolName);
+    }
+    
     return Permission::Ask;
 }
 

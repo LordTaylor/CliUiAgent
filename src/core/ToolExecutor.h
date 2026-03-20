@@ -28,6 +28,11 @@ public:
     ToolResult executeSync(const ToolCall& call, const QString& workDir);
     void registerTool(std::shared_ptr<Tool> tool);
     void registerAlias(const QString& alias, const QString& originalName);
+    
+    /**
+     * @brief Returns a formatted string describing all registered tools.
+     */
+    QString getToolDefinitions() const;
 
 signals:
     void toolStarted(const QString& toolName, const QJsonObject& input);

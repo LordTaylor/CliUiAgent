@@ -9,6 +9,7 @@
 #include "tools/GitTool.h"
 #include <QtConcurrent>
 #include <QMetaType>
+#include <QJsonDocument>
 
 namespace CodeHex {
 
@@ -89,6 +90,19 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
     emit toolFinished(toolName, result);
     
     return result;
+}
+
+QString ToolExecutor::getToolDefinitions() const {
+    QString defs = "## Available Tools\n\n";
+    for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
+        auto tool = it.value();
+        defs += QString("### %1\n").arg(tool->name());
+        defs += tool->description() + "\n";
+        defs += "Parameters:\n";
+        QJsonDocument doc(tool->parameters());
+        defs += "```json\n" + doc.toJson(QJsonDocument::Indented) + "```\n\n";
+    }
+    return defs;
 }
 
 }  // namespace CodeHex
