@@ -4,14 +4,41 @@
 #include <QFile>
 #include <QDebug>
 #include <QDir>
-#include <QOperatingSystemVersion>
+#include <QProcess>
+#include <QtGlobal>
 
 namespace CodeHex {
 
 PromptManager::PromptManager(AppConfig* config, QObject* parent) 
     : QObject(parent), m_config(config) {}
 
+void PromptManager::ensureEnvCache() const {
+    if (!m_envVersionCache.isEmpty()) return;
+
+    QString info = "### INSTALLED TOOL VERSIONS:\n";
+    
+    auto getVersion = [](const QString& cmd, const QStringList& args) {
+        QProcess proc;
+        proc.start(cmd, args);
+        if (proc.waitForFinished(1000)) {
+            QString out = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
+            if (out.isEmpty()) out = QString::fromLocal8Bit(proc.readAllStandardError()).trimmed();
+            return out.isEmpty() ? "Detected" : out;
+        }
+        return QString("Not Found");
+    };
+
+    info += "- **Python**: " + getVersion("python3", {"--version"}) + "\n";
+    info += "- **Node.js**: " + getVersion("node", {"--version"}) + "\n";
+    info += "- **Git**: " + getVersion("git", {"--version"}) + "\n";
+    info += "- **Qt**: " + QString(QT_VERSION_STR) + "\n";
+
+    m_envVersionCache = info;
+}
+
 QString PromptManager::buildSystemPrompt(AgentEngine::Role role, const QString& autoContext) const {
+    ensureEnvCache();
+
     QString base = "### CURRENT HOST CONTEXT:\n"
                    "- **Operating System**: " + QSysInfo::prettyProductName() + "\n"
                    "- **CPU Architecture**: " + QSysInfo::currentCpuArchitecture() + "\n"
@@ -20,6 +47,7 @@ QString PromptManager::buildSystemPrompt(AgentEngine::Role role, const QString& 
                                             (role == AgentEngine::Role::Reviewer ? "Reviewer" : 
                                             (role == AgentEngine::Role::Explorer ? "Explorer" : "Base"))) + "\n\n";
 
+    base += m_envVersionCache + "\n\n";
     base += roleStrategy(role) + "\n\n";
     base += loadRolePrompt(role);
     

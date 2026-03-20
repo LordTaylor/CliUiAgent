@@ -54,6 +54,8 @@ public:
 
 private:
     AppConfig* m_config;
+    mutable QString m_envVersionCache;
+    void ensureEnvCache() const;
 };
 
 } // namespace CodeHex
