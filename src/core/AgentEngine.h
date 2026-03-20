@@ -16,6 +16,7 @@ class SessionManager;
 class AppConfig;
 class CodebaseIndexer;
 class EmbeddingManager;
+class ProjectAuditor;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -83,6 +84,7 @@ public slots:
     void onToolCallReady(const CodeHex::ToolCall& call);
     void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result);
     void onRunnerFinished(int exitCode);
+    void onAuditSuggestion(const QString& suggestion);
 
 private:
     void runLoop(const QString& prompt, const QStringList& imagePaths);
@@ -93,6 +95,7 @@ private:
     ToolExecutor*   m_toolExecutor;
     EmbeddingManager* m_embeddings;
     CodebaseIndexer*  m_indexer;
+    ProjectAuditor*   m_auditor;
 
     bool m_manualApproval = false;
     QMap<QString, Permission> m_toolPermissions;

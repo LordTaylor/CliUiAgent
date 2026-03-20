@@ -36,7 +36,11 @@ enable_testing()
 add_subdirectory(tests)
 
 # --- Main executable ---
+set(MACOS_ICONS resources/icons/app.icns)
+set_source_files_properties(${MACOS_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
 qt_add_executable(CodeHex src/main.cpp)
+target_sources(CodeHex PRIVATE ${MACOS_ICONS})
 
 qt_add_resources(CodeHex "resources"
     PREFIX "/"
@@ -49,6 +53,7 @@ qt_add_resources(CodeHex "resources"
         resources/icons/mic.svg
         resources/icons/folder.svg
         resources/icons/app.png
+        resources/icons/app.icns
         resources/prompts/base.txt
         resources/prompts/explorer.txt
         resources/prompts/executor.txt
@@ -69,6 +74,15 @@ qt_add_resources(CodeHex "help"
         docs/help/en/scripting.md
         docs/help/en/voice-and-attachments.md
         docs/help/en/keyboard-shortcuts.md
+        docs/help/en/ci-cd.md
+)
+qt_add_resources(CodeHex "help_pl"
+    PREFIX "/help/pl"
+    BASE "docs/help"
+    FILES
+        docs/help/index.md
+        docs/help/ui-guide.md
+        docs/help/ci-cd.md
 )
 
 target_link_libraries(CodeHex PRIVATE
@@ -92,4 +106,5 @@ set_target_properties(CodeHex PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.codehex.app"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    MACOSX_BUNDLE_ICON_FILE "app.icns"
 )

@@ -17,6 +17,7 @@ protected:
 
 private:
     void setupAppearance();
+    void applyAnsiSequence(const QString& sequence);
 };
 
 } // namespace CodeHex

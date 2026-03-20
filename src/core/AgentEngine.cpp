@@ -6,11 +6,13 @@
 #include "ToolExecutor.h"
 #include "tools/ToolUtils.h"
 #include "tools/SearchRepoTool.h"
+#include "tools/SearchReplaceTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
 #include "AppConfig.h"
 #include "TokenCounter.h"
+#include "ProjectAuditor.h"
 #include "../cli/CliRunner.h"
 #include "../data/Session.h"
 
@@ -41,7 +43,8 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_embeddings = new EmbeddingManager(this);
     m_indexer = new CodebaseIndexer(m_embeddings, this);
 
-    // Register tool
+    // Register tools
+    m_toolExecutor->registerTool(std::make_shared<SearchReplaceTool>());
     m_toolExecutor->registerTool(std::make_shared<SearchRepoTool>(m_indexer));
 
     // Connect Runner
@@ -51,6 +54,11 @@ AgentEngine::AgentEngine(AppConfig* config,
     connect(m_runner, &CliRunner::toolCallReady,  this, &AgentEngine::onToolCallReady);
     connect(m_runner, &CliRunner::finished,       this, &AgentEngine::onRunnerFinished);
     
+    m_auditor = new ProjectAuditor(this);
+    m_auditor->setWorkingDirectory(m_config->workingFolder());
+    connect(m_auditor, &ProjectAuditor::auditSuggestion, this, &AgentEngine::onAuditSuggestion);
+    m_auditor->start(300000); // Audit every 5 minutes
+
     connect(m_toolExecutor, &ToolExecutor::toolFinished, this, &AgentEngine::onToolResultReceived);
 }
 
@@ -79,6 +87,21 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
         qDebug() << "[AgentEngine] Busy. Enqueuing request.";
         m_requestQueue.enqueue({userInput, attachments});
         emit statusChanged(QString("Request queued (%1 in queue)").arg(m_requestQueue.size()));
+        return;
+    }
+
+    // --- Phase 2: Context Compression Check ---
+    if (session->messages.size() > 15) {
+        qDebug() << "[AgentEngine] Session too long. Triggering compression...";
+        emit statusChanged("📦 Compressing conversation history...");
+        // Hidden internal command to summarize
+        QString compactionPrompt = "### INTERNAL COMPACTION REQUEST ###\n"
+                                   "The conversation is too long. Please provide a CONCISE SUMMARY of all "
+                                   "technical decisions, file changes, and current status in 5-8 bullet points. "
+                                   "Format as a JSON block: {\"memory_update\": \"...\"}. "
+                                   "Then, tell the user you have archived the history.";
+        m_isRunning = true;
+        m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, systemPrompt());
         return;
     }
 
@@ -531,6 +554,7 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
             CodeBlock b;
             b.type = BlockType::Thinking;
             b.content = thought;
+            b.isCollapsed = true;
             msg.contentBlocks << b;
             msg.contentTypes << Message::ContentType::Thinking;
         }
@@ -564,6 +588,11 @@ void AgentEngine::buildAssistantMessage(const QString& plainText) {
     session->appendMessage(msg);
     emit responseComplete(msg);
     emit statusChanged("");
+}
+
+void AgentEngine::onAuditSuggestion(const QString& suggestion) {
+    qDebug() << "[AgentEngine] Project Audit Suggestion:" << suggestion;
+    emit statusChanged("📋 Auditor: " + suggestion);
 }
 
 void AgentEngine::processNextQueueItem() {

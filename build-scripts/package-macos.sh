@@ -4,12 +4,14 @@
 # ============================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# ---- Environment Detect ----
+QT_DIR="${QT_DIR:-/opt/homebrew/opt/qt@6}"
+QT_BIN="${QT_BIN:-$QT_DIR/bin}"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build/release/cmake"
 APP="$BUILD_DIR/CodeHex.app"
 DIST_DIR="$PROJECT_DIR/dist"
-QT_BIN="/opt/homebrew/opt/qt@6/bin"
+
 VERSION=$(grep 'project(CodeHex VERSION' "$PROJECT_DIR/CMakeLists.txt" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
 
 echo "==> Building CodeHex Release for macOS packaging..."
@@ -18,6 +20,9 @@ echo ""
 
 # ---- Release build ----
 export Qt6_DIR=/opt/homebrew/opt/qt@6/lib/cmake/Qt6
+
+# ---- Conan Profile Setup ----
+conan profile detect --force 2>/dev/null || true
 
 echo "==> Installing Conan deps (Release)..."
 cd "$PROJECT_DIR"

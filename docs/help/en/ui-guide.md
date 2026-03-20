@@ -48,6 +48,7 @@ The main conversation area. Messages appear as styled bubbles:
 - **Gray bubble (Left):** Agent responses.
 - **⚙️ Tool Icon:** Agent is calling a local tool (e.g., `ReadFile`, `RunCommand`).
 - **✅ Result Icon:** Tool execution result. Click to expand and see the raw output.
+- **💭 Thought Block:** Agent's internal reasoning. Collapsed by default; click to expand and see the logic behind the agent's actions.
 
 ---
 

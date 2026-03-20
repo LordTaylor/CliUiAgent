@@ -4,11 +4,11 @@
 # ============================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# ---- Environment Detect ----
+QT_VERSION="${QT_VERSION:-6.7.0}"
+QT_DIR="${QT_DIR:-$HOME/Qt/${QT_VERSION}/gcc_64}"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_DIR/dist"
-QT_VERSION="6.7.0"
-QT_DIR="$HOME/Qt/${QT_VERSION}/gcc_64"
 VERSION=$(grep 'project(CodeHex VERSION' "$PROJECT_DIR/CMakeLists.txt" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
 
 echo "==> Building CodeHex Release for Linux packaging..."
@@ -16,6 +16,9 @@ echo "    Version: $VERSION"
 echo ""
 
 # ---- Release build ----
+# ---- Conan Profile Setup ----
+conan profile detect --force 2>/dev/null || true
+
 echo "==> Installing Conan deps (Release)..."
 cd "$PROJECT_DIR"
 conan install . \

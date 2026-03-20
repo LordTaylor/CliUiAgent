@@ -1,0 +1,96 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build & Package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            platform: macos
+            ext: dmg
+          - os: ubuntu-latest
+            platform: linux
+            ext: AppImage
+          - os: windows-latest
+            platform: windows
+            ext: exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python & Conan
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Conan
+        run: pip install conan
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.7.0'
+          host: ${{ matrix.os == 'macos-latest' && 'mac' || (matrix.os == 'windows-latest' && 'windows' || 'linux') }}
+          target: 'desktop'
+          arch: ${{ matrix.os == 'windows-latest' && 'msvc2019_64' || '' }}
+
+      - name: Install Build Tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev libxcb-cursor0
+
+      - name: Install Build Tools (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install ninja
+
+      - name: Install Build Tools (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install ninja nsis
+          echo "C:\Program Files (x86)\NSIS" >> $GITHUB_PATH
+
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        env:
+          QT_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          chmod +x build-scripts/package-macos.sh
+          ./build-scripts/package-macos.sh
+
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          QT_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          chmod +x build-scripts/package-linux.sh
+          # AppImages need a FUSE setup on GH Actions or we run with --appimage-extract-and-run
+          ./build-scripts/package-linux.sh
+
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          QT_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          ./build-scripts/package-windows.ps1 -QtDir $env:QT_DIR
+
+      - name: Upload Artifacts
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

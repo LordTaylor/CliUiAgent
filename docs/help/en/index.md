@@ -10,6 +10,7 @@ Welcome to the CodeHex documentation.
 - [[scripting|Hooks & Scripting]] — Extend CodeHex with Lua or Python.
 - [[voice-and-attachments|Voice & Attachments]] — How to use voice and files.
 - [[keyboard-shortcuts|Keyboard Shortcuts]] — Boost your productivity.
+- [[ci-cd|CI/CD & Packaging]] — Automated release pipeline.
 
 ---
 [🇵🇱 Przejdź do wersji polskiej](../index.md)

@@ -10,6 +10,7 @@ Witaj w dokumentacji CodeHex.
 - [[scripting|Skrypty i Hooki]] — Rozszerzaj CodeHex za pomocą Lua lub Pythona.
 - [[voice-and-attachments|Głos i Załączniki]] — Jak używać głosu i plików.
 - [[keyboard-shortcuts|Skróty Klawiszowe]] — Pracuj szybciej.
+- [[ci-cd|CI/CD i Pakowanie]] — Automatyczny rurociąg wydań.
 
 ---
 [🇬🇧 Go to English version](en/index.md)

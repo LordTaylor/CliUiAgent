@@ -40,7 +40,7 @@
 #include "skills/SkillsDialog.h"
 #include "plugins/PluginsDialog.h"
 
-namespace CodeHex {
+using namespace CodeHex;
 
 MainWindow::MainWindow(AppConfig* config,
                        SessionManager* sessions,
@@ -759,4 +759,5 @@ void MainWindow::onModelSelected(int index) {
     m_statusLabel->setText(QString("Using Model: %1").arg(modelName));
 }
 
-}  // namespace CodeHex
+
+// End of MainWindow.cpp

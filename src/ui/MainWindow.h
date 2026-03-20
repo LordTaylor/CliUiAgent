@@ -15,34 +15,42 @@
 #include "help/HelpDialog.h"
 #include "chat/ToolApprovalDialog.h"
 
-class LlmDiscoveryService;
-class ChatControlBanner;
-class ChatView;
-class MessageModel;
-class InputPanel;
-class ConsoleWidget;
-class WorkFolderPanel;
-class SessionPanel;
-class QSlider;
+namespace CodeHex {
+    class AppConfig;
+    class SessionManager;
+    class ChatController;
+    class AudioRecorder;
+    class AudioPlayer;
+    class Session;
+    class SessionPanel;
+    class WorkFolderPanel;
+    class ChatView;
+    class MessageModel;
+    class InputPanel;
+    class TerminalPanel;
+    class ChatControlBanner;
+    class LlmDiscoveryService;
+    class HelpDialog;
+}
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
-    explicit MainWindow(AppConfig* config,
-                        SessionManager* sessions,
-                        ChatController* controller,
-                        AudioRecorder* recorder,
-                        AudioPlayer* player,
-                        const ProfileList& extraProfiles = {},
+    explicit MainWindow(CodeHex::AppConfig* config,
+                        CodeHex::SessionManager* sessions,
+                        CodeHex::ChatController* controller,
+                        CodeHex::AudioRecorder* recorder,
+                        CodeHex::AudioPlayer* player,
+                        const CodeHex::ProfileList& extraProfiles = {},
                         QWidget* parent = nullptr);
 
 private slots:
-    void onSendRequested(const QString& text, const QList<Attachment>& attachments);
+    void onSendRequested(const QString& text, const QList<CodeHex::Attachment>& attachments);
     void onStopRequested();
     void onSessionSelected(const QString& id);
     void onNewSessionRequested();
     void onTokenReceived(const QString& token);
-    void onResponseComplete(const Message& msg);
+    void onResponseComplete(const CodeHex::Message& msg);
     void onGenerationStarted();
     void onGenerationStopped();
     void onClearChatRequested();
@@ -62,27 +70,27 @@ private:
     void setupUi();
     void setupMenuBar();
     void loadStyleSheet();
-    void switchSession(Session* session);
+    void switchSession(CodeHex::Session* session);
     void populateProfileCombo();
 
-    AppConfig*      m_config;
-    SessionManager* m_sessions;
-    ChatController* m_controller;
-    AudioRecorder*  m_recorder;
-    AudioPlayer*    m_player;
-    ProfileList     m_extraProfiles;
+    CodeHex::AppConfig*      m_config;
+    CodeHex::SessionManager* m_sessions;
+    CodeHex::ChatController* m_controller;
+    CodeHex::AudioRecorder*  m_recorder;
+    CodeHex::AudioPlayer*    m_player;
+    CodeHex::ProfileList     m_extraProfiles;
 
     // UI widgets
     QSplitter*          m_splitter = nullptr;
     QSplitter*          m_sidebarSplitter = nullptr;
-    SessionPanel*       m_sessionPanel = nullptr;
-    WorkFolderPanel*    m_workFolderPanel = nullptr;
-    ChatView*           m_chatView = nullptr;
-    MessageModel*       m_messageModel;
-    InputPanel*         m_inputPanel;
-    TerminalPanel*      m_terminalPanel;
-    ChatControlBanner*  m_chatBanner;
-    LlmDiscoveryService* m_discoveryService;
+    CodeHex::SessionPanel*       m_sessionPanel = nullptr;
+    CodeHex::WorkFolderPanel*    m_workFolderPanel = nullptr;
+    CodeHex::ChatView*           m_chatView = nullptr;
+    CodeHex::MessageModel*       m_messageModel;
+    CodeHex::InputPanel*         m_inputPanel;
+    CodeHex::TerminalPanel*      m_terminalPanel;
+    CodeHex::ChatControlBanner*  m_chatBanner;
+    CodeHex::LlmDiscoveryService* m_discoveryService;
     QSlider*            m_llmSlider;     // Privacy vs Performance
     QComboBox*          m_modelCombo;    // Dynamic model discovery
     QComboBox*          m_profileCombo;  // Legacy (to be phased out)
@@ -106,10 +114,8 @@ private:
     QString m_tokenBuffer;
     QTimer* m_tokenTimer        = nullptr;
 
-    HelpDialog* m_helpDialog = nullptr;
+    CodeHex::HelpDialog* m_helpDialog = nullptr;
 
     void updateTokenLabel();
     void onCursorBlink();
 };
-
-}  // namespace CodeHex

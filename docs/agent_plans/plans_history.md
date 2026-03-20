@@ -158,3 +158,17 @@ Rozwiązanie problemu "Just-a-Chat" oraz zapętlania się agenta poprzez poprawn
 - [x] **System Warnings**: Wstrzykiwanie ostrzeżeń "WARNING: You are repeating yourself" do kontekstu LLM.
 
 ---
+
+## Phase 28: LLM Router & Rule Compliance (ZAKOŃCZONA)
+- [x] **LLM Router**: Przełącznik "Privacy vs Performance" w toolbarze.
+- [x] **Rule System**: Wdrożenie `.agent/rules.md`.
+
+## Phase 29: System Improvements (ZAKOŃCZONA)
+- [x] **SearchReplaceTool**, **Context Compression**, **Thought UI**, **ANSI Terminal**, **Proactive Auditor**.
+
+---
+
+## Phase 30: CI/CD & Branding (ZAKOŃCZONA)
+- [x] **GitHub Action**: Automatyzacja Release (Win/Mac/Linux).
+- [x] **Script Modernization**: Skrypty CI-ready z obsługą dynamicznych ścieżek Qt.
+- [x] **Branding**: Integracja `app.icns` wygenerowanego z `.iconset`.

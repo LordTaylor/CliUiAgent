@@ -4,7 +4,8 @@
 # ============================================================
 param(
     [string]$QtVersion = "6.7.0",
-    [string]$SignCert  = ""    # Path to .pfx certificate for code signing (optional)
+    [string]$QtDir     = $env:QT_DIR, # Prioritize environment variable from CI
+    [string]$SignCert  = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +18,9 @@ $VersionLine = Select-String -Path "$ProjectDir\CMakeLists.txt" -Pattern 'projec
 $Version = $VersionLine.Matches.Groups[1].Value
 Write-Host "==> CodeHex Windows Packaging  v$Version" -ForegroundColor Cyan
 
-$QtDir    = "$env:USERPROFILE\Qt\$QtVersion\msvc2019_64"
+if (-not $QtDir) {
+    $QtDir = "$env:USERPROFILE\Qt\$QtVersion\msvc2019_64"
+}
 $QtBin    = "$QtDir\bin"
 $BuildDir = "$ProjectDir\build\release\cmake"
 $StageDir = "$ProjectDir\build\package-win"

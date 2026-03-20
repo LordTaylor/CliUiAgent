@@ -77,6 +77,7 @@ The main conversation area. Messages appear as styled bubbles:
 | Pigułka głosowa | Nagranie głosowe |
 | Ikona ⚙️ (Narzędzie) | Agent wywołuje narzędzie (np. `Read`, `Bash`) |
 | Ikona ✅ (Wynik) | Wynik działania narzędzia (kliknij, by rozwinąć) |
+| Ikona 💭 (Myśl) | Proces rozumowania agenta (kliknij, by rozwinąć) |
 
 ### Lazy loading
 
