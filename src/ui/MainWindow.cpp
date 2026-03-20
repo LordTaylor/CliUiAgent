@@ -15,6 +15,9 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QSlider>
+#include "../core/LlmDiscoveryService.h"
+#include "../core/AppConfig.h"
 #include "help/HelpDialog.h"
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
@@ -23,13 +26,19 @@
 #include "../core/AppConfig.h"
 #include "../core/ChatController.h"
 #include "../core/SessionManager.h"
+#include "../core/AgentEngine.h"
 #include "../data/Message.h"
 #include "chat/ChatView.h"
+#include "chat/ChatControlBanner.h"
 #include "chat/MessageModel.h"
-#include "console/ConsoleWidget.h"
+// Removed legacy console include
 #include "input/InputPanel.h"
 #include "session/SessionPanel.h"
 #include "workfolder/WorkFolderSelector.h"
+#include "workfolder/WorkFolderPanel.h"
+#include "settings/SettingsDialog.h"
+#include "skills/SkillsDialog.h"
+#include "plugins/PluginsDialog.h"
 
 namespace CodeHex {
 
@@ -46,7 +55,8 @@ MainWindow::MainWindow(AppConfig* config,
       m_controller(controller),
       m_recorder(recorder),
       m_player(player),
-      m_extraProfiles(extraProfiles) {
+      m_extraProfiles(extraProfiles),
+      m_discoveryService(new LlmDiscoveryService(this)) {
     setWindowTitle("CodeHex");
     setWindowIcon(QIcon(":/resources/icons/app.png"));
     setMinimumSize(900, 600);
@@ -60,12 +70,16 @@ MainWindow::MainWindow(AppConfig* config,
     // Connect ChatController signals
     connect(m_controller, &ChatController::userMessageReady, this,
             [this](const Message& msg) { m_messageModel->appendMessage(msg); });
-    connect(m_controller, &ChatController::tokenReceived,
-            this, &MainWindow::onTokenReceived);
+    connect(m_controller, &ChatController::tokenReceived, this, [this](const QString& chunk) {
+        m_messageModel->appendToken(chunk);
+        m_chatView->scrollToBottomSmooth();
+    });
     connect(m_controller, &ChatController::responseComplete,
             this, &MainWindow::onResponseComplete);
-    connect(m_controller, &ChatController::consoleOutput,
-            m_console, &ConsoleWidget::appendText);
+    connect(m_controller, &ChatController::cliOutputReceived,
+            m_terminalPanel, &TerminalPanel::appendOutput);
+    connect(m_controller, &ChatController::cliErrorReceived,
+            m_terminalPanel, &TerminalPanel::appendError);
     connect(m_controller, &ChatController::generationStarted,
             this, &MainWindow::onGenerationStarted);
     connect(m_controller, &ChatController::generationStopped,
@@ -73,9 +87,12 @@ MainWindow::MainWindow(AppConfig* config,
     connect(m_controller, &ChatController::generationStopped,
             this, [this]() { m_scrollToBottomBtn->setEnabled(true); });
     connect(m_controller, &ChatController::errorOccurred,
-            m_console, &ConsoleWidget::appendText);
+            m_terminalPanel, &TerminalPanel::appendError);
     connect(m_controller, &ChatController::statusChanged,
-            this, [this](const QString& status) { m_statusLabel->setText(status); });
+            this, [this](const QString& status) { 
+                m_statusLabel->setText(status);
+                m_chatBanner->setStatusText(status);
+            });
     connect(m_controller, &ChatController::toolApprovalRequested,
             this, &MainWindow::onToolApprovalRequested);
     connect(m_controller, &ChatController::sessionRenamed,
@@ -83,6 +100,15 @@ MainWindow::MainWindow(AppConfig* config,
                 m_sessionPanel->refresh();
                 setWindowTitle("CodeHex — " + title);
             });
+
+    // LLM Router Connections
+    connect(m_llmSlider, &QSlider::valueChanged, this, &MainWindow::onLlmSliderChanged);
+    connect(m_modelCombo, &QComboBox::currentIndexChanged, this, &MainWindow::onModelSelected);
+    connect(m_discoveryService, &LlmDiscoveryService::modelsReady, this, &MainWindow::onModelsReady);
+    connect(m_discoveryService, &LlmDiscoveryService::errorOccurred, this, &MainWindow::onDiscoveryError);
+
+    // Initial Discovery
+    QTimer::singleShot(500, this, [this]() { onLlmSliderChanged(m_llmSlider->value()); });
 
     // Cursor blink timer (started/stopped around generation)
     m_cursorTimer = new QTimer(this);
@@ -110,54 +136,143 @@ void MainWindow::setupUi() {
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // --- Horizontal splitter: SessionPanel | Chat area ---
+    // --- Main Horizontal Splitter ---
     m_splitter = new QSplitter(Qt::Horizontal, central);
+    mainLayout->addWidget(m_splitter);
 
-    // Session panel (left sidebar)
-    m_sessionPanel = new SessionPanel(m_sessions, m_splitter);
-    m_sessionPanel->setMinimumWidth(180);
-    m_sessionPanel->setMaximumWidth(280);
-    m_splitter->addWidget(m_sessionPanel);
+    // --- Left Sidebar: Vertical Splitter (Sessions | Files) ---
+    m_sidebarSplitter = new QSplitter(Qt::Vertical, m_splitter);
+    m_sidebarSplitter->setObjectName("sidebarSplitter");
+    m_sidebarSplitter->setMinimumWidth(200);
+    m_sidebarSplitter->setMaximumWidth(320);
 
-    // Right: chat + input + console
+    m_sessionPanel = new SessionPanel(m_sessions, m_sidebarSplitter);
+    m_sessionPanel->setMinimumHeight(150);
+    
+    m_workFolderPanel = new WorkFolderPanel(m_sidebarSplitter);
+    m_workFolderPanel->setFolder(m_config->workingFolder());
+    connect(m_workFolderPanel, &WorkFolderPanel::folderChanged,
+            m_config, &AppConfig::setWorkingFolder);
+    
+    m_sidebarSplitter->addWidget(m_sessionPanel);
+    m_sidebarSplitter->addWidget(m_workFolderPanel);
+    
+    // Set 30/70 ratio
+    m_sidebarSplitter->setStretchFactor(0, 3);
+    m_sidebarSplitter->setStretchFactor(1, 7);
+    
+    m_splitter->addWidget(m_sidebarSplitter);
+
+    // Right side container for Chat and Input
     auto* rightWidget = new QWidget(m_splitter);
     auto* rightLayout = new QVBoxLayout(rightWidget);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
-    // Toolbar row: folder selector + profile combo
+    // Toolbar row
     auto* toolbar = new QWidget(rightWidget);
     toolbar->setObjectName("toolbar");
+    rightLayout->addWidget(toolbar);
+
     auto* tbLayout = new QHBoxLayout(toolbar);
-    tbLayout->setContentsMargins(8, 4, 8, 4);
-    tbLayout->setSpacing(8);
+    tbLayout->setContentsMargins(12, 6, 12, 6);
+    tbLayout->setSpacing(12);
 
-    m_folderSelector = new WorkFolderSelector(toolbar);
-    m_folderSelector->setFolder(m_config->workingFolder());
-    connect(m_folderSelector, &WorkFolderSelector::folderChanged,
-            m_config, &AppConfig::setWorkingFolder);
-    tbLayout->addWidget(m_folderSelector, 1);
+    // Settings Icons Area
+    auto* settingsBar = new QWidget(toolbar);
+    auto* settingsLayout = new QHBoxLayout(settingsBar);
+    settingsLayout->setContentsMargins(0, 0, 0, 0);
+    settingsLayout->setSpacing(4);
+    
+    auto* genSettingsBtn = new QPushButton("⚙️", settingsBar);
+    auto* skillsBtn = new QPushButton("🧩", settingsBar);
+    auto* pluginsBtn = new QPushButton("🔌", settingsBar);
+    
+    for (auto* b : {genSettingsBtn, skillsBtn, pluginsBtn}) {
+        b->setFixedSize(28, 28);
+        b->setCursor(Qt::PointingHandCursor);
+        settingsLayout->addWidget(b);
+    }
+    tbLayout->addWidget(settingsBar);
 
-    QLabel* profileLbl = new QLabel("CLI:", toolbar);
-    tbLayout->addWidget(profileLbl);
-    m_profileCombo = new QComboBox(toolbar);
-    m_profileCombo->setObjectName("profileCombo");
-    m_profileCombo->setMinimumWidth(120);
-    m_profileCombo->setMinimumWidth(120);
-    tbLayout->addWidget(m_profileCombo);
-
-    tbLayout->addSpacing(10);
-    m_agentModeCheck = new QCheckBox("Agent Mode (Manual Approval)", toolbar);
-    m_agentModeCheck->setChecked(m_config->manualApproval());
-    m_controller->setManualApproval(m_agentModeCheck->isChecked());
-    tbLayout->addWidget(m_agentModeCheck);
-
-    connect(m_agentModeCheck, &QCheckBox::toggled, this, [this](bool checked) {
-        m_config->setManualApproval(checked);
-        m_controller->setManualApproval(checked);
+    connect(genSettingsBtn, &QPushButton::clicked, this, [this]() {
+        SettingsDialog dlg(this);
+        dlg.exec();
+    });
+    connect(skillsBtn, &QPushButton::clicked, this, [this]() {
+        SkillsDialog dlg(this);
+        dlg.exec();
+    });
+    connect(pluginsBtn, &QPushButton::clicked, this, [this]() {
+        PluginsDialog dlg(this);
+        dlg.setScratchpadPath(m_config->workingFolder() + "/.agent/scratchpad");
+        dlg.exec();
     });
 
-    rightLayout->addWidget(toolbar);
+    tbLayout->addStretch();
+
+    // LLM Router: Performance vs Privacy
+    QLabel* privacyIcon = new QLabel("🛡️", toolbar);
+    privacyIcon->setToolTip("Privacy Mode (Local LLM)");
+    tbLayout->addWidget(privacyIcon);
+
+    m_llmSlider = new QSlider(Qt::Horizontal, toolbar);
+    m_llmSlider->setObjectName("llmSlider");
+    m_llmSlider->setRange(0, 1);
+    m_llmSlider->setFixedWidth(50);
+    m_llmSlider->setValue(m_config->useCloud() ? 1 : 0);
+    tbLayout->addWidget(m_llmSlider);
+
+    QLabel* powerIcon = new QLabel("🚀", toolbar);
+    powerIcon->setToolTip("Performance Mode (Cloud LLM)");
+    tbLayout->addWidget(powerIcon);
+
+    tbLayout->addSpacing(10);
+
+    m_modelCombo = new QComboBox(toolbar);
+    m_modelCombo->setObjectName("modelCombo");
+    m_modelCombo->setMinimumWidth(150);
+    m_modelCombo->addItem("Loading models...");
+    tbLayout->addWidget(m_modelCombo);
+
+    tbLayout->addSpacing(10);
+
+    tbLayout->addSpacing(10);
+    
+    QLabel* roleLbl = new QLabel("Role:", toolbar);
+    tbLayout->addWidget(roleLbl);
+    m_roleCombo = new QComboBox(toolbar);
+    m_roleCombo->addItem("Base", (int)AgentEngine::Role::Base);
+    m_roleCombo->addItem("Explorer", (int)AgentEngine::Role::Explorer);
+    m_roleCombo->addItem("Executor", (int)AgentEngine::Role::Executor);
+    m_roleCombo->addItem("Reviewer", (int)AgentEngine::Role::Reviewer);
+    m_roleCombo->setMinimumWidth(100);
+    tbLayout->addWidget(m_roleCombo);
+
+    tbLayout->addSpacing(10);
+    m_themeBtn = new QPushButton("🌓", toolbar);
+    m_themeBtn->setFixedSize(32, 32);
+    m_themeBtn->setToolTip("Toggle Dark/Light Theme");
+    tbLayout->addWidget(m_themeBtn);
+
+    tbLayout->addStretch();
+    
+    // Chat control banner (NEW)
+    m_chatBanner = new ChatControlBanner(rightWidget);
+    m_chatBanner->setAutoApprove(!m_config->manualApproval());
+    rightLayout->addWidget(m_chatBanner);
+    
+    connect(m_chatBanner, &ChatControlBanner::autoApproveChanged, this, [this](bool checked) {
+        m_config->setManualApproval(!checked);
+        m_controller->setManualApproval(!checked);
+    });
+    
+    connect(m_chatBanner, &ChatControlBanner::clearChatRequested,
+            this, &MainWindow::onClearChatRequested);
+
+    connect(m_themeBtn, &QPushButton::clicked,
+            this, &MainWindow::onThemeToggleRequested);
+
 
     // Chat view container for floating buttons
     auto* chatContainer = new QWidget(rightWidget);
@@ -250,8 +365,8 @@ void MainWindow::setupUi() {
     rightLayout->addWidget(m_inputPanel);
 
     // Console
-    m_console = new ConsoleWidget(rightWidget);
-    rightLayout->addWidget(m_console);
+    m_terminalPanel = new TerminalPanel(rightWidget);
+    rightLayout->addWidget(m_terminalPanel);
 
     m_splitter->addWidget(rightWidget);
     m_splitter->setStretchFactor(0, 0);
@@ -262,6 +377,8 @@ void MainWindow::setupUi() {
     // Wire input panel
     connect(m_inputPanel, &InputPanel::sendRequested,
             this, &MainWindow::onSendRequested);
+    connect(m_inputPanel, &InputPanel::commandRequested,
+            this, &MainWindow::onCommandRequested);
     connect(m_inputPanel, &InputPanel::stopRequested,
             this, &MainWindow::onStopRequested);
 
@@ -273,6 +390,11 @@ void MainWindow::setupUi() {
 
     connect(m_profileCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onProfileChanged);
+
+    connect(m_roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index){
+        AgentEngine::Role role = (AgentEngine::Role)m_roleCombo->itemData(index).toInt();
+        m_controller->agent()->setRole(role);
+    });
 
     // Token stats label in status bar
     m_tokenLabel = new QLabel(this);
@@ -305,7 +427,7 @@ void MainWindow::setupMenuBar() {
 
     QAction* toggleConsole = viewMenu->addAction("Toggle &Console");
     toggleConsole->setShortcut(QKeySequence("Ctrl+`"));
-    connect(toggleConsole, &QAction::triggered, m_console, &ConsoleWidget::toggleExpanded);
+    connect(toggleConsole, &QAction::triggered, m_terminalPanel, &TerminalPanel::toggleExpanded);
 
     viewMenu->addSeparator();
 
@@ -371,10 +493,8 @@ void MainWindow::onAbout() {
 }
 
 void MainWindow::loadStyleSheet() {
-    QFile f(":/stylesheets/dark.qss");
-    if (f.open(QIODevice::ReadOnly)) {
-        qApp->setStyleSheet(QString::fromUtf8(f.readAll()));
-    }
+    // Initial Theme
+    qApp->setStyleSheet(ThemeManager::instance().currentStyleSheet());
 }
 
 void MainWindow::populateProfileCombo() {
@@ -413,7 +533,7 @@ void MainWindow::switchSession(Session* session) {
 void MainWindow::updateTokenLabel() {
     auto* s = m_sessions->currentSession();
     if (!s || (s->tokens.input == 0 && s->tokens.output == 0)) {
-        m_tokenLabel->clear();
+        m_terminalPanel->clear();
         return;
     }
     m_tokenLabel->setText(
@@ -503,6 +623,9 @@ void MainWindow::onGenerationStarted() {
     m_isStreaming = true;
     m_cursorVisible = true;
     m_cursorTimer->start();
+    m_chatBanner->setThinking(true);
+    m_stopBtn->setEnabled(true);
+    m_scrollToBottomBtn->setEnabled(false);
     m_inputPanel->setSendEnabled(false);
     m_inputPanel->setStopEnabled(true);
     m_stopBtn->setVisible(true);
@@ -513,6 +636,7 @@ void MainWindow::onGenerationStarted() {
 }
 
 void MainWindow::onGenerationStopped() {
+    m_chatBanner->setThinking(false);
     m_cursorTimer->stop();
     m_isStreaming = false;
     m_cursorVisible = false;
@@ -555,6 +679,84 @@ void MainWindow::onProfileChanged(int index) {
     // Swap CliRunner profile
     // This requires access to CliRunner — accessed through controller
     // For now, emit a signal that Application can handle
+}
+
+void MainWindow::onClearChatRequested() {
+    Session* s = m_sessions->currentSession();
+    if (s) {
+        s->clear();
+        s->save();
+        m_messageModel->clear();
+    }
+}
+
+void MainWindow::onThemeToggleRequested() {
+    auto& tm = ThemeManager::instance();
+    bool nextDark = !tm.isDark();
+    tm.setTheme(nextDark);
+    m_themeBtn->setText(nextDark ? "🌙" : "☀️");
+}
+
+void MainWindow::onCommandRequested(const QString& cmd, const QStringList& args) {
+    QString lowerCmd = cmd.toLower();
+    if (lowerCmd == "/clear") {
+        onClearChatRequested();
+    } else if (lowerCmd == "/reset") {
+        onClearChatRequested();
+        m_controller->resetAgent();
+    } else if (lowerCmd == "/help") {
+        Message helpMsg;
+        helpMsg.role = Message::Role::Assistant;
+        helpMsg.timestamp = QDateTime::currentDateTime();
+        helpMsg.addText("🌟 **CodeHex Commands:**\n\n"
+                        "- `/clear` : Clear the message window\n"
+                        "- `/reset` : Reset the conversation & agent state\n"
+                        "- `/help`  : Show this help message\n\n"
+                        "Use **Up/Down arrows** to navigate your message history!");
+        m_messageModel->appendMessage(helpMsg);
+    } else {
+        Message errMsg;
+        errMsg.role = Message::Role::Assistant;
+        errMsg.addText("❌ Unknown command: " + cmd);
+        m_messageModel->appendMessage(errMsg);
+    }
+}
+
+void MainWindow::onDiscoveryError(const QString& error) {
+    m_statusLabel->setText("Discovery Error: " + error);
+    m_modelCombo->clear();
+    m_modelCombo->addItem("Error fetching models");
+    m_modelCombo->setToolTip(error);
+}
+
+void MainWindow::onLlmSliderChanged(int value) {
+    bool useCloud = (value == 1);
+    m_config->setUseCloud(useCloud);
+    
+    m_modelCombo->clear();
+    m_modelCombo->addItem("Discovering...");
+    
+    if (useCloud) {
+        m_discoveryService->fetchModels(m_config->remoteLlmUrl(), m_config->openAiKey());
+        m_statusLabel->setText("Mode: Performance (Cloud)");
+    } else {
+        m_discoveryService->fetchModels(m_config->localLlmUrl());
+        m_statusLabel->setText("Mode: Privacy (Local)");
+    }
+}
+
+void MainWindow::onModelsReady(const QStringList& models) {
+    m_modelCombo->clear();
+    m_modelCombo->addItems(models);
+}
+
+void MainWindow::onModelSelected(int index) {
+    if (index < 0) return;
+    QString modelName = m_modelCombo->itemText(index);
+    if (modelName == "Discovering..." || modelName == "Loading models...") return;
+
+    m_controller->setSelectedModel(modelName);
+    m_statusLabel->setText(QString("Using Model: %1").arg(modelName));
 }
 
 }  // namespace CodeHex

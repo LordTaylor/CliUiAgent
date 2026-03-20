@@ -10,6 +10,16 @@ add_executable(codehex_tests
     test_chat_controller.cpp
     test_agent_engine_parser.cpp
     test_lmstudio_integration.cpp
+    test_java_codegen.cpp
+)
+
+qt_add_resources(codehex_tests "resources"
+    PREFIX "/"
+    FILES
+        "../resources/prompts/base.txt"
+        "../resources/prompts/explorer.txt"
+        "../resources/prompts/executor.txt"
+        "../resources/prompts/reviewer.txt"
 )
 
 target_link_libraries(codehex_tests PRIVATE

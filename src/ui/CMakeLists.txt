@@ -1,5 +1,6 @@
 add_library(codehex_ui STATIC
     MainWindow.h MainWindow.cpp
+    chat/ChatControlBanner.h chat/ChatControlBanner.cpp
     chat/ChatView.h         chat/ChatView.cpp
     chat/MessageModel.h     chat/MessageModel.cpp
     chat/MessageDelegate.h  chat/MessageDelegate.cpp
@@ -7,8 +8,14 @@ add_library(codehex_ui STATIC
     input/InputPanel.h      input/InputPanel.cpp
     input/AttachmentButton.h input/AttachmentButton.cpp
     input/VoiceButton.h     input/VoiceButton.cpp
-    console/ConsoleWidget.h console/ConsoleWidget.cpp
+    widgets/TerminalWidget.h widgets/TerminalWidget.cpp
+    widgets/TerminalPanel.h  widgets/TerminalPanel.cpp
+    widgets/ThemeManager.h   widgets/ThemeManager.cpp
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
+    workfolder/WorkFolderPanel.h    workfolder/WorkFolderPanel.cpp
+    settings/SettingsDialog.h       settings/SettingsDialog.cpp
+    skills/SkillsDialog.h           skills/SkillsDialog.cpp
+    plugins/PluginsDialog.h         plugins/PluginsDialog.cpp
     session/SessionPanel.h  session/SessionPanel.cpp
     help/HelpDialog.h       help/HelpDialog.cpp
 )

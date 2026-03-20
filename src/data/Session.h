@@ -27,6 +27,7 @@ public:
 
     void appendMessage(const Message& msg);
     void updateTokens(int inputDelta, int outputDelta);
+    void clear();
     bool save() const;
 
     static Session load(const QString& path);

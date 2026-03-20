@@ -79,13 +79,33 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
 
         const int histEnd   = history.size() - 1;
         const int histStart = qMax(0, histEnd - kMaxHistoryMessages);
+        
+        QString lastAssContent;
+        int repeatCount = 0;
+
         for (int i = histStart; i < histEnd; ++i) {
             const Message& msg = history.at(i);
-            if (msg.role == Message::Role::User && !msg.textFromContentBlocks().isEmpty())
-                messages.append(QJsonObject{{"role","user"},{"content", msg.textFromContentBlocks()}});
-            else if (msg.role == Message::Role::Assistant && !msg.textFromContentBlocks().isEmpty())
-                messages.append(QJsonObject{{"role","assistant"},{"content", msg.textFromContentBlocks()}});
+            QString currentText = msg.textFromContentBlocks();
+            
+            if (msg.role == Message::Role::Assistant) {
+                if (!lastAssContent.isEmpty() && currentText == lastAssContent) {
+                    repeatCount++;
+                    continue; // Skip duplicate assistant thinking in history
+                }
+                lastAssContent = currentText;
+                
+                if (!currentText.isEmpty())
+                    messages.append(QJsonObject{{"role","assistant"},{"content", currentText}});
+            } else if (msg.role == Message::Role::User && !currentText.isEmpty()) {
+                messages.append(QJsonObject{{"role","user"},{"content", currentText}});
+            }
         }
+        
+        // Loop Breaker: If we detected many repetitions, inject a system warning
+        if (repeatCount >= 2) {
+            messages.append(QJsonObject{{"role","system"},{"content", "WARNING: You are repeating yourself. Break the loop NOW. If you have the information, finalize the task. Otherwise, try a different approach."}});
+        }
+
         messages.append(QJsonObject{{"role","user"},{"content", prompt}});
 
         const QJsonObject body{

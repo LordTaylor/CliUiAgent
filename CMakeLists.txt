@@ -42,6 +42,7 @@ qt_add_resources(CodeHex "resources"
     PREFIX "/"
     FILES
         resources/stylesheets/dark.qss
+        resources/stylesheets/theme_template.qss
         resources/icons/send.svg
         resources/icons/stop.svg
         resources/icons/attach.svg

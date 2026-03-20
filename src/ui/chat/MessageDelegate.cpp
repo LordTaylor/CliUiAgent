@@ -34,22 +34,39 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
     // Avatar drawing (once per message)
     const int avatarX = isUser ? viewWidth - kAvatarSize - 4 : 4;
     const int avatarY = currentY;
+    p->setRenderHint(QPainter::Antialiasing);
+    
     if (isUser) {
-        p->setBrush(QColor(0x1E40AF));
+        // Modern User Avatar (Blue Circle with Initial)
+        QRadialGradient grad(avatarX + kAvatarSize/2, avatarY + kAvatarSize/2, kAvatarSize/2);
+        grad.setColorAt(0, QColor(0x60A5FA)); // Brighter Blue
+        grad.setColorAt(1, QColor(0x2563EB)); // Deep Blue
+        p->setBrush(grad);
         p->setPen(Qt::NoPen);
         p->drawEllipse(avatarX, avatarY, kAvatarSize, kAvatarSize);
+        
         p->setPen(Qt::white);
+        QFont font = p->font();
+        font.setBold(true);
+        font.setPixelSize(14);
+        p->setFont(font);
         p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "U");
     } else {
+        // Agent Avatar (App Icon with subtle glow)
         QPixmap pix(":/resources/icons/app.png");
         if (!pix.isNull()) {
-            p->drawPixmap(avatarX, avatarY, kAvatarSize, kAvatarSize, pix);
+             p->setOpacity(0.9);
+             p->drawPixmap(avatarX, avatarY, kAvatarSize, kAvatarSize, pix);
+             p->setOpacity(1.0);
         } else {
-            p->setBrush(QColor(0x10B981));
+            QRadialGradient grad(avatarX + kAvatarSize/2, avatarY + kAvatarSize/2, kAvatarSize/2);
+            grad.setColorAt(0, QColor(0x34D399)); // Emerald
+            grad.setColorAt(1, QColor(0x059669));
+            p->setBrush(grad);
             p->setPen(Qt::NoPen);
             p->drawEllipse(avatarX, avatarY, kAvatarSize, kAvatarSize);
             p->setPen(Qt::white);
-            p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "A");
+            p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "🤖");
         }
     }
 
@@ -62,9 +79,7 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         const auto& bl = layout.blocks[currentBlockIdx++];
 
         int x = isUser ? viewWidth - bl.width - kAvatarSize - 12 : kAvatarSize + 12;
-        if (block.type != BlockType::Text) {
-            x = kAvatarSize + 12; // Assistant non-text blocks always left
-        }
+        if (block.type != BlockType::Text) x = kAvatarSize + 12;
 
         // --- Bubble background ---
         QColor bubbleColor;
@@ -75,83 +90,81 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
                 case BlockType::Text:     bubbleColor = QColor(0x374151); break;
                 case BlockType::Bash:
                 case BlockType::Python:
-                case BlockType::Lua:      bubbleColor = QColor(0x1F2937); break;
-                case BlockType::Thinking:  bubbleColor = QColor(45, 55, 72, 180); break;
-                case BlockType::Output:    bubbleColor = QColor(0x111827); break;
-                case BlockType::ToolCall:  bubbleColor = QColor(0x374151); break;
+                case BlockType::Lua:      bubbleColor = QColor(0x111827); break; // Darker command-block style
+                case BlockType::Output:    bubbleColor = QColor(0x0F172A); break;
+                case BlockType::Thinking:  bubbleColor = QColor(88, 80, 236, 30); break; // Faint Indigo
+                case BlockType::ToolCall:  bubbleColor = QColor(0x1F2937); break;
+                case BlockType::LogStep:   bubbleColor = QColor(0x1F2937); break;
                 default:                  bubbleColor = QColor(0x374151); break;
             }
         }
 
-        p->setPen(Qt::NoPen);
         p->setBrush(bubbleColor);
-        p->setRenderHint(QPainter::Antialiasing);
-        p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
+        p->setPen(Qt::NoPen);
+        p->drawRoundedRect(x, currentY, bl.width + kBubblePadding * 2, bl.height, kBubbleRadius, kBubbleRadius);
 
-        // Subtle accent border for premium feel
-        if (!isUser) {
-            QColor accentColor;
-            switch(block.type) {
-                case BlockType::Thinking:  accentColor = QColor(0x8B5CF6); break; // Purple
-                case BlockType::Output:    accentColor = QColor(0x10B981); break; // Green  
-                case BlockType::ToolCall:  accentColor = QColor(0x60A5FA); break; // Blue
-                default:                   accentColor = QColor(0x4B5563); break; // Gray
+        int contentOffset = kBubblePadding;
+
+        // --- Header / Collapsed Rendering ---
+        if (block.type == BlockType::Thinking || block.type == BlockType::ToolCall || block.type == BlockType::LogStep) {
+            QString header;
+            QColor headerColor = QColor(0x9CA3AF); // TEXT_DIM
+            
+            if (block.isCollapsed) {
+                header = "▶  ";
+                if (block.type == BlockType::Thinking) header += "Thought";
+                else {
+                    const QString c = block.content.toLower();
+                    if (c.contains("list") || c.contains("read") || c.contains("view")) header += "Analyzed";
+                    else if (c.contains("search") || c.contains("find") || c.contains("grep")) header += "Searched";
+                    else if (c.contains("command") || c.contains("cli")) header += "Ran command";
+                    else header += "Tool call";
+                }
+                p->setPen(headerColor);
+                p->drawText(QRect(x + kBubblePadding, currentY, bl.width, bl.height), Qt::AlignVCenter, header);
+            } else {
+                header = "▼  ";
+                if (block.type == BlockType::Thinking) {
+                    header += "Reasoning";
+                    headerColor = QColor(0xA5B4FC); // Soft indigo
+                } else {
+                    const QString c = block.content.toLower();
+                    if (c.contains("list") || c.contains("read") || c.contains("view")) header += "📄 Analyzed";
+                    else if (c.contains("search") || c.contains("find") || c.contains("grep")) header += "🔍 Searched";
+                    else if (c.contains("command") || c.contains("cli")) header += "🐚 Ran command";
+                    else header += "⚙  Action";
+                }
+                
+                p->setPen(headerColor);
+                p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width, 22), Qt::AlignTop, header);
+                
+                // Separator line
+                p->setPen(QPen(headerColor.darker(150), 1));
+                p->drawLine(x + kBubblePadding, currentY + 28, x + bl.width + kBubblePadding, currentY + 28);
+                contentOffset = 32;
             }
-            p->setPen(QPen(accentColor, 2));
-            p->drawLine(x + 1, currentY + kBubbleRadius, x + 1, currentY + bl.height - kBubbleRadius);
         }
 
-        // --- Text/Content ---
-        int headerHeight = 0;
-        if (!isUser) {
-            if (block.type == BlockType::Thinking) {
-                headerHeight = 24;
-                p->setPen(QColor(0xA0AEC0));
-                QFont headerFont = opt.font;
-                headerFont.setItalic(true);
-                headerFont.setPointSizeF(headerFont.pointSizeF() * 0.85);
-                p->setFont(headerFont);
-                p->drawText(QRect(x + kBubblePadding, currentY + 4, bl.width - 2 * kBubblePadding, headerHeight), 
-                            Qt::AlignVCenter | Qt::AlignLeft, "💭 Agent thinking...");
-                p->setFont(opt.font);
-            } else if (block.type == BlockType::Output) {
-                headerHeight = 24;
-                p->setPen(QColor(0x10B981));
-                QFont headerFont = opt.font;
-                headerFont.setBold(true);
-                headerFont.setPointSizeF(headerFont.pointSizeF() * 0.9);
-                p->setFont(headerFont);
-                p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width - 2 * kBubblePadding, headerHeight), 
-                            Qt::AlignVCenter | Qt::AlignLeft, "✅ Tool Result");
-                p->setFont(opt.font);
-            } else if (block.type == BlockType::ToolCall) {
-                p->setPen(QColor(0x60A5FA));
-                p->drawText(QRect(x + kBubblePadding, currentY, bl.width - 2 * kBubblePadding, bl.height),
-                            Qt::AlignCenter | Qt::AlignLeft, "⚙  " + block.content);
-            }
-        }
-
-        if (block.type != BlockType::ToolCall) {
+        // --- Drawing Document Content (if expanded or not a step block) ---
+        if (!block.isCollapsed) {
             p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerHeight);
+            p->translate(x + kBubblePadding, currentY + contentOffset);
             QAbstractTextDocumentLayout::PaintContext ctx;
+            QColor textColor = isUser ? Qt::white : QColor(0xF8FAFC);
             
-            QColor textColor = Qt::white;
-            if (!isUser) {
-                if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua)
-                    textColor = QColor(0x9CA3AF);
-                else if (block.type == BlockType::Thinking)
-                    textColor = QColor(0xCBD5E0);
-                else if (block.type == BlockType::Output)
-                    textColor = QColor(0xD1D5DB);
-            }
-            
+            if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua)
+                textColor = QColor(0xCBD5E1);
+            else if (block.type == BlockType::Output)
+                textColor = QColor(0xD1D5DB);
+            else if (block.type == BlockType::Thinking)
+                textColor = QColor(0x94A3B8);
+                
             ctx.palette.setColor(QPalette::Text, textColor);
             bl.doc->documentLayout()->draw(p, ctx);
             p->restore();
         }
 
-        currentY += bl.height + kRowMargin;
+        currentY += bl.height + 12; // Spacing
     }
 
     // Attachment badge - only for user messages with files
@@ -215,6 +228,32 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
         return {viewWidth, msg.layoutCache->totalHeight};
     }
     return {viewWidth, kAvatarSize + 2 * kRowMargin};
+}
+
+int MessageDelegate::blockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (!msg.layoutCache) return -1;
+    
+    const bool isUser = (msg.role == Message::Role::User);
+    int currentY = rect.top() + 10; // kRowMargin
+
+    int idx = 0;
+    for (const auto& block : msg.contentBlocks) {
+        if (idx >= msg.layoutCache->blocks.size()) break;
+        const auto& bl = msg.layoutCache->blocks[idx];
+
+        int x = isUser ? rect.width() - bl.width - 32 - 12 : 32 + 12; // Roughly matching paint logic
+        if (block.type != BlockType::Text) x = 32 + 12;
+
+        QRect bubbleRect(x, currentY, bl.width + 12 * 2, bl.height);
+        if (bubbleRect.contains(pos)) {
+            if (block.type == BlockType::Thinking || block.type == BlockType::ToolCall) {
+                return idx;
+            }
+        }
+        currentY += bl.height + 12;
+        idx++;
+    }
+    return -1;
 }
 
 }  // namespace CodeHex

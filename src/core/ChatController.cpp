@@ -41,6 +41,10 @@ ChatController::ChatController(AppConfig* config,
     
     // Sessions rename signaling (newly added to SessionManager)
     connect(m_sessions, &SessionManager::sessionRenamed, this, &ChatController::sessionRenamed);
+
+    // Terminal connections
+    connect(m_runner, &CliRunner::rawOutput, this, &ChatController::cliOutputReceived);
+    connect(m_runner, &CliRunner::errorChunk, this, &ChatController::cliErrorReceived);
 }
 
 void ChatController::sendMessage(const QString& text, const QList<Attachment>& attachments) {
@@ -74,12 +78,24 @@ bool ChatController::isRunning() const {
     return m_agent->isRunning();
 }
 
+void ChatController::resetAgent() {
+    m_agent->reset();
+    emit statusChanged("Agent Reset");
+    emit generationStopped();
+}
+
 void ChatController::setManualApproval(bool enabled) {
     m_agent->setManualApproval(enabled);
 }
 
 void ChatController::approveToolCall(const CodeHex::ToolCall& call) {
     m_agent->approveToolCall(call);
+}
+
+void ChatController::setSelectedModel(const QString& model) {
+    if (m_agent) {
+        m_agent->setSelectedModel(model);
+    }
 }
 
 }  // namespace CodeHex

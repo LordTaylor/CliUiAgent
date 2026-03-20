@@ -31,12 +31,12 @@ A complete reference for every element of the CodeHex interface.
 
 ---
 
-## [2] Profile Bar
+## [2] LLM Router Bar
 
 | Element | Description |
 |---------|-------------|
-| Profile dropdown | Switch between **Ollama**, **LM Studio**, and custom profiles. |
-| Model label | Shows the active model name from the selected profile. |
+| **Privacy/Performance Slider** | **Left (Privacy):** Uses local LLM (Ollama). <br> **Right (Performance):** Uses cloud LLM (OpenAI/Anthropic). |
+| **Model Selection Dropdown** | Dynamically discovers and lists models available from selected provider. |
 
 ---
 

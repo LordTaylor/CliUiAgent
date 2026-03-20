@@ -16,6 +16,8 @@ public:
     bool autoScrollEnabled() const;
     void setAutoScrollEnabled(bool enabled);
 
+    void scrollToBottomSmooth();
+
 signals:
     void loadMoreRequested();
 
@@ -23,6 +25,7 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     void scrollContentsBy(int dx, int dy) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
 
 private:
     MessageModel* m_msgModel = nullptr;

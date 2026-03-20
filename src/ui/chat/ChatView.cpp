@@ -7,6 +7,8 @@
 #include <QResizeEvent>
 #include "MessageDelegate.h"
 #include "MessageModel.h"
+#include <QMouseEvent>
+#include <QDebug>
 
 namespace CodeHex {
 
@@ -30,14 +32,24 @@ void ChatView::setMessageModel(MessageModel* model) {
     }
 }
 
-void ChatView::scrollToBottom() {
-    if (model() && model()->rowCount() > 0) {
-        scrollTo(model()->index(model()->rowCount() - 1, 0), QAbstractItemView::PositionAtBottom);
-    }
-}
-
 bool ChatView::autoScrollEnabled() const { return m_autoScroll; }
 void ChatView::setAutoScrollEnabled(bool enabled) { m_autoScroll = enabled; }
+
+void ChatView::scrollToBottom() {
+    scrollToBottomSmooth();
+}
+
+void ChatView::scrollToBottomSmooth() {
+    if (!model() || model()->rowCount() == 0) return;
+    
+    QScrollBar* bar = verticalScrollBar();
+    // If we are near the bottom (within 50px), stay at the bottom
+    bool atBottom = (bar->value() >= bar->maximum() - 50);
+    
+    if (atBottom || m_autoScroll) {
+        bar->setValue(bar->maximum());
+    }
+}
 
 void ChatView::resizeEvent(QResizeEvent* event) {
     QListView::resizeEvent(event);
@@ -53,16 +65,46 @@ void ChatView::contextMenuEvent(QContextMenuEvent* event) {
     const QModelIndex idx = indexAt(event->pos());
     if (!idx.isValid()) return;
 
-    const QString text = idx.data(MessageModel::TextRole).toString();
-    if (text.isEmpty()) return;
+    Message msg = idx.data(MessageModel::RawMessageRole).value<Message>();
+    auto* delegate = qobject_cast<MessageDelegate*>(itemDelegate());
+    int blockIdx = -1;
+    if (delegate) {
+        blockIdx = delegate->blockIndexAt(event->pos(), visualRect(idx), msg);
+    }
 
     QMenu menu(this);
-    QAction* copyAct = menu.addAction("Copy message");
-    copyAct->setShortcut(QKeySequence::Copy);
-
-    if (menu.exec(event->globalPos()) == copyAct) {
-        QApplication::clipboard()->setText(text);
+    if (blockIdx != -1 && (msg.contentBlocks[blockIdx].type != BlockType::Text && 
+                          msg.contentBlocks[blockIdx].type != BlockType::Thinking)) {
+        QAction* copyCodeAct = menu.addAction("Copy code/output");
+        if (menu.exec(event->globalPos()) == copyCodeAct) {
+            QApplication::clipboard()->setText(msg.contentBlocks[blockIdx].content);
+        }
+    } else {
+        const QString text = msg.textFromContentBlocks();
+        QAction* copyAct = menu.addAction("Copy entire message");
+        if (menu.exec(event->globalPos()) == copyAct) {
+            QApplication::clipboard()->setText(text);
+        }
     }
+}
+
+void ChatView::mousePressEvent(QMouseEvent* event) {
+    if (m_msgModel && event->button() == Qt::LeftButton) {
+        QModelIndex idx = indexAt(event->pos());
+        if (idx.isValid()) {
+            Message msg = idx.data(MessageModel::RawMessageRole).value<Message>();
+            auto* delegate = qobject_cast<MessageDelegate*>(itemDelegate());
+            if (delegate) {
+                int blockIdx = delegate->blockIndexAt(event->pos(), visualRect(idx), msg);
+                if (blockIdx != -1) {
+                    m_msgModel->toggleBlock(idx.row(), blockIdx);
+                    event->accept();
+                    return;
+                }
+            }
+        }
+    }
+    QListView::mousePressEvent(event);
 }
 
 void ChatView::scrollContentsBy(int dx, int dy) {
