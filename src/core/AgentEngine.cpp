@@ -289,6 +289,24 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         }
     }
 
+    // Fallback: Parse standard Markdown Bash blocks if no explicit tools found
+    // This perfectly supports Faza 1 behavior for generic OSS coding models
+    if (parsedCalls.isEmpty()) {
+        QRegularExpression bashRe("```bash\\n(.*?)```", 
+                              QRegularExpression::DotMatchesEverythingOption | QRegularExpression::InvertedGreedinessOption);
+        QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(m_currentResponse);
+        while (bashIter.hasNext()) {
+            QRegularExpressionMatch match = bashIter.next();
+            ToolCall call;
+            call.id = QUuid::createUuid().toString();
+            call.name = "Bash";
+            QJsonObject input;
+            input["command"] = match.captured(1).trimmed();
+            call.input = input;
+            parsedCalls.append(call);
+        }
+    }
+
     if (!parsedCalls.isEmpty()) {
         onToolCallReady(parsedCalls.first());
     } else {
