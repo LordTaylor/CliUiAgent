@@ -2,10 +2,12 @@
 #include <QList>
 #include <QObject>
 #include <QProcess>
+#include <QTimer>
+#include <QJsonObject>
 #include <memory>
 #include "CliProfile.h"
 #include "../data/Message.h"
-#include "../data/ToolCall.h" // Ensure this is included for ToolCall type
+#include "../data/ToolCall.h"
 
 namespace CodeHex {
 
@@ -18,40 +20,28 @@ public:
     void setProfile(std::unique_ptr<CliProfile> profile);
     CliProfile* profile() const;
 
-    // imagePaths : local file paths for image attachments; injected via
-    //              CliProfile::imageArguments() before the -p prompt flag.
-    // history    : full session message list (last entry == current prompt);
-    //              passed to CliProfile::buildArguments() for multi-turn context.
     virtual void send(const QString& prompt,
               const QString& workDir         = {},
               const QStringList& imagePaths  = {},
               const QList<Message>& history  = {},
               const QString& systemPrompt    = {});
 
-    // For structured JSON requests
     virtual void sendJson(const QJsonObject& jsonRequest,
                         const QString& workDir = {});
     void stop();
     bool isRunning() const;
     bool isProfileRunning() const;
 
-    // New: for running simple bash commands
     void runSimpleCommand(const QString& command, const QString& workingDirectory);
 
 signals:
-    void outputChunk(const QString& chunk);       // parsed text token (to ChatView)
-    void rawOutput(const QString& raw);            // unparsed line (to Console)
+    void outputChunk(const QString& chunk);
+    void rawOutput(const QString& raw);
     void errorChunk(const QString& chunk);
     void finished(int exitCode);
     void started();
-    // Emitted when a complete tool-use block has been parsed from the stream.
-    // This signal is used for display and for tool execution loops.
     void toolCallReady(const CodeHex::ToolCall& call);
-
-    // Real-time token usage
     void tokenStats(int input, int output);
-
-    // New signals for simple commands
     void simpleCommandStarted();
     void simpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
 
@@ -60,19 +50,34 @@ private slots:
     void onReadyReadStderr();
     void onProcessFinished(int exitCode, QProcess::ExitStatus status);
     void onProcessError(QProcess::ProcessError error);
+    void retrySend();
 
 private:
-    // Process a complete line: emit rawOutput + parsed outputChunk
     void processLine(const QByteArray& line);
 
     QProcess m_process;
     std::unique_ptr<CliProfile> m_profile;
-    QByteArray m_lineBuf;  // accumulates bytes until a full newline arrives
+    QByteArray m_lineBuf;
 
-    // For simple commands
+    struct LastRequest {
+        QString prompt;
+        QString workDir;
+        QStringList imagePaths;
+        QList<Message> history;
+        QString systemPrompt;
+        bool isJson = false;
+        QJsonObject jsonRequest;
+    } m_lastRequest;
+
+    int m_retryCount = 0;
+    int m_maxRetries = 3;
+    QTimer* m_backoffTimer = nullptr;
+
     QProcess m_simpleProcess;
     QByteArray m_simpleOutputBuf;
     QByteArray m_simpleErrorBuf;
+
+    void startProcessInternal();
 
 private slots: // New slots for simple commands
     void onSimpleReadyReadStdout();

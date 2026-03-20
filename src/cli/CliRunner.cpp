@@ -1,18 +1,20 @@
 #include "CliRunner.h"
 #include <QDebug>
-#include <QDir> // Added for QDir::homePath()
+#include <QDir>
 #include <QJsonDocument>
 #include <QRegularExpression>
-//#include <QTextCodec> // Removed
 #include "CliProfile.h"
-#include "../data/ToolCall.h" // Ensure this is included for ToolCall type
-
-#include <QJsonDocument>
+#include "../data/ToolCall.h"
 #include <QJsonObject>
+#include <cmath>
 
 namespace CodeHex {
 
 CliRunner::CliRunner(QObject* parent) : QObject(parent) {
+    m_backoffTimer = new QTimer(this);
+    m_backoffTimer->setSingleShot(true);
+    connect(m_backoffTimer, &QTimer::timeout, this, &CliRunner::retrySend);
+
     connect(&m_process, &QProcess::readyReadStandardOutput,
             this, &CliRunner::onReadyReadStdout);
     connect(&m_process, &QProcess::readyReadStandardError,
@@ -22,7 +24,6 @@ CliRunner::CliRunner(QObject* parent) : QObject(parent) {
     connect(&m_process, &QProcess::errorOccurred,
             this, &CliRunner::onProcessError);
 
-    // New connections for simple process
     connect(&m_simpleProcess, &QProcess::readyReadStandardOutput,
             this, &CliRunner::onSimpleReadyReadStdout);
     connect(&m_simpleProcess, &QProcess::readyReadStandardError,
@@ -35,7 +36,7 @@ CliRunner::CliRunner(QObject* parent) : QObject(parent) {
 
 CliRunner::~CliRunner() {
     stop();
-    m_simpleProcess.terminate(); // Terminate simple process as well
+    m_simpleProcess.terminate();
     m_simpleProcess.waitForFinished(100);
 }
 
@@ -53,26 +54,55 @@ void CliRunner::send(const QString& prompt,
                       const QList<Message>& history,
                       const QString& systemPrompt) {
     if (!m_profile) {
-        qWarning() << "CliRunner: no profile set";
         emit errorChunk("Error: No AI profile selected.");
         emit finished(1);
         return;
     }
 
     if (isRunning()) {
-        qWarning() << "CliRunner: already running";
         emit errorChunk("Error: Already generating a response.");
         emit finished(1);
         return;
     }
 
-    // Stop m_simpleProcess if it's running
+    m_retryCount = 0;
+    m_lastRequest.prompt = prompt;
+    m_lastRequest.workDir = workDir;
+    m_lastRequest.imagePaths = imagePaths;
+    m_lastRequest.history = history;
+    m_lastRequest.systemPrompt = systemPrompt;
+    m_lastRequest.isJson = false;
+
+    startProcessInternal();
+}
+
+void CliRunner::sendJson(const QJsonObject& jsonRequest, const QString& workDir) {
+    if (!m_profile) {
+        emit errorChunk("Error: No AI profile selected.");
+        emit finished(1);
+        return;
+    }
+
+    if (isRunning()) {
+        emit errorChunk("Error: Already generating a response.");
+        emit finished(1);
+        return;
+    }
+
+    m_retryCount = 0;
+    m_lastRequest.isJson = true;
+    m_lastRequest.jsonRequest = jsonRequest;
+    m_lastRequest.workDir = workDir;
+
+    startProcessInternal();
+}
+
+void CliRunner::startProcessInternal() {
     if (m_simpleProcess.state() == QProcess::Running) {
         m_simpleProcess.terminate();
         m_simpleProcess.waitForFinished(1000);
     }
 
-    // Apply any extra environment variables declared by the profile.
     const auto extra = m_profile->extraEnvironment();
     if (!extra.isEmpty()) {
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -81,25 +111,29 @@ void CliRunner::send(const QString& prompt,
         m_process.setProcessEnvironment(env);
     }
 
-    // Build final argument list:
-    // Strategy: find -p in baseArgs and splice imgArgs just before it.
-    QStringList baseArgs = m_profile->buildArguments(prompt, workDir, history, systemPrompt);
-    if (!imagePaths.isEmpty()) {
-        const QStringList imgArgs = m_profile->imageArguments(imagePaths);
+    QString promptToUse = m_lastRequest.prompt;
+    if (m_lastRequest.isJson) {
+        QJsonDocument doc(m_lastRequest.jsonRequest);
+        promptToUse = doc.toJson(QJsonDocument::Compact);
+    }
+
+    QStringList baseArgs = m_profile->buildArguments(promptToUse, m_lastRequest.workDir, m_lastRequest.history, m_lastRequest.systemPrompt);
+    if (!m_lastRequest.imagePaths.isEmpty()) {
+        const QStringList imgArgs = m_profile->imageArguments(m_lastRequest.imagePaths);
         if (!imgArgs.isEmpty()) {
             const int pIdx = baseArgs.indexOf("-p");
             if (pIdx >= 0) {
                 for (int i = imgArgs.size() - 1; i >= 0; --i)
                     baseArgs.insert(pIdx, imgArgs[i]);
             } else {
-                baseArgs << imgArgs;  // fallback: append
+                baseArgs << imgArgs;
             }
         }
     }
 
-    m_process.setProgram(m_profile->executable()); // Corrected cliPath to executable
-    m_process.setArguments(baseArgs); // Use baseArgs here
-    m_process.setWorkingDirectory(workDir);
+    m_process.setProgram(m_profile->executable());
+    m_process.setArguments(baseArgs);
+    m_process.setWorkingDirectory(m_lastRequest.workDir);
 
     m_lineBuf.clear();
     m_process.start();
@@ -113,10 +147,15 @@ void CliRunner::send(const QString& prompt,
     emit started();
 }
 
+void CliRunner::retrySend() {
+    startProcessInternal();
+}
+
 void CliRunner::stop() {
+    m_backoffTimer->stop();
     if (m_process.state() == QProcess::Running) {
         m_process.terminate();
-        m_process.waitForFinished(1000); // Wait up to 1 second
+        m_process.waitForFinished(1000);
     }
     if (m_simpleProcess.state() == QProcess::Running) {
         m_simpleProcess.terminate();
@@ -125,17 +164,15 @@ void CliRunner::stop() {
 }
 
 bool CliRunner::isRunning() const {
-    return m_process.state() != QProcess::NotRunning || m_simpleProcess.state() != QProcess::NotRunning;
+    return m_process.state() != QProcess::NotRunning || m_simpleProcess.state() != QProcess::NotRunning || m_backoffTimer->isActive();
 }
 
 bool CliRunner::isProfileRunning() const {
-    return m_process.state() != QProcess::NotRunning;
+    return m_process.state() != QProcess::NotRunning || m_backoffTimer->isActive();
 }
 
-// New: for running simple bash commands
 void CliRunner::runSimpleCommand(const QString& command, const QString& workingDirectory) {
     if (m_simpleProcess.state() == QProcess::Running || m_process.state() == QProcess::Running) {
-        qWarning() << "CliRunner: a command is already running (simple or profile-based)";
         emit simpleCommandFinished(1, "", "Error: Another command is already running.");
         return;
     }
@@ -145,16 +182,10 @@ void CliRunner::runSimpleCommand(const QString& command, const QString& workingD
 
     m_simpleProcess.setProgram("bash");
     m_simpleProcess.setArguments({"-c", command});
-    if (!workingDirectory.isEmpty()) {
-        m_simpleProcess.setWorkingDirectory(workingDirectory);
-    } else {
-        m_simpleProcess.setWorkingDirectory(QDir::homePath()); // Default to home if not specified
-    }
+    m_simpleProcess.setWorkingDirectory(workingDirectory.isEmpty() ? QDir::homePath() : workingDirectory);
 
     m_simpleProcess.start();
-
     if (!m_simpleProcess.waitForStarted()) {
-        qWarning() << "CliRunner: failed to start simple process:" << m_simpleProcess.errorString();
         emit simpleCommandFinished(1, "", QString("Error: Failed to start simple CLI process: %1").arg(m_simpleProcess.errorString()));
         return;
     }
@@ -178,12 +209,25 @@ void CliRunner::onReadyReadStderr() {
     if (!err.isEmpty()) emit errorChunk(err);
 }
 
-void CliRunner::onProcessFinished(int exitCode, QProcess::ExitStatus /*status*/) {
-    onReadyReadStdout(); // Drain any remaining stdout
-    if (!m_lineBuf.isEmpty()) { // Flush any leftover bytes
+void CliRunner::onProcessFinished(int exitCode, QProcess::ExitStatus) {
+    onReadyReadStdout();
+    if (!m_lineBuf.isEmpty()) {
         processLine(m_lineBuf);
         m_lineBuf.clear();
     }
+
+    if (exitCode != 0 && m_retryCount < m_maxRetries) {
+        bool retryable = (exitCode == 429 || exitCode == 503 || exitCode == 1);
+        if (retryable) {
+            m_retryCount++;
+            int delayMs = (int)std::pow(2, m_retryCount) * 1000;
+            emit errorChunk(QString("\n[RETRY] Process failed (exit %1). Retrying in %2ms (Attempt %3/%4)...")
+                            .arg(exitCode).arg(delayMs).arg(m_retryCount).arg(m_maxRetries));
+            m_backoffTimer->start(delayMs);
+            return;
+        }
+    }
+
     emit finished(exitCode);
 }
 
@@ -192,52 +236,16 @@ void CliRunner::onProcessError(QProcess::ProcessError error) {
 }
 
 void CliRunner::processLine(const QByteArray& line) {
-    // Suppressed raw output to terminal for cleaner experience (JSON protocol hidden)
-    // emit rawOutput(QString::fromLocal8Bit(line));
-
     if (!m_profile) {
         emit outputChunk(QString::fromLocal8Bit(line));
         return;
     }
-
     StreamResult res = m_profile->parseLine(line);
-
-    // 1. Text streaming
-    if (!res.textToken.isEmpty()) {
-        emit outputChunk(res.textToken);
-    }
-
-    // 2. Tool calls (now handled by profile parser)
-    if (res.toolCall) {
-        emit toolCallReady(*res.toolCall);
-    }
-
-    // 3. Token usage
+    if (!res.textToken.isEmpty()) emit outputChunk(res.textToken);
+    if (res.toolCall) emit toolCallReady(*res.toolCall);
     if (res.inputTokens || res.outputTokens) {
         emit tokenStats(res.inputTokens.value_or(0), res.outputTokens.value_or(0));
     }
-}
-
-void CliRunner::sendJson(const QJsonObject& jsonRequest, const QString& workDir) {
-    if (!m_profile) {
-        emit errorChunk("Error: No AI profile selected.");
-        emit finished(1);
-        return;
-    }
-
-    if (isRunning()) {
-        emit errorChunk("Error: Already generating a response.");
-        emit finished(1);
-        return;
-    }
-
-    // Default implementation: serialize to string and treat as prompt
-    // Profiles can be updated later to handle JSON natively via specific flags
-    QJsonDocument doc(jsonRequest);
-    QString jsonStr = doc.toJson(QJsonDocument::Compact);
-    
-    // For now, reuse the standard send mechanism but passing the serialized JSON as prompt
-    send(jsonStr, workDir, {}, {}, "");
 }
 
 void CliRunner::onSimpleReadyReadStdout() {
@@ -248,18 +256,16 @@ void CliRunner::onSimpleReadyReadStderr() {
     m_simpleErrorBuf.append(m_simpleProcess.readAllStandardError());
 }
 
-void CliRunner::onSimpleProcessFinished(int exitCode, QProcess::ExitStatus status) {
-    Q_UNUSED(status);
+void CliRunner::onSimpleProcessFinished(int exitCode, QProcess::ExitStatus) {
     emit simpleCommandFinished(exitCode, QString::fromLocal8Bit(m_simpleOutputBuf), QString::fromLocal8Bit(m_simpleErrorBuf));
     m_simpleOutputBuf.clear();
     m_simpleErrorBuf.clear();
 }
 
 void CliRunner::onSimpleProcessError(QProcess::ProcessError error) {
-    qWarning() << "CliRunner: simple process error:" << error << m_simpleProcess.errorString();
     emit simpleCommandFinished(1, "", QString("Simple CLI process error: %1").arg(m_simpleProcess.errorString()));
     m_simpleOutputBuf.clear();
     m_simpleErrorBuf.clear();
 }
 
-}  // namespace CodeHex
+} // namespace CodeHex
