@@ -106,3 +106,24 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 - [ ] **6.2. Trwała Pamięć (MEMORY.md).**
 - [ ] **6.3. "Session Yielding" (Pauza i Wznowienie).**
 - [ ] **6.4. Piaskownica (Docker/Containerization).**
+
+## Faza 7: Modernizacja Interfejsu i Stabilność Agenta (Zaplanowane)
+
+### Cel:
+Zaprojektowanie nowoczesnego, przejrzystego interfejsu czatu (nowy wygląd) oraz całkowite rozwiązanie problemu "zapętlania się" modelu przy błędnym formacie narzędzi, poparte testami jednostkowymi.
+
+### Zadania (Checklista):
+
+#### Krok 7.1: Nowoczesny Wygląd UI
+- [ ] **7.1.1. Przebudowa delegata w `ChatView`:** Wprowadzenie zaokrąglonych rogów, lepszych marginesów i cieni (drop shadows).
+- [ ] **7.1.2. Upiększenie formatowania Markdown:** Lepsze style nagłówków, bloków kodu (odróżnienie tła), pogrubień i kolorystyka dopasowana do trybu dark mode.
+- [ ] **7.1.3. Rozwiązanie błędów wizualnych:** Naprawa paska przewijania (scroll) i szerokości układu elementów (layout width).
+
+#### Krok 7.2: Ostateczna poprawka parsera ToolCall (Zapętlanie i JSON)
+- [ ] **7.2.1. Obsługa wielu XMLów:** Model czasem generuje wiele bloków w jednym strumieniu (zapętlenie); parser musi łapać dokładnie pojedynczy poprawny blok.
+- [ ] **7.2.2. Obsługa znaku nowej linii w JSON:** Dodanie w kodzie C++ sanitacji JSON-a przed wywołaniem `QJsonDocument::fromJson` w przypadku surowych znaków `\n`.
+- [ ] **7.2.3. Weryfikacja Popupa (ToolApprovalDialog):** Upewnienie się, że prośba o uprawnienie zawsze priorytetyzuje główny wątek (MainThread) by uniknąć ukrycia popupu pod spodem innych okien.
+
+#### Krok 7.3: Testy Autonomii Agenta
+- [ ] **7.3.1. Utworzenie testu jednostkowego Parsera:** Napisanie testu w Catch2 symulującego uszkodzoną lub zapętloną odpowiedź z modelem generującym Markdown Bash i ````xml <name>...`.
+- [ ] **7.3.2. Weryfikacja skuteczności ekstrakta:** Upewnienie się w automatycznym teście, że `AgentEngine` zwraca prawidłowy `ToolCall`, chroniąc przed cichym niepowodzeniem.

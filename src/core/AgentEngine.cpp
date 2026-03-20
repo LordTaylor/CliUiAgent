@@ -284,6 +284,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         if (!doc.isNull() && doc.isObject()) {
             call.input = doc.object();
             parsedCalls.append(call);
+            break; // Parse only the first correct block to prevent loop cascade
         } else {
             qWarning() << "AgentEngine: Failed to parse JSON from XML tool:" << err.errorString() << "\nJSON:\n" << jsonStr;
         }
@@ -304,6 +305,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
             input["command"] = match.captured(1).trimmed();
             call.input = input;
             parsedCalls.append(call);
+            break; // Parse only the first Bash block
         }
     }
 
