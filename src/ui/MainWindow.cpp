@@ -229,6 +229,14 @@ void MainWindow::setupUi() {
 
     tbLayout->addSpacing(10);
 
+    // Profile selector (Provider — Ollama, LM Studio, etc.)
+    m_profileCombo = new QComboBox(toolbar);
+    m_profileCombo->setObjectName("profileCombo");
+    m_profileCombo->setMinimumWidth(120);
+    tbLayout->addWidget(m_profileCombo);
+
+    tbLayout->addSpacing(10);
+
     m_modelCombo = new QComboBox(toolbar);
     m_modelCombo->setObjectName("modelCombo");
     m_modelCombo->setMinimumWidth(150);
@@ -249,9 +257,6 @@ void MainWindow::setupUi() {
     m_roleCombo->setMinimumWidth(100);
     tbLayout->addWidget(m_roleCombo);
     
-    // Legacy profile combo (hidden, but initialized to prevent crashes)
-    m_profileCombo = new QComboBox(toolbar);
-    m_profileCombo->setVisible(false);
 
     tbLayout->addSpacing(10);
     m_themeBtn = new QPushButton("🌓", toolbar);
