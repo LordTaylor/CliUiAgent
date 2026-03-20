@@ -94,6 +94,17 @@ if [ "$NEEDS_BUILD" = true ]; then
         GENERATOR="Unix Makefiles"
     fi
 
+    # --- Fix: Handle generator mismatch ---
+    if [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
+        if grep -q "CMAKE_GENERATOR:INTERNAL=$GENERATOR" "$BUILD_DIR/CMakeCache.txt"; then
+            : # Match found, all good
+        else
+            echo "==> Generator mismatch detected. Cleaning $BUILD_DIR/CMakeCache.txt ..."
+            rm -f "$BUILD_DIR/CMakeCache.txt"
+            rm -rf "$BUILD_DIR/CMakeFiles"
+        fi
+    fi
+
     cmake --preset "$PRESET" 2>/dev/null || \
     cmake -B "$BUILD_DIR" \
         -G "$GENERATOR" \
