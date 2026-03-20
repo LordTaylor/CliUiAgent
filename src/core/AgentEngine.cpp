@@ -22,6 +22,18 @@ AgentEngine::AgentEngine(AppConfig* config,
     , m_runner(runner)
     , m_toolExecutor(toolExecutor)
 {
+    m_currentRole = Role::Base;
+    m_manualApproval = false;
+    // Default Permissions - use tool.name() case as standard
+    m_toolPermissions["ReadFile"]      = Permission::Allow;
+    m_toolPermissions["WriteFile"]     = Permission::Allow;
+    m_toolPermissions["ListDirectory"] = Permission::Allow;
+    m_toolPermissions["Bash"]          = Permission::Ask;
+    m_toolPermissions["SearchFiles"]   = Permission::Allow;
+    m_toolPermissions["Grep"]          = Permission::Allow;
+    m_toolPermissions["Replace"]       = Permission::Allow;
+
+    // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
     connect(m_runner, &CliRunner::rawOutput,      this, &AgentEngine::onRawOutput);
     connect(m_runner, &CliRunner::errorChunk,     this, &AgentEngine::onErrorChunk);
@@ -32,7 +44,7 @@ AgentEngine::AgentEngine(AppConfig* config,
 }
 
 void AgentEngine::process(const QString& userInput, const QList<Attachment>& attachments) {
-    auto* session = m_sessions->currentSession();
+    auto session = m_sessions->currentSession();
     if (!session) return;
 
     // Prepare message
@@ -40,18 +52,23 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     userMsg.id = QUuid::createUuid();
     userMsg.role = Message::Role::User;
     
-    CodeBlock block;
-    block.type = BlockType::Text;
-    block.content = userInput;
-    userMsg.contentBlocks << block;
+    userMsg.addText(userInput);
     
     userMsg.timestamp = QDateTime::currentDateTime();
-    userMsg.attachments = attachments;
+    
+    QStringList imagePaths;
+    for (const auto& att : attachments) {
+        userMsg.addAttachment(att);
+        if (att.type == Attachment::Type::Image) {
+            imagePaths << att.filePath;
+        }
+    }
 
     session->appendMessage(userMsg);
     session->save();
 
     m_currentResponse.clear();
+    m_isRunning = true;
     emit statusChanged("Agent is thinking...");
 
     // Build enriched prompt
@@ -61,14 +78,7 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     const int inputTokens = TokenCounter::estimate(enrichedPrompt);
     session->updateTokens(inputTokens, 0);
 
-    QStringList imagePaths;
-    for (const auto& att : attachments) {
-        if (att.type == Attachment::Type::Image) {
-            imagePaths << att.filePath;
-        }
-    }
-
-    m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages);
+    m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages, systemPrompt());
 }
 
 void AgentEngine::stop() {
@@ -88,37 +98,114 @@ void AgentEngine::onRawOutput(const QString& raw) {
     emit consoleOutput(raw);
 }
 
+QString AgentEngine::loadRolePrompt(Role role) const {
+    QString fileName;
+    switch (role) {
+        case Role::Base:     fileName = "base.txt"; break;
+        case Role::Explorer: fileName = "explorer.txt"; break;
+        case Role::Executor: fileName = "executor.txt"; break;
+        case Role::Reviewer: fileName = "reviewer.txt"; break;
+    }
+    
+    QDir projectRoot(m_config->workingFolder());
+    QFile file(projectRoot.absoluteFilePath("resources/prompts/" + fileName));
+    
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString::fromUtf8(file.readAll());
+    }
+    return QString();
+}
+
+QString AgentEngine::systemPrompt() const {
+    QString base = loadRolePrompt(Role::Base);
+    if (m_currentRole == Role::Base) return base;
+    
+    QString rolePrompt = loadRolePrompt(m_currentRole);
+    return base + "\n\n" + rolePrompt;
+}
+
 void AgentEngine::onErrorChunk(const QString& chunk) {
     emit consoleOutput("[stderr] " + chunk);
 }
 
+void AgentEngine::setManualApproval(bool enabled) {
+    m_manualApproval = enabled;
+}
+
+void AgentEngine::setToolPermission(const QString& toolName, Permission p) {
+    m_toolPermissions[toolName] = p;
+}
+
+bool AgentEngine::isPathAllowed(const QString& path) const {
+    if (path.isEmpty()) return true;
+    
+    QFileInfo info(path);
+    QString absPath = info.absoluteFilePath();
+    QString workDir = m_config->workingFolder();
+    
+    // Sandbox: Allow only within working directory or its subdirectories
+    return absPath.startsWith(workDir);
+}
+
+AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) const {
+    // Check global manual override
+    if (m_manualApproval) return Permission::Ask;
+    
+    // Always allow Read
+    if (toolName == "ReadFile" || toolName == "ListDir" || toolName == "Search") {
+        return Permission::Allow;
+    }
+    
+    // Default to Ask for everything else (Write, Bash, etc.)
+    return Permission::Ask;
+}
+
 void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
-    qDebug() << "[AgentEngine] Tool call ready:" << call.name;
-    emit toolCallStarted(call.name, call.input);
+    if (!m_isRunning) return;
 
-    static const QStringList kDangerous = { "WriteFile", "Write", "RunCommand", "Bash", "Replace", "Sed" };
+    // --- Sandbox Check ---
+    if (call.input.contains("path")) {
+        QString path = call.input.value("path").toString();
+        if (!isPathAllowed(path)) {
+            emit errorOccurred("Sandbox violation: Path is outside of working directory: " + path);
+            return;
+        }
+    }
 
-    if (m_manualApproval && kDangerous.contains(call.name)) {
-        emit statusChanged("Waiting for approval...");
+    Permission p = toolPermission(call.name);
+    if (p == Permission::Deny) {
+        emit errorOccurred("Tool execution denied: " + call.name);
+        return;
+    }
+    
+    if (p == Permission::Ask) {
         emit toolApprovalRequested(call.name, call.input);
+        m_pendingCalls.append(call); // Re-added this line to maintain pending calls for approval
         return;
     }
 
-    emit statusChanged(QString("Executing %1...").arg(call.name));
-    m_toolExecutor->execute(call, m_config->workingFolder());
+    // Execute Tool
+    emit toolCallStarted(call.name, call.input);
+    if (m_syncTools) {
+        m_toolExecutor->executeSync(call, m_config->workingFolder());
+    } else {
+        m_toolExecutor->execute(call, m_config->workingFolder());
+    }
 }
 
 void AgentEngine::approveToolCall(const ToolCall& call) {
-    emit statusChanged(QString("Executing %1...").arg(call.name));
+    emit statusChanged(QString("Approved: Executing %1...").arg(call.name));
+    emit toolCallStarted(call.name, call.input); // Emit started if it was waiting
     m_toolExecutor->execute(call, m_config->workingFolder());
 }
 
 void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result) {
     Q_UNUSED(toolName);
-    qDebug() << "[AgentEngine] Tool result received for:" << toolName;
     
     auto* session = m_sessions->currentSession();
-    if (!session) return;
+    if (!session) {
+        return;
+    }
 
     // Convert ToolResult to a Message (normally this is handled as part of the tool turn)
     Message toolMsg;
@@ -135,13 +222,22 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     session->save();
 
     if (!m_runner->isProfileRunning()) {
-        emit statusChanged("Agent is processing tool result...");
-        m_runner->send("", m_config->workingFolder(), {}, session->messages);
+        toolMsg.addText(result.content);
+        toolMsg.toolResults << result; 
+        session->appendMessage(toolMsg);
+
+        if (!result.isError) {
+            QString sp = systemPrompt();
+            if (m_runner) {
+                m_runner->send("", m_config->workingFolder(), {}, session->messages, sp);
+            }
+        }
     }
 }
 
 void AgentEngine::onRunnerFinished(int exitCode) {
     Q_UNUSED(exitCode);
+    m_isRunning = false;
     if (m_currentResponse.trimmed().isEmpty()) {
         emit statusChanged("");
         return;

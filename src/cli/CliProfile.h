@@ -31,12 +31,15 @@ public:
 
     // ── Argument builders ─────────────────────────────────────────────────────
     virtual QStringList buildArguments(const QString& prompt,
-                                       const QString& workDir) const = 0;
+                                       const QString& workDir) const {
+        return buildArguments(prompt, workDir, {}, {});
+    }
 
     // Multi-turn overload — default delegates to 2-arg (ignores history).
     virtual QStringList buildArguments(const QString& prompt,
                                        const QString& workDir,
-                                       const QList<Message>& /*history*/) const {
+                                       const QList<Message>& /*history*/,
+                                       const QString& /*systemPrompt*/ = {}) const {
         return buildArguments(prompt, workDir);
     }
 

@@ -33,6 +33,7 @@ Session* SessionManager::createSession(const QString& profileName, const QString
     s->filePath = sessionFilePath(s->id.toString(QUuid::WithoutBraces));
     s->save();
     m_sessions.prepend(s);
+    setCurrentSession(s);
     emit sessionCreated(s->id.toString(QUuid::WithoutBraces));
     return s;
 }

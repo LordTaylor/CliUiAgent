@@ -18,6 +18,9 @@ public:
         const QString rawRoot = input.contains("root") ? input["root"].toString() : ".";
         const QString root    = ToolUtils::resolvePath(rawRoot, workDir);
 
+        if (!ToolUtils::isPathSafe(root, workDir))
+            return ToolUtils::errResult(QString("SearchFiles: permission denied for path: %1").arg(root));
+
         QStringList matches;
         QDirIterator it(root, QStringList{pattern},
                         QDir::Files | QDir::NoSymLinks,

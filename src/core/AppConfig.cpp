@@ -11,6 +11,7 @@ namespace CodeHex {
 AppConfig::AppConfig(QObject* parent) : QObject(parent) {}
 
 QString AppConfig::dataDir() const {
+    if (!m_dataDir.isEmpty()) return m_dataDir;
     return QDir::homePath() + "/.codehex";
 }
 

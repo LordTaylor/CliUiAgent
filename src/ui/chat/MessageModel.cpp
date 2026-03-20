@@ -86,12 +86,14 @@ void MessageModel::precomputeLayout(Message& msg) const {
     for (const auto& block : msg.contentBlocks) {
         PrecomputedLayout::BlockLayout bl;
         bl.doc = std::make_shared<QTextDocument>();
-        bl.doc->setPageSize({qreal(textW), -1.0});
+        
+        // Use a default font specifically for the document to match rendering
+        QFont docFont("Inter", 13);
+        bl.doc->setDefaultFont(docFont);
         bl.doc->setDocumentMargin(0);
 
         bool isMarkdown = (msg.role == Message::Role::Assistant && block.type == BlockType::Text) ||
-                          (block.type != BlockType::Text && block.type != BlockType::Thinking) ||
-                          (block.type == BlockType::Thinking);
+                          (block.type != BlockType::Text);
 
         if (isMarkdown) {
             bl.doc->setMarkdown(block.content);
@@ -99,16 +101,27 @@ void MessageModel::precomputeLayout(Message& msg) const {
             bl.doc->setPlainText(block.content);
         }
 
+        // Set width and force layout
         bl.doc->setTextWidth(textW);
-        bl.width = qMin(maxW, static_cast<int>(bl.doc->idealWidth()) + 2 * kBubblePadding);
         
-        int blockH = static_cast<int>(bl.doc->size().height()) + 2 * kBubblePadding;
-        if (block.type == BlockType::Output) {
-            blockH += 24; // Header height
+        // Calculate required width: the smaller of maxW or the document's actual content width
+        int contentWidth = static_cast<int>(bl.doc->size().width());
+        bl.width = qMax(60, qMin(maxW, contentWidth + 2 * kBubblePadding));
+        
+        // Calculate height with specific header offsets
+        int headerOffset = 0;
+        if (block.type == BlockType::Output || block.type == BlockType::Thinking) {
+            headerOffset = 24;
         } else if (block.type == BlockType::ToolCall) {
-            blockH = 40;
-        } else if (block.type == BlockType::Thinking) {
-            blockH += 24; // Header height
+            headerOffset = 0; // ToolCall uses a fixed height below
+        }
+
+        int docHeight = static_cast<int>(bl.doc->size().height());
+        int blockH = docHeight + 2 * kBubblePadding + headerOffset;
+        
+        if (block.type == BlockType::ToolCall) {
+            blockH = 40; // Override for compact tool call
+            bl.width = qMin(maxW, 200); // Fixed roughly
         }
         
         bl.height = blockH;

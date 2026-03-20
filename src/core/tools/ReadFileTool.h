@@ -14,6 +14,8 @@ public:
         const QString path = ToolUtils::resolvePath(input["path"].toString(), workDir);
         if (path.isEmpty())
             return ToolUtils::errResult("ReadFile: 'path' parameter is required");
+        if (!ToolUtils::isPathSafe(path, workDir))
+            return ToolUtils::errResult(QString("ReadFile: permission denied for path: %1").arg(path));
 
         QFile file(path);
         if (!file.exists())

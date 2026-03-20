@@ -21,8 +21,11 @@ ChatController::ChatController(AppConfig* config,
     , m_runner(runner)
     , m_scripts(scripts)
 {
+    qDebug() << "[ChatController] Constructor start";
     m_toolExecutor = new ToolExecutor(this);
+    qDebug() << "[ChatController] ToolExecutor created";
     m_agent = new AgentEngine(config, sessions, runner, m_toolExecutor, this);
+    qDebug() << "[ChatController] AgentEngine created";
 
     // Tunnel AgentEngine signals to UI
     connect(m_agent, &AgentEngine::statusChanged,          this, &ChatController::statusChanged);

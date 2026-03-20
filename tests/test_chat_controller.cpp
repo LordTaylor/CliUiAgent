@@ -15,27 +15,40 @@ using namespace CodeHex;
 class MockCliRunner : public CliRunner {
 public:
     using CliRunner::CliRunner;
-    void send(const QString& prompt, const QString& workDir, const QStringList& imagePaths, const QList<Message>& history) override {
+    void send(const QString& prompt, 
+              const QString& workDir, 
+              const QStringList& imagePaths, 
+              const QList<Message>& history,
+              const QString& systemPrompt = {}) override {
         lastPrompt = prompt;
+        lastSystemPrompt = systemPrompt;
         sendCount++;
     }
     QString lastPrompt;
+    QString lastSystemPrompt;
     int sendCount = 0;
 };
 
 TEST_CASE("ChatController Tool Loop", "[ChatController]") {
     AppConfig config;
+    QTemporaryDir tempDir;
+    config.setDataDir(tempDir.path());
+    config.ensureDirectories();
+    
     SessionManager sessions(&config);
     MockCliRunner runner; 
     ScriptManager scripts(".", ".");
     
     ChatController controller(&config, &sessions, &runner, &scripts);
+    config.setWorkingFolder(".");
     sessions.createSession("test_profile", "Test Session");
 
     SECTION("ToolCall handled by AgentEngine") {
         ToolCall call{"123", "ReadFile", {{"path", "test.txt"}}};
         
         // This should trigger recording the call and executing it via AgentEngine
+        controller.agent()->setRunningForTest(true);
+        controller.agent()->setSyncTools(true);
         controller.agent()->onToolCallReady(call);
         
         Session* session = sessions.currentSession();

@@ -17,6 +17,8 @@ public:
         const QString content = input["content"].toString();
         if (path.isEmpty())
             return ToolUtils::errResult("WriteFile: 'path' parameter is required");
+        if (!ToolUtils::isPathSafe(path, workDir))
+            return ToolUtils::errResult(QString("WriteFile: permission denied for path: %1").arg(path));
 
         // Create parent directories if they don't exist
         const QDir dir = QFileInfo(path).dir();

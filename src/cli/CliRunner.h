@@ -25,7 +25,8 @@ public:
     virtual void send(const QString& prompt,
               const QString& workDir         = {},
               const QStringList& imagePaths  = {},
-              const QList<Message>& history  = {});
+              const QList<Message>& history  = {},
+              const QString& systemPrompt    = {});
     void stop();
     bool isRunning() const;
     bool isProfileRunning() const;

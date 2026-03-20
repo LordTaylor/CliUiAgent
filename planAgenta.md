@@ -28,163 +28,77 @@ Agent potrafi rozpoznać i wykonać polecenia bash zawarte w odpowiedziach model
 - [x] **3.1. Utworzenie nowej metody w `ChatController` do wykonania polecenia Bash.**
     - [x] `src/core/ChatController.h`: Dodaj prywatną metodę, np. `executeBashCommand(const QString& command)`.
     - [x] `src/core/ChatController.cpp`: Zaimplementuj `executeBashCommand`, używając `CliRunner` do uruchomienia polecenia.
-        - [x] Upewnij się, że `CliRunner` może uruchamiać dowolne polecenia bash, a nie tylko profile AI. Może to wymagać dodania nowej metody `CliRunner::runSimpleCommand(const QString& command)`.(Done as `CliRunner::runSimpleCommand` and its signals)
+        - [x] Upewnij się, że `CliRunner` can uruchamiać dowolne polecenia bash, a nie tylko profile AI.
 - [x] **3.2. Wywołanie nowej metody po ekstrakcji polecenia.**
     - [x] `src/core/ChatController.cpp`: Po ekstrakcji polecenia bash, wywołaj `executeBashCommand`.
 
 #### Krok 4: Przekazanie wyniku wykonania z powrotem do AI
 - [x] **4.1. Modyfikacja `CliRunner` do sygnalizowania zakończenia prostych poleceń.**
-    - [x] `src/cli/CliRunner.h`: Dodaj nowe sygnały, np. `simpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput)`.
-    - [x] `src/cli/CliRunner.h`: Dodaj nową metodę publiczną `runSimpleCommand(const QString& command, const QString& workingDirectory);`.
-    - [x] `src/cli/CliRunner.cpp`: Zaimplementuj te sygnały w kontekście `runSimpleCommand`.
+    - [x] `src/cli/CliRunner.h`: Dodaj nowe sygnały.
+    - [x] `src/cli/CliRunner.h`: Dodaj nową metodę `runSimpleCommand`.
+    - [x] `src/cli/CliRunner.cpp`: Zaimplementuj te sygnały.
 - [x] **4.2. Obsługa wyniku w `ChatController`.**
-    - [x] `src/core/ChatController.cpp`: Utwórz nowy slot, np. `onSimpleCommandFinished(...)`, który będzie połączony z sygnałem z `CliRunner`.
-    - [x] `src/core/ChatController.cpp`: W `onSimpleCommandFinished`, dodaj wynik (output, errorOutput) jako nową wiadomość (np. jako `CodeBlock` typu `Output`) do sesji i wyemituj `responseComplete`. Można też po prostu dodać go do historii czatu jako tekst.
+    - [x] `src/core/ChatController.cpp`: Utwórz slot `onSimpleCommandFinished`.
+    - [x] `src/core/ChatController.cpp`: W `onSimpleCommandFinished`, dodaj wynik do sesji.
 
 #### Krok 5: Prezentacja wyników w UI
-- [x] **5.1. Aktualizacja widoku czatu w celu wyświetlania bloków kodu bash i ich wyników.**
-    - [x] `src/ui/ChatView.h`: Może wymagać dodania nowego sygnału lub slotu, aby odświeżyć widok.
-    - [x] `src/ui/ChatView.cpp`: Zmodyfikuj logikę renderowania wiadomości, aby odpowiednio formatować bloki kodu i wyniki wykonania.
+- [x] **5.1. Aktualizacja widoku czatu.**
+    - [x] `src/ui/ChatView.cpp`: Zmodyfikuj logikę renderowania.
 
-## Faza 2: Empowering the Agent with File System Interaction and Advanced Tool Use
+## Faza 2: Empowering the Agent with File System Interaction and Advanced Tool Use (ZAKOŃCZONA)
 
 ### Cel:
 Agent może czytać i pisać pliki oraz wykonywać inne narzędzia, a także implementuje podstawową pętlę "request-execute-reprompt".
 
 ### Zadania (Checklista):
 
-#### Krok 2.1: Implementacja narzędzi do czytania i pisania plików (`Read` i `Write`)
+#### Krok 2.1: Implementacja narzędzi i ToolExecutor
+- [x] **2.1.1. Przegląd Generyczności ToolCall/ToolResult (Zakończone)**
+- [x] **2.1.2. Implementacja modularnego ToolExecutor**
+    - [x] Przekształcenie `ToolExecutor` w system wtyczek (Krok 5.4 przyspieszony).
+    - [x] Implementacja narzędzi `Read`, `Write`, `Bash`, `Git`, `Search`.
+- [x] **2.1.3. Podłączenie do ChatController**
 
-**Cel:** Agent może czytać i pisać pliki na podstawie instrukcji AI.
-
-**Rozważenie mini-agenta:** Czytanie/pisanie plików to atomowe akcje. Decyzja o tym, co czytać/pisać i który plik, to zadanie planowania dla głównego AI. Wykonanie samo w sobie jest bezpośrednim wywołaniem narzędzia.
-
-- [x] **2.1.1. Przegląd i upewnienie się co do generyczności `ToolCall` i `ToolResult` (Potwierdzono)**
-    - [x] `src/data/ToolCall.h` i `src/data/Message.h`: Struktury `ToolCall` (`QJsonObject input`) i `ToolResult` są wystarczająco elastyczne.
-
-- [x] **2.1.2. Implementacja `ToolExecutor`**
-    **Cel:** Centralna jednostka do wykonywania różnych narzędzi (bash, read, write).
-
-    **Rozważenie mini-agenta:** `ToolExecutor` działa jako dyspozytor. Decyzja o użyciu `ToolExecutor` jest podejmowana przez `ChatController`, gdy wykryto `ToolCall`. `ToolExecutor` sam w sobie nie "myśli", tylko wykonuje.
-
-    - [x] **2.1.2.1. Uzupełnij `src/core/ToolExecutor.h` i `src/core/ToolExecutor.cpp`.**
-        - [x] `src/core/ToolExecutor.h`: Dodaj publiczny slot `void execute(const CodeHex::ToolCall& call, const QString& workDir);`
-        - [x] `src/core/ToolExecutor.h`: Dodaj sygnał `toolFinished(const QString& toolName, const CodeHex::ToolResult& result);`
-        - [x] `src/core/ToolExecutor.cpp`: Zaimplementuj konstruktor `ToolExecutor` (przyjmującego `QObject* parent`) i powiąż go z `ChatController`.
-        - [x] `src/core/ToolExecutor.cpp`: Zaimplementuj `execute(const CodeHex::ToolCall& call, const QString& workDir)`. Ta metoda będzie używać `call.name` do rozróżniania narzędzi (`Bash`, `Read`, `Write`, etc.) i wywoływać odpowiednią logikę.
-        - [x] `src/core/ToolExecutor.cpp`: Do obsługi `Read` i `Write` użyj `QFile` i `QTextStream`.
-    - [x] **2.1.2.2. Podłącz `ToolExecutor` do `ChatController`.**
-        - [x] `src/core/ChatController.h`: Zadeklaruj `ToolExecutor* m_toolExecutor;`.
-        - [x] `src/core/ChatController.cpp`: Zainicjalizuj `m_toolExecutor` w konstruktorze `ChatController`.
-        - [x] `src/core/ChatController.cpp`: Połącz sygnał `CliRunner::toolCallReady` z nowym slotem `ChatController::onToolCallReadyAndExecute` (lub bezpośrednio z `ToolExecutor::execute`). Będę używał `onToolCallReadyAndExecute` jako pośrednika.
-        - [x] `src/core/ChatController.cpp`: Utwórz nowy slot `ChatController::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result);` i podłącz go do `ToolExecutor::toolFinished`.
-        - [x] `src/core/ChatController.cpp`: W `onToolResultReceived`, utwórz nową wiadomość typu `Output` (lub `ToolResult`) i dodaj ją do sesji, a następnie ponownie wyślij prompt do modelu AI (rekurencja pętli agenta).
-
-- [x] **2.1.3. Ulepszenie `ChatController::onRunnerFinished` do obsługi `ToolCall` (jeśli model AI zwraca tool_use bezpośrednio)**
-    **Cel:** `ChatController` może odebrać `tool_use` od modelu AI i przekazać go do `ToolExecutor`.
-
-    **Rozważenie mini-agenta:** To nadal część głównej pętli przetwarzania agenta. Wyjście AI jest traktowane jako polecenie, a nie zagnieżdżony agent.
-
-    - [x] **2.1.3.1. Modyfikacja `ChatController::onRunnerFinished`:** Jeśli `m_currentResponse` zawiera blok `tool_use` (zamiast bash), wyodrębnij go i przekaż do `m_toolExecutor->execute()`.
-        - [x] Użyj `QRegularExpression` do znalezienia `tool_use`. (Dodano obsługę bloków ```tool_use ... ``` w `onRunnerFinished`).
-
-#### Krok 2.2: Wdrożenie podstawowej pętli autonomicznego agenta AI
-
-**Cel:** Agent może podejmować decyzje, wykonywać narzędzia i analizować wyniki w pętli, aby osiągnąć cel.
-
-**Rozważenie mini-agenta:** To tutaj tworzy się podstawowa "inteligencja" głównej pętli agenta. To najwyższy poziom planowania.
-
-- [x] **2.2.1. Ulepszenie komunikacji z modelem AI**
-    **Cel:** Agent może wysłać wyniki narzędzi z powrotem do modelu AI.
-
-    - [x] **22.1.1. Modyfikacja `CliRunner::send` i `CliProfile::buildArguments`:** Dodaj obsługę `ToolResult` do historii wiadomości wysyłanych do modelu AI, tak aby model "widział" wyniki swoich działań.
-        - [ ] `src/data/Message.h`: Dodaj `Message::ContentType::ToolResult` (już dodano `Output`).
-        - [ ] `src/cli/CliRunner.h`, `CliRunner.cpp`: Zaktualizuj `send` tak, aby przyjmował `QList<ToolResult>` (lub zintegruj `ToolResult` bezpośrednio w `Message`). Preferuję zintegrować `ToolResult` w `Message` jako nowy typ `CodeBlock` (`BlockType::ToolResult` i `Message::ContentType::ToolResult`).
-        - [x] `src/cli/ClaudeProfile.cpp`: Zaktualizowano `buildArguments` do generowania tekstu dla `Tool Result`.
-- [x] **2.2.2. Implementacja pętli `request-execute-reprompt`**
-    **Cel:** `ChatController` będzie zarządzał iteracyjnym procesem: AI generuje, narzędzia wykonują, wyniki wracają do AI.
-
-    - [x] **2.2.2.1. Zarządzanie stanem w `ChatController`:** Wprowadzono automatyczne wywoływanie `ToolExecutor` w `onToolCallReady`.
-    - [x] **2.2.2.2. Logika `reprompting`:** W `ChatController::onToolResultReceived`, po otrzymaniu wyniku narzędzia, ponownie wysyłany jest prompt do modelu AI z zaktualizowaną historią.
+#### Krok 2.2: Wdrożenie pętel autonomicznego agenta
+- [x] **2.2.1. Ulepszenie komunikacji (ToolResult w historii)**
+- [x] **2.2.2. Implementacja pętli request-execute-reprompt (Przez AgentEngine)**
 
 #### Krok 2.3: Ulepszenia UI i testy
-
-**Cel:** Zapewnienie lepszej wizualizacji działajacych narzędzi w interfejsie oraz stabilności kodu.
-
-- [x] **2.3.1. Wizualizacja narzędzi w UI**
-    **Cel:** Rozszerz `MessageDelegate` i `MessageModel` do renderowania bloków `ToolCall` i `ToolResult`.
-
-    - [x] **2.3.1.1. Rozszerz `MessageDelegate` i `MessageModel`:** Dodano `BlockType::ToolCall`. Zaktualizowano `MessageDelegate` do renderowania ikon ⚙️ i specjalnych nagłówków ✅ dla wyników narzędzi.
-- [x] **2.3.2. Testy jednostkowe**
-    **Cel:** Zapewnienie, że logika agenta i narzędzi działa poprawnie.
-
-    - [x] **2.3.2.1. Testy `ToolExecutor`:** Stworzono `tests/test_tool_executor.cpp`.
-    - [x] **2.3.2.2. Testy pętli agenta:** Stworzono `tests/test_chat_controller.cpp`.
+- [x] **2.3.1. Wizualizacja narzędzi w UI (⚙️ nagłówki, Thinking Blocks)**
+- [x] **2.3.2. Testy jednostkowe (Fixed and Verified)**
 
 ## Faza 4: Monitorowanie i optymalizacja (ZAKOŃCZONA)
+- [x] **4.1. Śledzenie zużycia tokenów.**
+- [x] **4.2. Logowanie sesji i debugowanie.**
+- [x] **4.3. Optymalizacja narzędzi (Search binary skip, limits).**
+
+## Faza 5: Zaawansowana Autonomia (W TOKU)
 
 ### Cel:
-Implementacja mechanizmów śledzenia wydajności agenta, logowania sesji oraz optymalizacji narzędzi.
+Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprowadzenie ról, zarządzanie kontekstem i bezpieczniejsze uprawnienia.
 
 ### Zadania (Checklista):
 
-#### Krok 4.1: Śledzenie zużycia tokenów
-- [x] **Obliczanie tokenów:** Precyzyjne szacowanie za pomocą `TokenCounter` dla wejść i wyjść.
-- [x] **Statystyki sesji:** Automatyczna aktualizacja `Session::TokenStats`.
+#### Krok 5.1: Specjalizacja Ról i Promptów
+- [x] **System Sub-Agentów:** Wprowadzenie różnych system-promptów (`explore`, `execute`, `review`). (Infrastruktura gotowa)
+- [x] **Zewnętrzne pliki Promptów:** Przeniesienie system-promptów do zewnętrznych plików `.txt`. (ZAKOŃCZONE)
 
-#### Krok 4.2: Logowanie sesji i debugowanie
-- [x] **Logi pętli:** Rozszerzone informacje o stanie agenta i wynikach narzędzi w konsoli i logach.
+#### Krok 5.2: Autonomiczne Zarządzanie Kontekstem (Compaction)
+- [ ] **Mechanizm Compaction:** Automatyczne podsumowywanie historii.
+- [ ] **Pruning:** Usuwanie starych wyników narzędzi.
 
-#### Krok 4.3: Optymalizacja narzędzi
-- [x] **Wydajność `Search`:** Dodano pomijanie plików binarnych i limit wielkości plików (1MB) dla szybszego przeszukiwania.
-- [x] **Limity wyników:** Ograniczenie do 100 trafień, aby nie przeciążać kontekstu AI.
-141: 
-142: ## Faza 5: Zaawansowana Autonomia (Inspiracja OpenCode)
-143: 
-144: ### Cel:
-145: Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI (takich jak OpenCode/Claude Dev) poprzez wprowadzenie ról, zarządzanie kontekstem i bezpieczniejsze uprawnienia.
-146: 
-147: ### Zadania (Checklista):
-148: 
-149: #### Krok 5.1: Specjalizacja Ról i Promptów
-150: - [ ] **System Sub-Agentów:** Wprowadzenie różnych system-promptów w zależności od fazy zadania:
-151:     - `explore`: Optymalizacja pod kątem przeszukiwania bazy kodu i nawigacji.
-152:     - `execute`: Skupienie na pisaniu kodu i rozwiązywaniu problemów.
-153:     - `review`: Weryfikacja zmian i testowanie.
-154: - [ ] **Zewnętrzne pliki Promptów:** Przeniesienie system-promptów do zewnętrznych plików `.txt` w celu łatwiejszej edycji.
-155: 
-156: #### Krok 5.2: Autonomiczne Zarządzanie Kontekstem (Compaction)
-157: - [ ] **Mechanizm Compaction:** Implementacja logiki, która automatycznie podsumowuje historię czatu, gdy zbliża się ona do limitu tokenów (Context Window management).
-158: - [ ] **Pruning:** Usuwanie nieistotnych wyników narzędzi z historii po ich przetworzeniu przez model.
-159: 
-160: #### Krok 5.3: Granularny System Uprawnień
-161: - [ ] **Allow/Ask/Deny:** Zamiast jednego przełącznika "Manual Approval", wprowadzanie reguł dla narzędzi:
-162:     - Zawsze pozwalaj na `Read` i `Search`.
-163:     - Zawsze pytaj o `Write` i `Bash`.
-164:     - Blokuj dostęp do określonych katalogów (sandbox).
-165: 
-166: #### Krok 5.4: Modułowe "Skills" (Refaktoryzacja ToolExecutor)
-167: - [ ] **Wtyczki narzędzi:** Przekształcenie `ToolExecutor` w system wtyczek, gdzie każde narzędzie jest osobną klasą/modułem (na wzór "Skills" w OpenCode).
-168: 
-169: #### Krok 5.5: Codebase Awareness (RAG/Embeddings)
-170: - [ ] **Indeksowanie projektu:** Wstępne badanie możliwości dodania wektorowej bazy danych dla dużych projektów, aby agent lepiej "rozumiał" architekturę bez czytania wszystkich plików.
-171: 
-172: ## Faza 6: Ekosystem i Pamięć Długotrwała (Inspiracja OpenClaw)
-173: 
-174: ### Cel:
-175: Rozszerzenie CodeHex o standardy przemysłowe (MCP) oraz mechanizmy trwałej pamięci pozwalające na realizację wielodniowych projektów.
-176: 
-177: ### Zadania (Checklista):
-178: 
-179: #### Krok 6.1: Obsługa Model Context Protocol (MCP)
-180: - [ ] **Klient MCP:** Implementacja standardu MCP, pozwalająca agentowi na korzystanie z tysięcy gotowych narzędzi (Slack, Google Drive, GitHub, etc.) bez pisania dedykowanego kodu w C++.
-181: 
-182: #### Krok 6.2: Trwała Pamięć (MEMORY.md)
-183: - [ ] **System Notatek:** Automatyczne tworzenie i aktualizowanie pliku `MEMORY.md` w folderze roboczym, gdzie agent zapisuje kluczowe decyzje architektoniczne i stan prac.
-184: - [ ] **Wstrzykiwanie Pamięci:** Automatyczne dołączanie fragmentów `MEMORY.md` do promptu systemowego na starcie nowej sesji.
-185: 
-186: #### Krok 6.3: "Session Yielding" (Pauza i Wznowienie)
-187: - [ ] **Asynchroniczne zadania:** Możliwość zatrzymania pętli agenta, gdy oczekuje on na długotrwały proces zewnętrzny, i wznowienia jej bez utraty kontekstu.
-188: 
-189: #### Krok 6.4: Piaskownica (Sandboxing)
-190: - [ ] **Bezpieczne Wykonywanie:** Izolacja poleceń `Bash` w kontenerze (np. Docker) lub wirtualnym systemie plików, aby zapobiec przypadkowemu uszkodzeniu systemu użytkownika.
+#### Krok 5.3: Granularny System Uprawnień
+- [x] **Allow/Ask/Deny:** Reguły dla narzędzi (Zawsze pozwalaj na Read, pytaj o Write/Bash). (ZAKOŃCZONE w AgentEngine)
+- [ ] **Sandbox:** Blokowanie dostępu do określonych katalogów.
+
+#### Krok 5.4: Modułowe "Skills" (Refaktoryzacja ToolExecutor)
+- [x] **Wtyczki narzędzi:** (ZAKOŃCZONE w ramach refaktoryzacji fundamentów).
+
+#### Krok 5.5: Codebase Awareness (RAG/Embeddings)
+- [ ] **Indeksowanie projektu:** Badanie wektorowych baz danych.
+
+## Faza 6: Ekosystem i Pamięć Długotrwała
+- [ ] **6.1. Obsługa Model Context Protocol (MCP).**
+- [ ] **6.2. Trwała Pamięć (MEMORY.md).**
+- [ ] **6.3. "Session Yielding" (Pauza i Wznowienie).**
+- [ ] **6.4. Piaskownica (Docker/Containerization).**

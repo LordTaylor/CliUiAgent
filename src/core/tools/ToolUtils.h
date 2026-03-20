@@ -14,6 +14,15 @@ public:
         return QDir::cleanPath(workDir + '/' + path);
     }
 
+    static bool isPathSafe(const QString& path, const QString& workDir) {
+        if (path.isEmpty()) return true;
+        QString absWorkDir = QDir(workDir).absolutePath();
+        QFileInfo fi(path);
+        QString absPath = fi.isAbsolute() ? fi.absoluteFilePath() : QDir(workDir).absoluteFilePath(path);
+        absPath = QDir::cleanPath(absPath);
+        return absPath.startsWith(absWorkDir);
+    }
+
     static ToolResult okResult(const QString& content) {
         return ToolResult{ {}, content, false };
     }

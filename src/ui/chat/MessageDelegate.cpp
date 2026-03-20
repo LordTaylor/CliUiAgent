@@ -61,119 +61,84 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         if (currentBlockIdx >= layout.blocks.size()) break;
         const auto& bl = layout.blocks[currentBlockIdx++];
 
-        if (block.type == BlockType::Text) {
-            int x = isUser ? viewWidth - bl.width - kAvatarSize - 12 : kAvatarSize + 12;
-
-            // Bubble background
-            const QColor bubbleColor = isUser ? QColor(0x2563EB) : QColor(0x374151);
-            p->setPen(Qt::NoPen);
-            p->setBrush(bubbleColor);
-            p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
-
-            // Text
-            p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding);
-            QAbstractTextDocumentLayout::PaintContext ctx;
-            ctx.palette.setColor(QPalette::Text, Qt::white);
-            bl.doc->documentLayout()->draw(p, ctx);
-            p->restore();
-
-            currentY += bl.height + kRowMargin;
-        } else if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
-            int x = kAvatarSize + 12;
-
-            // Bubble background (gray for code)
-            const QColor codeColor(0x1F2937);
-            p->setPen(Qt::NoPen);
-            p->setBrush(codeColor);
-            p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
-
-            // Text
-            p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding);
-            QAbstractTextDocumentLayout::PaintContext ctx;
-            ctx.palette.setColor(QPalette::Text, QColor(0x9CA3AF));
-            bl.doc->documentLayout()->draw(p, ctx);
-            p->restore();
-
-            currentY += bl.height + kRowMargin;
-        } else if (block.type == BlockType::Thinking) {
-            const int headerH = 24;
-            int x = kAvatarSize + 12;
-
-            // Thinking Bubble (Subtle glassmorphism)
-            const QColor thinkingBg(45, 55, 72, 180); // Semi-transparent dark slate
-            p->setPen(Qt::NoPen);
-            p->setBrush(thinkingBg);
-            p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
-
-            // "Thinking..." Header
-            p->setPen(QColor(0xA0AEC0));
-            QFont headerFont = opt.font;
-            headerFont.setItalic(true);
-            headerFont.setPointSizeF(headerFont.pointSizeF() * 0.85);
-            p->setFont(headerFont);
-            p->drawText(QRect(x + kBubblePadding, currentY + 4, bl.width - 2 * kBubblePadding, headerH), 
-                        Qt::AlignVCenter | Qt::AlignLeft, "💭 Agent thinking...");
-
-            // Thought content
-            p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerH);
-            QAbstractTextDocumentLayout::PaintContext ctx;
-            ctx.palette.setColor(QPalette::Text, QColor(0xCBD5E0));
-            bl.doc->documentLayout()->draw(p, ctx);
-            p->restore();
-
-            p->setFont(opt.font);
-            currentY += bl.height + kRowMargin;
-        } else if (block.type == BlockType::Output) {
-            const int headerH = 24;
-            int x = kAvatarSize + 12;
-
-            // Bubble background
-            const QColor outputColor(0x111827);
-            p->setPen(Qt::NoPen);
-            p->setBrush(outputColor);
-            p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
-
-            // Header
-            p->setPen(QColor(0x10B981));
-            QFont headerFont = opt.font;
-            headerFont.setBold(true);
-            headerFont.setPointSizeF(headerFont.pointSizeF() * 0.9);
-            p->setFont(headerFont);
-            p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width - 2 * kBubblePadding, headerH), 
-                        Qt::AlignVCenter | Qt::AlignLeft, "✅ Tool Result");
-
-            // Text content
-            p->save();
-            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerH);
-            QAbstractTextDocumentLayout::PaintContext ctx;
-            ctx.palette.setColor(QPalette::Text, QColor(0xD1D5DB));
-            bl.doc->documentLayout()->draw(p, ctx);
-            p->restore();
-
-            p->setFont(opt.font);
-            currentY += bl.height + kRowMargin;
-        } else if (block.type == BlockType::ToolCall) {
-            const int x = kAvatarSize + 12;
-
-            const QColor toolCallColor(0x374151);
-            p->setPen(Qt::NoPen);
-            p->setBrush(toolCallColor);
-            p->setRenderHint(QPainter::Antialiasing);
-            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
-
-            p->setPen(QColor(0x60A5FA));
-            p->drawText(QRect(x + kBubblePadding, currentY, bl.width - 2 * kBubblePadding, bl.height),
-                        Qt::AlignCenter | Qt::AlignLeft, "⚙  " + block.content);
-
-            currentY += bl.height + kRowMargin;
+        int x = isUser ? viewWidth - bl.width - kAvatarSize - 12 : kAvatarSize + 12;
+        if (block.type != BlockType::Text) {
+            x = kAvatarSize + 12; // Assistant non-text blocks always left
         }
+
+        // --- Bubble background ---
+        QColor bubbleColor;
+        if (isUser) {
+            bubbleColor = QColor(0x2563EB);
+        } else {
+            switch(block.type) {
+                case BlockType::Text:     bubbleColor = QColor(0x374151); break;
+                case BlockType::Bash:
+                case BlockType::Python:
+                case BlockType::Lua:      bubbleColor = QColor(0x1F2937); break;
+                case BlockType::Thinking:  bubbleColor = QColor(45, 55, 72, 180); break;
+                case BlockType::Output:    bubbleColor = QColor(0x111827); break;
+                case BlockType::ToolCall:  bubbleColor = QColor(0x374151); break;
+                default:                  bubbleColor = QColor(0x374151); break;
+            }
+        }
+
+        p->setPen(Qt::NoPen);
+        p->setBrush(bubbleColor);
+        p->setRenderHint(QPainter::Antialiasing);
+        p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
+
+        // --- Text/Content ---
+        int headerHeight = 0;
+        if (!isUser) {
+            if (block.type == BlockType::Thinking) {
+                headerHeight = 24;
+                p->setPen(QColor(0xA0AEC0));
+                QFont headerFont = opt.font;
+                headerFont.setItalic(true);
+                headerFont.setPointSizeF(headerFont.pointSizeF() * 0.85);
+                p->setFont(headerFont);
+                p->drawText(QRect(x + kBubblePadding, currentY + 4, bl.width - 2 * kBubblePadding, headerHeight), 
+                            Qt::AlignVCenter | Qt::AlignLeft, "💭 Agent thinking...");
+                p->setFont(opt.font);
+            } else if (block.type == BlockType::Output) {
+                headerHeight = 24;
+                p->setPen(QColor(0x10B981));
+                QFont headerFont = opt.font;
+                headerFont.setBold(true);
+                headerFont.setPointSizeF(headerFont.pointSizeF() * 0.9);
+                p->setFont(headerFont);
+                p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width - 2 * kBubblePadding, headerHeight), 
+                            Qt::AlignVCenter | Qt::AlignLeft, "✅ Tool Result");
+                p->setFont(opt.font);
+            } else if (block.type == BlockType::ToolCall) {
+                p->setPen(QColor(0x60A5FA));
+                p->drawText(QRect(x + kBubblePadding, currentY, bl.width - 2 * kBubblePadding, bl.height),
+                            Qt::AlignCenter | Qt::AlignLeft, "⚙  " + block.content);
+            }
+        }
+
+        if (block.type != BlockType::ToolCall) {
+            p->save();
+            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerHeight);
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            
+            QColor textColor = Qt::white;
+            if (!isUser) {
+                if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua)
+                    textColor = QColor(0x9CA3AF);
+                else if (block.type == BlockType::Thinking)
+                    textColor = QColor(0xCBD5E0);
+                else if (block.type == BlockType::Output)
+                    textColor = QColor(0xD1D5DB);
+            }
+            
+            ctx.palette.setColor(QPalette::Text, textColor);
+            bl.doc->documentLayout()->draw(p, ctx);
+            p->restore();
+        }
+
+        currentY += bl.height + kRowMargin;
     }
 
     // Attachment badge - only for user messages with files

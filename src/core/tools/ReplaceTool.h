@@ -19,6 +19,9 @@ public:
         if (path.isEmpty() || pattern.isEmpty())
             return ToolUtils::errResult("Replace: 'path' and 'pattern' parameters are required");
 
+        if (!ToolUtils::isPathSafe(path, workDir))
+            return ToolUtils::errResult(QString("Replace: permission denied for path: %1").arg(path));
+
         QFile file(path);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return ToolUtils::errResult(QString("Replace: cannot open '%1' for reading").arg(path));
@@ -30,14 +33,15 @@ public:
         if (!re.isValid())
             return ToolUtils::errResult(QString("Replace: invalid regex pattern: %1").arg(re.errorString()));
 
-        const QString newContent = content.replace(re, replacement);
-        if (newContent == content)
+        const QString oldContent = content;
+        content.replace(re, replacement);
+        if (content == oldContent)
             return ToolUtils::okResult("(no changes made, pattern not found)");
 
         if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
             return ToolUtils::errResult(QString("Replace: cannot open '%1' for writing").arg(path));
 
-        file.write(newContent.toUtf8());
+        file.write(content.toUtf8());
         return ToolUtils::okResult(QString("Successfully replaced occurrences in %1").arg(path));
     }
 };

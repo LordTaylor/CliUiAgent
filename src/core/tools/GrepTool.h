@@ -16,6 +16,8 @@ public:
         if (query.isEmpty()) return ToolUtils::errResult("Search: 'query' parameter is required");
 
         const QString root = ToolUtils::resolvePath(input.contains("root") ? input["root"].toString() : ".", workDir);
+        if (!ToolUtils::isPathSafe(root, workDir))
+            return ToolUtils::errResult(QString("Search: permission denied for path: %1").arg(root));
         const bool caseSensitive = input.contains("case_sensitive") ? input["case_sensitive"].toBool() : false;
 
         QStringList results;

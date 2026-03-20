@@ -6,6 +6,7 @@
 #include <QList>
 #include "Attachment.h"
 #include "CodeBlock.h"
+#include "ToolCall.h"
 #include <memory>
 
 namespace CodeHex {
@@ -24,6 +25,7 @@ struct Message {
     QDateTime timestamp;
     int tokenCount = 0;
     QList<Attachment> attachments;
+    QList<ToolResult> toolResults;
 
     // UI Cache (not serialized)
     mutable std::shared_ptr<PrecomputedLayout> layoutCache;
@@ -32,6 +34,8 @@ struct Message {
     static Message fromJson(const QJsonObject& obj);
 
     QString textFromContentBlocks() const;
+    void addText(const QString& text);
+    void addAttachment(const Attachment& attr);
 
     static QString roleToString(Role r);
     static Role roleFromString(const QString& s);

@@ -77,6 +77,8 @@ MainWindow::MainWindow(AppConfig* config,
             m_console, &ConsoleWidget::appendText);
     connect(m_controller, &ChatController::statusChanged,
             this, [this](const QString& status) { m_statusLabel->setText(status); });
+    connect(m_controller, &ChatController::toolApprovalRequested,
+            this, &MainWindow::onToolApprovalRequested);
     connect(m_controller, &ChatController::sessionRenamed,
             this, [this](const QString& /*id*/, const QString& title) {
                 m_sessionPanel->refresh();
@@ -510,6 +512,20 @@ void MainWindow::onGenerationStopped() {
 void MainWindow::onStopRequested() {
     m_controller->stopGeneration();
     m_stopBtn->setVisible(false);
+}
+
+void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObject& input) {
+    ToolCall call;
+    call.name = toolName;
+    call.input = input;
+    
+    ToolApprovalDialog dialog(call, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        m_controller->approveToolCall(call);
+    } else {
+        // Stop generation if denied
+        m_controller->stopGeneration();
+    }
 }
 
 void MainWindow::onProfileChanged(int index) {

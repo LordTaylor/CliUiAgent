@@ -20,6 +20,9 @@ public:
         if (!QDir(root).exists())
             return ToolUtils::errResult(QString("ListDirectory: path not found: %1").arg(root));
 
+        if (!ToolUtils::isPathSafe(root, workDir))
+            return ToolUtils::errResult(QString("ListDirectory: permission denied for path: %1").arg(root));
+
         static const QStringList kSkip = {
             ".git", "node_modules", "build", "target", "__pycache__", ".build",
             ".gradle", ".idea", ".vscode", "dist", "out"

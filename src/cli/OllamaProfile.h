@@ -17,7 +17,8 @@ public:
                                const QString& workDir) const override;
     QStringList buildArguments(const QString& prompt,
                                const QString& workDir,
-                               const QList<Message>& history) const override;
+                               const QList<Message>& history,
+                               const QString& systemPrompt = {}) const override;
     QString parseStreamChunk(const QByteArray& raw) const override;
 
 private:

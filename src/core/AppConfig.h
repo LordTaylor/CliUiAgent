@@ -9,7 +9,9 @@ class AppConfig : public QObject {
 public:
     explicit AppConfig(QObject* parent = nullptr);
 
-    QString dataDir() const;     // ~/.codehex
+    QString dataDir() const;
+    void setDataDir(const QString& path) { m_dataDir = path; }
+     // ~/.codehex
     QString sessionsDir() const; // ~/.codehex/sessions
     QString scriptsDir() const;   // ~/.codehex/scripts
     QString profilesDir() const;  // ~/.codehex/profiles
@@ -40,6 +42,7 @@ private:
     QString m_activeProfile = "claude";
     QString m_workingFolder;
     QString m_lastSessionId;
+    QString m_dataDir;
     bool    m_manualApproval = true; // Default to true for safety
 };
 

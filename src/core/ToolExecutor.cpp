@@ -59,10 +59,7 @@ void ToolExecutor::execute(const ToolCall& call, const QString& workDir) {
     QString toolUseId = call.id;
 
     QtConcurrent::run([this, toolName, input, workDir, toolUseId]() {
-        ToolResult result = executeSync(ToolCall{toolUseId, toolName, input}, workDir);
-        // executeSync already emitted toolFinished? No, we should emit it here for async
-        // Wait, executeSync should NOT emit toolFinished if we want to control it from here.
-        // Actually, let's keep executeSync pure and handle signals in public methods.
+        executeSync(ToolCall{toolUseId, toolName, input}, workDir);
     });
 }
 

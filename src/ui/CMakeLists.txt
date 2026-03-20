@@ -3,6 +3,7 @@ add_library(codehex_ui STATIC
     chat/ChatView.h         chat/ChatView.cpp
     chat/MessageModel.h     chat/MessageModel.cpp
     chat/MessageDelegate.h  chat/MessageDelegate.cpp
+    chat/ToolApprovalDialog.h chat/ToolApprovalDialog.cpp
     input/InputPanel.h      input/InputPanel.cpp
     input/AttachmentButton.h input/AttachmentButton.cpp
     input/VoiceButton.h     input/VoiceButton.cpp

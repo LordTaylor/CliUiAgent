@@ -23,6 +23,9 @@ class AppConfig;
 class AgentEngine : public QObject {
     Q_OBJECT
 public:
+    enum class Permission { Allow, Ask, Deny };
+    enum class Role { Base, Explorer, Executor, Reviewer };
+
     explicit AgentEngine(AppConfig* config, 
                          SessionManager* sessions, 
                          CliRunner* runner, 
@@ -40,9 +43,18 @@ public:
     void stop();
 
     bool isRunning() const;
+    void setRunningForTest(bool r) { m_isRunning = r; }
+    void setSyncTools(bool s) { m_syncTools = s; }
 
-    void setManualApproval(bool enabled) { m_manualApproval = enabled; }
-    void approveToolCall(const ToolCall& call);
+    void setManualApproval(bool enabled);
+    void approveToolCall(const CodeHex::ToolCall& call);
+    
+    // Permission Management
+    void setToolPermission(const QString& toolName, Permission p);
+    Permission toolPermission(const QString& toolName) const;
+
+    void setRole(Role role) { m_currentRole = role; }
+    Role currentRole() const { return m_currentRole; }
 
 signals:
     void statusChanged(const QString& status);
@@ -65,14 +77,22 @@ private:
     void runLoop(const QString& prompt, const QStringList& imagePaths);
     void buildAssistantMessage(const QString& plainText);
 
-    AppConfig*      m_config;
     SessionManager* m_sessions;
     CliRunner*      m_runner;
     ToolExecutor*   m_toolExecutor;
 
     bool m_manualApproval = false;
+    QMap<QString, Permission> m_toolPermissions;
+    Role m_currentRole = Role::Base;
+    AppConfig* m_config;
     QString m_currentResponse;
     QList<ToolCall> m_pendingCalls;
+    bool m_isRunning = false;
+    bool m_syncTools = false;
+
+    bool isPathAllowed(const QString& path) const;
+    QString loadRolePrompt(Role role) const;
+    QString systemPrompt() const;
 };
 
 } // namespace CodeHex
