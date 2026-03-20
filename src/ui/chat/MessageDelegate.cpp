@@ -88,6 +88,19 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         p->setRenderHint(QPainter::Antialiasing);
         p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
 
+        // Subtle accent border for premium feel
+        if (!isUser) {
+            QColor accentColor;
+            switch(block.type) {
+                case BlockType::Thinking:  accentColor = QColor(0x8B5CF6); break; // Purple
+                case BlockType::Output:    accentColor = QColor(0x10B981); break; // Green  
+                case BlockType::ToolCall:  accentColor = QColor(0x60A5FA); break; // Blue
+                default:                   accentColor = QColor(0x4B5563); break; // Gray
+            }
+            p->setPen(QPen(accentColor, 2));
+            p->drawLine(x + 1, currentY + kBubbleRadius, x + 1, currentY + bl.height - kBubbleRadius);
+        }
+
         // --- Text/Content ---
         int headerHeight = 0;
         if (!isUser) {
