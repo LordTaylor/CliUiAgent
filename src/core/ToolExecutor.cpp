@@ -95,16 +95,22 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
 
 QString ToolExecutor::getToolDefinitions() const {
     QString defs = "## Narzędzia Systemowe (Tool Use)\n\n";
-    defs += "Aby wykonać u mnie akcję, MUSISZ użyć poniższego formatu XML w swojej odpowiedzi:\n\n";
+    defs += "Aby wykonać akcję, MUSISZ użyć poniższego formatu XML w swojej odpowiedzi:\n\n";
     defs += "```xml\n";
     defs += "<tool_call>\n";
     defs += "<name>NazwaNarzedzia</name>\n";
     defs += "<input>\n";
-    defs += "{ ... JSON params ... }\n";
+    defs += "{\"parametr\": \"wartość\"}\n";
     defs += "</input>\n";
     defs += "</tool_call>\n";
     defs += "```\n\n";
-    defs += "Zawsze formatuj argumenty jako poprawny JSON tekst w bloku <input>. Wypisuj tylko jeden `<tool_call>` na raz!\n\n";
+    
+    defs += "### ZASADY:\n";
+    defs += "1. **Tylko jeden `<tool_call>` na raz.** Nie wysyłaj wielu narzędzi w jednej odpowiedzi.\n";
+    defs += "2. **Poprawny JSON.** Zawartość `<input>` MUSI być poprawnym obiektem JSON.\n";
+    defs += "3. **Brak Markdown wewnątrz.** Nie używaj ` ```json ` wewnątrz tagu `<input>`.\n";
+    defs += "4. **Myśl przed działaniem.** Używaj `<thought>` do zaplanowania kroku przed wysłaniem XML.\n\n";
+    
     defs += "Lista dostępnych narzędzi:\n\n";
     for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
         auto tool = it.value();

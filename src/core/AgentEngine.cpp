@@ -124,12 +124,12 @@ QString AgentEngine::loadRolePrompt(Role role) const {
         case Role::Reviewer: fileName = "reviewer.txt"; break;
     }
     
-    QDir projectRoot(m_config->workingFolder());
-    QFile file(projectRoot.absoluteFilePath("resources/prompts/" + fileName));
-    
+    // Load from Qt Resources instead of working directory
+    QFile file(":/resources/prompts/" + fileName);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return QString::fromUtf8(file.readAll());
     }
+    qWarning() << "[AgentEngine] Failed to load prompt from resource:" << file.fileName();
     return QString();
 }
 
@@ -280,27 +280,35 @@ void AgentEngine::onRunnerFinished(int exitCode) {
 
     buildAssistantMessage(m_currentResponse);
 
-    // Parse LLM-agnostic XML tool calls (relaxed regex to catch missing outer <tool_call> tags wrapper)
-    QRegularExpression re("<name>\\s*([^<]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
+    // 1. Optimized XML Parser (Lax mode for local LLMs)
+    // We look for <name> and <input> blocks. They may or may not be inside <tool_call>.
+    // Using a more robust regex that ignores leading/trailing whitespace and block tags.
+    QRegularExpression re("<name>\\s*([^<\\s]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
                           QRegularExpression::DotMatchesEverythingOption);
     
     QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
     QList<ToolCall> parsedCalls;
     while (i.hasNext()) {
         QRegularExpressionMatch match = i.next();
+        QString tname = match.captured(1).trimmed();
+        QString jsonStr = match.captured(2).trimmed();
+        
+        qDebug() << "[AgentEngine] Found potential tool call:" << tname << "with input length:" << jsonStr.length();
+
         ToolCall call;
         call.id = QUuid::createUuid().toString();
-        call.name = match.captured(1).trimmed();
+        call.name = tname;
         
-        QString jsonStr = match.captured(2).trimmed();
         QJsonParseError err;
         QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
         if (!doc.isNull() && doc.isObject()) {
             call.input = doc.object();
             parsedCalls.append(call);
-            break; // Parse only the first correct block to prevent loop cascade
+            qDebug() << "[AgentEngine] Successfully parsed tool:" << tname;
+            break; // Parse only the first valid one
         } else {
-            qWarning() << "AgentEngine: Failed to parse JSON from XML tool:" << err.errorString() << "\nJSON:\n" << jsonStr;
+            qWarning() << "[AgentEngine] FAILED to parse JSON for tool" << tname << ":" << err.errorString();
+            qDebug() << "[AgentEngine] Bad JSON snippet:" << jsonStr.left(100) << "...";
         }
     }
 

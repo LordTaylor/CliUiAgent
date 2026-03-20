@@ -48,6 +48,10 @@ qt_add_resources(CodeHex "resources"
         resources/icons/mic.svg
         resources/icons/folder.svg
         resources/icons/app.png
+        resources/prompts/base.txt
+        resources/prompts/explorer.txt
+        resources/prompts/executor.txt
+        resources/prompts/reviewer.txt
 )
 
 qt_add_resources(CodeHex "help"
