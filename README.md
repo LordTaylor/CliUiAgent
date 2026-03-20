@@ -14,9 +14,9 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 - **Expandable Console** — shows raw CLI output for debugging
 - **Dark theme** — full QSS dark UI
 - **Cross-platform** — macOS, Linux, Windows
-- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`) in a recursive loop
+- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`) and **Codebase Awareness (RAG)** for semantic search
 - **Safety Mode** — optional manual approval for persistent file changes or command execution
-- **Smart Context** — dynamic system prompt injection (OS, time, project structure) and token-aware history management
+- **Smart Context** — dynamic system prompt injection (OS, time, project structure), token-aware history, and semantic code retrieval via RAG
 
 ---
 
@@ -95,8 +95,9 @@ cd CodeHex
 4. **Stop generation** — click **Stop** or press `Ctrl+.`
 5. **Attach files** — click **📎** (`Ctrl+Shift+A`) to attach images or code files
 6. **Record voice** — hold **🎤** (`Ctrl+Shift+V`) to record
-7. **Autonomous Agent** — many profiles (like Claude) can now browse your files and execute commands. Look for the ⚙️ icon for tool calls and ✅ for results.
-8. **Manual Approval** — toggle "Manual Approval" in settings to require a click before the agent modifies files or runs commands.
+7. **Autonomous Agent** — many profiles (like Claude) can now browse your files and execute commands.
+8. **Codebase Awareness** — the agent uses RAG (Retrieval-Augmented Generation) to "know" your whole project. It automatically indexes your code in the background. Look for the ⚙️ icon for tool calls like `SearchRepo`.
+9. **Manual Approval** — toggle "Manual Approval" in settings to require a click before the agent modifies files or runs commands.
 
 Open **Help → Getting Started** (`F1`) for the full in-app guide.
 
@@ -109,11 +110,12 @@ CodeHex/
 ├── src/
 │   ├── app/          Application bootstrap
 │   ├── ui/           Qt Widgets UI (MainWindow, ChatView, InputPanel…)
-│   ├── core/         ChatController, SessionManager, AppConfig
+│   ├── core/         ChatController, SessionManager, AppConfig, **RAG (Embedding & Indexer)**
 │   ├── cli/          CliRunner + profiles (Claude, Ollama, GPT)
 │   ├── data/         Message, Session, JsonSerializer
 │   ├── audio/        AudioRecorder, AudioPlayer (Qt Multimedia)
 │   └── scripting/    LuaEngine (sol2), PythonEngine (pybind11)
+├── scripts/          Helper scripts (e.g., **rag_backend.py**)
 ├── resources/        dark.qss, SVG icons
 ├── docs/             Obsidian vault — architecture + full help
 │   └── help/
@@ -186,6 +188,7 @@ See **Help → Scripting (Lua/Python)** for full documentation and more examples
 | pybind11 | 2.11.1 | Python C++ bindings |
 | nlohmann_json | 3.11.3 | JSON serialization |
 | Catch2 | 3.4.0 | Unit tests |
+| **SentenceTransformers** | latest | Python-based embeddings for RAG (optional/recommended) |
 
 ---
 
