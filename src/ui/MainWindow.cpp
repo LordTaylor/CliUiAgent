@@ -184,12 +184,13 @@ void MainWindow::setupUi() {
     settingsLayout->setContentsMargins(0, 0, 0, 0);
     settingsLayout->setSpacing(4);
     
-    auto* genSettingsBtn = new QPushButton("⚙️", settingsBar);
-    auto* skillsBtn = new QPushButton("🧩", settingsBar);
-    auto* pluginsBtn = new QPushButton("🔌", settingsBar);
+    auto* genSettingsBtn = new QPushButton(QIcon(":/resources/icons/settings.svg"), "", settingsBar);
+    auto* skillsBtn = new QPushButton(QIcon(":/resources/icons/skills.svg"), "", settingsBar);
+    auto* pluginsBtn = new QPushButton(QIcon(":/resources/icons/plugins.svg"), "", settingsBar);
     
     for (auto* b : {genSettingsBtn, skillsBtn, pluginsBtn}) {
-        b->setFixedSize(28, 28);
+        b->setFixedSize(32, 32);
+        b->setIconSize(QSize(20, 20));
         b->setCursor(Qt::PointingHandCursor);
         settingsLayout->addWidget(b);
     }
@@ -212,7 +213,8 @@ void MainWindow::setupUi() {
     tbLayout->addStretch();
 
     // LLM Router: Performance vs Privacy
-    QLabel* privacyIcon = new QLabel("🛡️", toolbar);
+    QLabel* privacyIcon = new QLabel(toolbar);
+    privacyIcon->setPixmap(QIcon(":/resources/icons/privacy.svg").pixmap(18, 18));
     privacyIcon->setToolTip("Privacy Mode (Local LLM)");
     tbLayout->addWidget(privacyIcon);
 
@@ -223,7 +225,8 @@ void MainWindow::setupUi() {
     m_llmSlider->setValue(m_config->useCloud() ? 1 : 0);
     tbLayout->addWidget(m_llmSlider);
 
-    QLabel* powerIcon = new QLabel("🚀", toolbar);
+    QLabel* powerIcon = new QLabel(toolbar);
+    powerIcon->setPixmap(QIcon(":/resources/icons/power.svg").pixmap(18, 18));
     powerIcon->setToolTip("Performance Mode (Cloud LLM)");
     tbLayout->addWidget(powerIcon);
 

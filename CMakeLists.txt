@@ -52,6 +52,11 @@ qt_add_resources(CodeHex "resources"
         resources/icons/attach.svg
         resources/icons/mic.svg
         resources/icons/folder.svg
+        resources/icons/settings.svg
+        resources/icons/skills.svg
+        resources/icons/plugins.svg
+        resources/icons/privacy.svg
+        resources/icons/power.svg
         resources/icons/app.png
         resources/icons/app.icns
         resources/prompts/base.txt
