@@ -181,3 +181,15 @@ Rozwiązanie problemu "Just-a-Chat" oraz zapętlania się agenta poprzez poprawn
 ## Phase 32: Toolbar Icons Restoration (ZAKOŃCZONA)
 - [x] **SVG Migration**: Zastąpienie emoji profesjonalnymi ikonami SVG.
 - [x] **Theme Consistency**: Użycie `currentColor` w ikonach dla poprawnej widoczności w trybie ciemnym.
+184: 
+185: ## Phase 33: LLM Provider Manager (ZAKOŃCZONA)
+186: 
+187: ### Cel:
+188: Zastąpienie sztywnego wyboru LLM dynamicznym systemem zarządzania dostawcami (Ollama, LM Studio, OpenAI).
+189: 
+190: #### Zrealizowane zadania:
+191: - [x] **Provider Settings Dialog**: Nowy interfejs do dodawania/usuwania dostawców i pobierania listy modeli.
+192: - [x] **Discovery Service**: Automatyczne pobieranie modeli z serwerów LLM.
+193: - [x] **Dynamiczne Profile**: Hot-swap konfiguracji `CliRunner` w `AgentEngine`.
+194: - [x] **MainWindow Refactoring**: Usunięcie suwaka na rzecz przycisku "Manage Providers" i combo-boxa.
+195: - [x] **Fix run.sh**: Automatyczne rozwiązywanie konfliktów generatora CMake (Ninja vs Makefiles).

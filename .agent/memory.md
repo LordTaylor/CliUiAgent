@@ -23,3 +23,5 @@ Ten plik służy jako pamięć długotrwała agenta. Tutaj zapisujemy:
 - **Loop Detection**: Detekcja pętli oparta na sygnaturach wywołań narzędzi (nazwa + input) jest skuteczniejsza niż proste porównywanie tekstu odpowiedzi, zwłaszcza dla modeli lokalnych.
 - **Emoji vs SVG**: Emojis są zawodne w UI (problemy z renderowaniem i kontrastem). Użycie ikon SVG z `stroke="currentColor"` gwarantuje spójność i czytelność w każdym motywie.
 - **Session Integrity**: Przeładowane sesje z powtarzającymi się logami narzędzi degradują jakość odpowiedzi AI. Regularna sanitacja sesji (`clean_sessions.py`) jest kluczowa dla długich konwersacji.
+26: - **CMake Generator Mismatch**: Przy zmianie generatora (np. Ninja <-> Unix Makefiles) CMake rzuca błąd. Skrypt `run.sh` musi wykrywać tę zmianę i usuwać `CMakeCache.txt` oraz `CMakeFiles/`, aby wymusić czystą rekonfigurację.
+27: - **LlmDiscoveryService**: Różni dostawcy mają różne endpointy dla listowania modeli. Przy pobieraniu należy przekazać `type` (ollama, openai), aby wybrać poprawną ścieżkę API (`/api/tags` vs `/models`).

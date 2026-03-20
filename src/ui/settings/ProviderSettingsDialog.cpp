@@ -9,6 +9,10 @@
 
 namespace CodeHex {
 
+/**
+ * @brief Manages LLM provider configurations.
+ * Allows adding, removing, and testing LLM providers (Ollama, LM Studio, OpenAI).
+ */
 ProviderSettingsDialog::ProviderSettingsDialog(AppConfig* config, QWidget* parent)
     : QDialog(parent), m_config(config) {
     setWindowTitle("LLM Provider Manager");
@@ -171,6 +175,10 @@ void ProviderSettingsDialog::loadProvider(int index) {
     m_statusLabel->setText("");
 }
 
+/**
+ * @brief Fetches models from the current provider's endpoint.
+ * construction of the target URL depends on the provider type.
+ */
 void ProviderSettingsDialog::onFetchModels() {
     m_statusLabel->setText("<font color='#3B82F6'>Fetching models...</font>");
     m_discovery->fetchModels(m_urlEdit->text(), m_typeCombo->currentText(), m_keyEdit->text());

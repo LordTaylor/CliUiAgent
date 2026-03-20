@@ -69,7 +69,7 @@ public:
     // Dynamic configuration
     void setBaseUrl(const QString& url) { m_baseUrl = url; }
     void setApiKey(const QString& key) { m_apiKey = key; }
-    void setModel(const QString& model) { m_model = model; }
+    void setModel(const QString& model) override { m_model = model; }
     void setApiType(ApiType type) { m_type = type; }
     void setDisplayName(const QString& name) { m_displayName = name; }
 

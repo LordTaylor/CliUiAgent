@@ -101,14 +101,7 @@ MainWindow::MainWindow(AppConfig* config,
                 setWindowTitle("CodeHex — " + title);
             });
 
-    // LLM Router Connections
-    connect(m_llmSlider, &QSlider::valueChanged, this, &MainWindow::onLlmSliderChanged);
-    connect(m_modelCombo, &QComboBox::currentIndexChanged, this, &MainWindow::onModelSelected);
-    connect(m_discoveryService, &LlmDiscoveryService::modelsReady, this, &MainWindow::onModelsReady);
-    connect(m_discoveryService, &LlmDiscoveryService::errorOccurred, this, &MainWindow::onDiscoveryError);
-
-    // Initial Discovery
-    QTimer::singleShot(500, this, [this]() { onLlmSliderChanged(m_llmSlider->value()); });
+    // Cursor blink timer (started/stopped around generation)
 
     // Cursor blink timer (started/stopped around generation)
     m_cursorTimer = new QTimer(this);
@@ -123,7 +116,7 @@ MainWindow::MainWindow(AppConfig* config,
     // Load sessions and open last
     m_sessions->loadAll();
     Session* last = m_sessions->allSessions().isEmpty()
-        ? m_sessions->createSession(m_config->activeProfile(), "default")
+        ? m_sessions->createSession(m_config->activeProviderId(), "default")
         : m_sessions->allSessions().first();
     m_sessions->setCurrentSession(last);
     switchSession(last);
@@ -498,25 +491,10 @@ void MainWindow::onAbout() {
     about.exec();
 }
 
+
 void MainWindow::loadStyleSheet() {
     // Initial Theme
     qApp->setStyleSheet(ThemeManager::instance().currentStyleSheet());
-}
-
-void MainWindow::updateProviderList() {
-    m_providerCombo->blockSignals(true);
-    m_providerCombo->clear();
-
-    const auto providers = m_config->providers();
-    const QString activeId = m_config->activeProviderId();
-
-    for (const auto& p : providers) {
-        m_providerCombo->addItem(p.name, p.id);
-        if (p.id == activeId) {
-            m_providerCombo->setCurrentIndex(m_providerCombo->count() - 1);
-        }
-    }
-    m_providerCombo->blockSignals(false);
 }
 
 void MainWindow::switchSession(Session* session) {
@@ -549,7 +527,7 @@ void MainWindow::onSessionSelected(const QString& id) {
 }
 
 void MainWindow::onNewSessionRequested() {
-    Session* s = m_sessions->createSession(m_config->activeProfile(), "default");
+    Session* s = m_sessions->createSession(m_config->activeProviderId(), "default");
     if (!s) return;
     m_sessions->setCurrentSession(s);
     switchSession(s);

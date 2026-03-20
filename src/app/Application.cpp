@@ -73,8 +73,8 @@ void Application::setupComponents() {
         m_player.get(),
         m_extraProfiles);
 
-    // When the user switches profile in MainWindow, re-configure CliRunner
-    connect(m_config.get(), &AppConfig::activeProfileChanged,
+    // When the user switches provider in MainWindow, re-configure CliRunner
+    connect(m_config.get(), &AppConfig::activeProviderChanged,
             this, &Application::setupCliRunner);
 }
 
@@ -94,7 +94,7 @@ void Application::discoverProfiles() {
 }
 
 void Application::setupCliRunner() {
-    const QString profile = m_config->activeProfile();
+    const QString profile = m_config->activeProviderId();
 
     // Check extra (configurable) profiles first
     for (const auto& entry : m_extraProfiles) {

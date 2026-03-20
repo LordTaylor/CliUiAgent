@@ -98,4 +98,13 @@ void ChatController::setSelectedModel(const QString& model) {
     }
 }
 
+/**
+ * @brief Triggered when the active LLM provider is changed in MainWindow.
+ * Synchronizes internal state and notifies relevant components.
+ */
+void ChatController::onProviderChanged() {
+    // Global runner update is handled by Application.
+    emit statusChanged("Provider switch updated.");
+}
+
 }  // namespace CodeHex

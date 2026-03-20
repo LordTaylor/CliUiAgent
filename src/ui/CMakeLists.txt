@@ -14,6 +14,7 @@ add_library(codehex_ui STATIC
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
     workfolder/WorkFolderPanel.h    workfolder/WorkFolderPanel.cpp
     settings/SettingsDialog.h       settings/SettingsDialog.cpp
+    settings/ProviderSettingsDialog.h settings/ProviderSettingsDialog.cpp
     skills/SkillsDialog.h           skills/SkillsDialog.cpp
     plugins/PluginsDialog.h         plugins/PluginsDialog.cpp
     session/SessionPanel.h  session/SessionPanel.cpp
