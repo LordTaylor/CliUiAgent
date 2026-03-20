@@ -200,13 +200,15 @@ void MainWindow::setupUi() {
 
     btnOverlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     chatGrid->addWidget(btnOverlay, 0, 0, 3, 3, Qt::AlignBottom | Qt::AlignRight);
+    btnOverlay->raise();
 
     // Status Label (Floating at bottom-left or center-bottom)
     m_statusLabel = new QLabel(chatContainer);
     m_statusLabel->setObjectName("agentStatusLabel");
     m_statusLabel->setVisible(false);
-    m_statusLabel->setStyleSheet("background: rgba(31, 41, 55, 0.8); color: #10B981; padding: 4px 12px; border-radius: 12px;");
-    chatGrid->addWidget(m_statusLabel, 2, 0, 1, 3, Qt::AlignHCenter | Qt::AlignBottom);
+    m_statusLabel->setStyleSheet("background: rgba(31, 41, 55, 0.9); color: #10B981; padding: 6px 16px; border-radius: 12px; border: 1px solid #10B981;");
+    chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
+    m_statusLabel->raise();
 
     rightLayout->addWidget(chatContainer, 1);
 
