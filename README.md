@@ -14,7 +14,12 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 - **Expandable Console** — shows raw CLI output for debugging
 - **Dark theme** — full QSS dark UI
 - **Cross-platform** — macOS, Linux, Windows
-- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`) and **Codebase Awareness (RAG)** for semantic search
+- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`, `MathLogic`) and **Codebase Awareness (RAG)** for semantic search
+- **Core Intelligence & Reasoning (Phase 1)**:
+    - **Chain-of-Verification (CoVe)**: 4-step factual verification (Draft → Verify → Answer → Finalize).
+    - **Multi-Model Ensemble**: Orchestrates multiple LLMs and synthesizes optimal responses.
+    - **Advanced Mathematical Logic**: Symbolic computation integration via SymPy for complex algebra and calculus.
+    - **Self-Correction Loop**: Automatic detection of logic loops with corrective nudging.
 - **Safety Mode** — optional manual approval for persistent file changes or command execution
 - **Smart Context** — dynamic system prompt injection (OS, time, project structure), token-aware history, and semantic code retrieval via RAG
 
@@ -110,7 +115,7 @@ CodeHex/
 ├── src/
 │   ├── app/          Application bootstrap
 │   ├── ui/           Qt Widgets UI (MainWindow, ChatView, InputPanel…)
-│   ├── core/         ChatController, SessionManager, AppConfig, **RAG (Embedding & Indexer)**
+│   ├── core/         ChatController, SessionManager, AppConfig, **PromptManager**, **ResponseFilter**, **RAG (Embedding & Indexer)**
 │   ├── cli/          CliRunner + profiles (Claude, Ollama, GPT)
 │   ├── data/         Message, Session, JsonSerializer
 │   ├── audio/        AudioRecorder, AudioPlayer (Qt Multimedia)

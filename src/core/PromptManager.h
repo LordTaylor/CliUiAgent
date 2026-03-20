@@ -2,7 +2,8 @@
 
 #include <QString>
 #include <QObject>
-#include "AgentEngine.h" // For Role enum
+
+#include "AgentEngine.h"
 
 namespace CodeHex {
 
@@ -25,6 +26,11 @@ public:
      * @brief Strategy description for the given role.
      */
     QString roleStrategy(AgentEngine::Role role) const;
+
+    /**
+     * @brief Analyzes the query for implicit goals and returns a context string.
+     */
+    QString detectImplicitGoals(const QString& query) const;
 
     /**
      * @brief Loads the base role prompt from resources.

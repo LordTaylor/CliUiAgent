@@ -6,8 +6,8 @@
 #include <memory>
 #include <QtConcurrent>
 #include <atomic>
-#include "../data/ToolCall.h"
 #include "Tool.h"
+#include "ToolCall.h"
 
 namespace CodeHex {
 

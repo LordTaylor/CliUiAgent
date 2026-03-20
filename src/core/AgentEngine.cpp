@@ -8,9 +8,11 @@
 #include "ToolExecutor.h"
 #include "ResponseFilter.h"
 #include "PromptManager.h"
+#include "EnsembleManager.h"
 #include "tools/ToolUtils.h"
 #include "tools/SearchRepoTool.h"
 #include "tools/SearchReplaceTool.h"
+#include "tools/MathLogicTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -49,10 +51,17 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_indexer = new CodebaseIndexer(m_embeddings, this);
     m_filter = new ResponseFilter(this);
     m_prompts = new PromptManager(m_config, this);
+    m_ensemble = new EnsembleManager(m_config, this);
+
+    connect(m_ensemble, &EnsembleManager::responseReady, this, [this](const QString& response) {
+        onOutputChunk(response);
+        onRunnerFinished(0);
+    });
 
     // Register tools
     m_toolExecutor->registerTool(std::make_shared<SearchReplaceTool>());
     m_toolExecutor->registerTool(std::make_shared<SearchRepoTool>(m_indexer));
+    m_toolExecutor->registerTool(std::make_shared<MathLogicTool>());
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
@@ -146,7 +155,8 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     emit statusChanged("🔍 Analyzing codebase for context...");
     injectAutoContext(userInput);
     
-    QString enrichedPrompt = userInput; 
+    QString implicitGoals = m_prompts->detectImplicitGoals(userInput);
+    QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + userInput; 
     
     // Update input token stats
     const int inputTokens = TokenCounter::estimate(enrichedPrompt);
@@ -402,6 +412,47 @@ void AgentEngine::onRunnerFinished(int exitCode) {
                       m_config->workingFolder(), {}, session->messages, getSystemPrompt());
         return;
     }
+
+    // --- Phase 1.5: Chain-of-Verification (CoVe) ---
+    if (m_coveState == CoVeState::None && !m_currentResponse.contains("<tool_call>")) {
+        qDebug() << "[AgentEngine] CoVe: Entering Drafting -> VerifyingQuestions";
+        emit statusChanged("🧐 Verifying facts (CoVe)...");
+        m_coveState = CoVeState::VerifyingQuestions;
+        
+        QString prompt = "### CHAIN-OF-VERIFICATION (CoVe) - STEP 2: GENERATE QUESTIONS ###\n"
+                         "Based on your previous response, generate a list of verification questions to cross-check any facts or claims you made. "
+                         "Focus on numbers, dates, technical details, and logical assumptions.\n\n"
+                         "### YOUR RESPONSE:\n" + m_currentResponse;
+        
+        m_isRunning = true;
+        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        return;
+    } else if (m_coveState == CoVeState::VerifyingQuestions) {
+        qDebug() << "[AgentEngine] CoVe: VerifyingQuestions -> Answering";
+        emit statusChanged("🔍 Answering verification questions...");
+        m_coveState = CoVeState::Answering;
+        
+        QString prompt = "### CHAIN-OF-VERIFICATION (CoVe) - STEP 3: ANSWER QUESTIONS ###\n"
+                         "Answer the verification questions you just generated. Be objective and factual.\n";
+        
+        m_isRunning = true;
+        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        return;
+    } else if (m_coveState == CoVeState::Answering) {
+        qDebug() << "[AgentEngine] CoVe: Answering -> Finalizing";
+        emit statusChanged("✨ Finalizing response...");
+        m_coveState = CoVeState::Finalizing;
+        
+        QString prompt = "### CHAIN-OF-VERIFICATION (CoVe) - STEP 4: FINAL RESPONSE ###\n"
+                         "Incorporate the findings from your verification steps. If you found errors, correct them. "
+                         "Provide the final, verified response to the user. DO NOT include the internal CoVe steps in the final output.";
+        
+        m_isRunning = true;
+        m_runner->send(prompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        return;
+    }
+    
+    m_coveState = CoVeState::None; // Reset after completion
 
     buildAssistantMessage(m_currentResponse);
 

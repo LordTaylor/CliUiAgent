@@ -11,6 +11,8 @@ Ten przewodnik przeprowadzi Cię od instalacji do pierwszej sesji kodowania z lo
 brew install cmake qt@6 
 # Zainstaluj Ollama dla lokalnych modeli (rekomendowane)
 brew install ollama
+# Wymagane dla MathLogicTool
+pip install sympy
 ```
 
 ---

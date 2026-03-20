@@ -2,11 +2,12 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QMap>
 #include <QJsonObject>
-#include "../data/Message.h"
-#include "../data/ToolCall.h"
-#include "../data/Attachment.h"
 #include <QQueue>
+#include "Message.h"
+#include "ToolCall.h"
+#include "Attachment.h"
 
 namespace CodeHex {
 
@@ -19,6 +20,7 @@ class EmbeddingManager;
 class ProjectAuditor;
 class ResponseFilter;
 class PromptManager;
+class EnsembleManager;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -69,6 +71,9 @@ public:
 
     void setSelectedModel(const QString& model) { m_selectedModel = model; }
     QString selectedModel() const { return m_selectedModel; }
+    
+    // CoVe State Machine
+    enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
 
 signals:
     void statusChanged(const QString& status);
@@ -101,8 +106,10 @@ private:
     ProjectAuditor*   m_auditor;
     ResponseFilter*   m_filter;
     PromptManager*    m_prompts;
+    EnsembleManager*  m_ensemble;
 
     bool m_manualApproval = false;
+    CoVeState m_coveState = CoVeState::None;
     QMap<QString, Permission> m_toolPermissions;
     Role m_currentRole = Role::Base;
     AppConfig* m_config;
@@ -129,4 +136,4 @@ private:
     QString cleanToolTags(const QString& text) const;
 };
 
-} // namespace CodeHex
+}  // namespace CodeHex

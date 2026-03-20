@@ -2,10 +2,12 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
+#include <QRegularExpression> // Added
 #include <QString>
 #include "../data/Attachment.h"
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
+#include "ToolCall.h"
 
 namespace CodeHex {
 
@@ -55,13 +57,35 @@ signals:
     
     void sessionRenamed(const QString& sessionId, const QString& newTitle);
 
+private slots:
+    void onOutputChunk(const QString& chunk);
+    void onRawOutput(const QString& raw);
+    void onErrorChunk(const QString& chunk);
+    void onRunnerFinished(int exitCode);
+    void onToolCallReady(const CodeHex::ToolCall& call);
+    // New slot for simple command results
+    void onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
+    // New slot for ToolExecutor results
+    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result); // Modified signature
+
 private:
+    void buildAssistantMessage(const QList<CodeBlock>& contentBlocks,
+                               const QList<Message::ContentType>& contentTypes,
+                               const QString& plainText); // Modified signature
+    void executeBashCommand(const QString& command); // New: for executing simple bash commands
+    void onToolCallReadyAndExecute(const CodeHex::ToolCall& call); // New: intermediate slot for ToolExecutor
+    static QString formatToolCallLog(const ToolCall& call);
+
     AppConfig*      m_config;
     SessionManager* m_sessions;
     CliRunner*      m_runner;
     ScriptManager*  m_scripts;
     ToolExecutor*   m_toolExecutor;
     AgentEngine*    m_agent;
+
+    QString m_currentResponse;
+
+    // Added empty comment to trigger MOC regeneration
 };
 
 }  // namespace CodeHex

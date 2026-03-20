@@ -10,11 +10,12 @@ CodeHex przekształca prosty czat w potężne narzędzie programistyczne dzięki
 
 Gdy zadasz pytanie wymagające działania (np. "znajdź błąd w main.cpp i napraw go"), proces przebiega następująco:
 
-1. **Planowanie:** AI analizuje Twoją prośbę i decyduje, jakie kroki podjąć.
-2. **Wywołanie narzędzia (⚙️):** Model wysyła do CodeHex specjalny blok kodu (np. `read_file` lub `bash`).
-3. **Wykonanie:** CodeHex wykonuje to zadanie lokalnie na Twoim komputerze w wybranym **Folderze Roboczym**.
-4. **Wynik (✅):** Wynik operacji (treść pliku, wynik komendy bash) jest dołączany do rozmowy.
-5. **Analiza i Rekurencja:** AI otrzymuje wynik, analizuje go i decyduje o kolejnym kroku, aż do zakończenia zadania.
+1. **Planowanie:** AI analizuje Twoją prośbę, używając `PromptManager` do budowy kontekstu, i decyduje, jakie kroki podjąć. Może korzystać z **Multi-Model Ensemble**, by uzyskać najlepszą odpowiedź.
+2. **Chain-of-Verification (CoVe):** Jeśli model generuje fakty, przechodzi przez 4-etapową weryfikację (Draft → Pytania → Odpowiedzi → Finał), by wyeliminować halucynacje.
+3. **Wywołanie narzędzia (⚙️):** Model wysyła do CodeHex specjalny blok kodu (np. `read_file` lub `bash`).
+4. **Wykonanie:** CodeHex wykonuje to zadanie lokalnie na Twoim komputerze; `ResponseFilter` dba o to, by surowe wyjście było czytelne przed przesłaniem do AI.
+5. **Wynik (✅):** Wynik operacji (treść pliku, wynik komendy bash, obliczenia matematyczne) jest dołączany do rozmowy.
+6. **Analiza i Rekurencja:** AI otrzymuje wynik, analizuje go i decyduje o kolejnym kroku, aż do zakończenia zadania. System monitoruje pętle logiczne i automatycznie je koryguje.
 
 ---
 
@@ -29,6 +30,7 @@ Współczesne modele (szczególnie przez `Claude CLI`) mają dostęp do:
 | **Search** | Przeszukuje projekt pod kątem fraz tekstowych (podobne do `grep`). |
 | **Replace** | Wykonuje operację znajdź-i-zamień w plikach. |
 | **Bash** | Uruchamia dowolną komendę w terminalu (np. `npm test`, `cmake --build`). |
+| **MathLogic** | Zaawansowane obliczenia symboliczne (pochodne, całki, uproszczenia) przez SymPy. |
 
 ---
 

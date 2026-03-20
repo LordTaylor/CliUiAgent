@@ -7,6 +7,7 @@
 #include "tools/GrepTool.h"
 #include "tools/ReplaceTool.h"
 #include "tools/GitTool.h"
+#include "tools/MathLogicTool.h"
 #include <QtConcurrent>
 #include <QMetaType>
 #include <QJsonDocument>
@@ -30,6 +31,7 @@ ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Status));
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Diff));
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Log));
+    registerTool(std::make_shared<MathLogicTool>());
 
     // Register Aliases
     registerAlias("Read",  "ReadFile");

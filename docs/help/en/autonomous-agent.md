@@ -8,10 +8,11 @@ CodeHex transforms a simple chat into a powerful development tool through the **
 
 When you ask a question that requires action (e.g., "fix a bug in main.cpp"), the process follows these steps:
 
-1. **Planning:** The AI analyzes your request and decides which tools to use.
-2. **Tool Call (⚙️):** The model sends a command (e.g., `read_file` or `bash`) to CodeHex.
-3. **Execution:** CodeHex executes the task in your selected **Working Folder**.
-4. **Analysis:** The AI receives the result and decides on the next step.
+1. **Planning:** The AI analyzes your request and decides which tools to use. It may leverage the **Multi-Model Ensemble** to synthesize the most accurate plan.
+2. **Chain-of-Verification (CoVe):** For fact-intensive tasks, the agent uses a 4-step verification loop (Draft → Verify → Answer → Finalize) to minimize hallucinations.
+3. **Tool Call (⚙️):** The model sends a command (e.g., `read_file`, `bash`, or `MathLogic`) to CodeHex.
+4. **Execution:** CodeHex executes the task in your selected **Working Folder**.
+5. **Analysis & Nudging:** The AI receives the result and decides on the next step. If a logic loop is detected, the system automatically nudges the agent to try a different approach.
 
 ---
 
@@ -26,6 +27,7 @@ CodeHex provides a robust toolset for local models:
 | **Search** | Searches the project for text strings. |
 | **Replace** | Performs find-and-replace in files. |
 | **RunCommand** | Runs any command in the terminal (e.g., `make`, `npm test`). |
+| **MathLogic** | Performs symbolic mathematical computations (calculus, algebra) using SymPy. |
 
 ---
 

@@ -11,6 +11,8 @@ This guide takes you from a fresh install to your first local AI-assisted coding
 brew install cmake qt@6 
 # Install Ollama for local LLM (recommended)
 brew install ollama
+# Required for MathLogicTool
+pip install sympy
 ```
 
 ### Linux

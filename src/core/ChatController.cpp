@@ -108,4 +108,37 @@ void ChatController::onProviderChanged() {
     emit statusChanged("Provider switch updated.");
 }
 
+void ChatController::onOutputChunk(const QString& chunk) {
+    emit cliOutputReceived(chunk);
+}
+
+void ChatController::onRawOutput(const QString& raw) {
+    emit consoleOutput(raw);
+}
+
+void ChatController::onErrorChunk(const QString& chunk) {
+    emit cliErrorReceived(chunk);
+}
+
+void ChatController::onRunnerFinished(int exitCode) {
+    Q_UNUSED(exitCode);
+    emit generationStopped();
+}
+
+void ChatController::onToolCallReady(const CodeHex::ToolCall& call) {
+    // Forward to UI
+    emit toolCallStarted(call.name, call.input);
+}
+
+void ChatController::onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput) {
+    Q_UNUSED(exitCode);
+    Q_UNUSED(output);
+    Q_UNUSED(errorOutput);
+}
+
+void ChatController::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result) {
+    Q_UNUSED(toolName);
+    Q_UNUSED(result);
+}
+
 }  // namespace CodeHex

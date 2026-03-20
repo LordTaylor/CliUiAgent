@@ -18,7 +18,9 @@ add_library(codehex_core STATIC
     tools/GrepTool.h
     tools/ReplaceTool.h
     tools/SearchReplaceTool.h
+    tools/MathLogicTool.h tools/MathLogicTool.cpp
     ProjectAuditor.h ProjectAuditor.cpp
+    EnsembleManager.h EnsembleManager.cpp
     tools/GitTool.h
     tools/SearchRepoTool.h
     rag/EmbeddingManager.h rag/EmbeddingManager.cpp

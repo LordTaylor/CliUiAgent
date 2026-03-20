@@ -83,6 +83,33 @@ QString PromptManager::roleStrategy(AgentEngine::Role role) const {
     }
 }
 
+QString PromptManager::detectImplicitGoals(const QString& query) const {
+    QString goals = "\n\n### IMPLICIT GOAL ANALYSIS:\n"
+                    "Based on your query, the following underlying objectives have been identified:\n";
+    
+    bool detected = false;
+    if (query.contains("fix", Qt::CaseInsensitive) || query.contains("bug", Qt::CaseInsensitive)) {
+        goals += "- **Stability:** Ensure no regressions are introduced while fixing the issue.\n";
+        goals += "- **Verification:** Provide a way to test the fix.\n";
+        detected = true;
+    }
+    if (query.contains("add", Qt::CaseInsensitive) || query.contains("create", Qt::CaseInsensitive)) {
+        goals += "- **Architecture Compatibility:** Ensure the new feature follows existing patterns.\n";
+        goals += "- **Documentation:** Consider if help files need updating.\n";
+        detected = true;
+    }
+    if (query.contains("optim", Qt::CaseInsensitive)) {
+        goals += "- **Readability vs Performance:** Maintain code clarity while improving speed/memory.\n";
+        detected = true;
+    }
+
+    if (!detected) {
+        goals += "- **Holistic Solution:** Address the immediate request while considering long-term maintainability.\n";
+    }
+
+    return goals;
+}
+
 QString PromptManager::loadRolePrompt(AgentEngine::Role role) const {
     QString fileName;
     switch (role) {
