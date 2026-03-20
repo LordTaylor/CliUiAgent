@@ -422,14 +422,28 @@ void ChatController::onSimpleCommandFinished(int exitCode, const QString& output
     }
 
     buildAssistantMessage(outputBlocks, outputContentTypes, plainTextOutput);
-    emit generationStopped(); // End generation after simple command
+
+    // Continue the loop: re-prompt the model with the command output
+    auto* session = m_sessions->currentSession();
+    if (session) {
+        emit generationStarted();
+        emit statusChanged("Agent is processing result...");
+        const int resultTokens = TokenCounter::estimate(plainTextOutput);
+        session->updateTokens(resultTokens, 0);
+        m_runner->send(plainTextOutput, m_config->workingFolder(), {}, session->messages);
+    } else {
+        emit generationStopped();
+    }
 }
 
 void ChatController::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result) {
     Q_UNUSED(toolName)
 
     auto* session = m_sessions->currentSession();
-    if (!session) return;
+    if (!session) {
+        emit generationStopped();
+        return;
+    }
 
     // 1. Log the result to console
     emit consoleOutput(QString("✅ [Result] %1").arg(result.content.left(120)));

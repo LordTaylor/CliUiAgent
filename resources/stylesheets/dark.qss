@@ -229,16 +229,20 @@ QSplitter::handle {
 }
 
 /* ---- Floating UI ---- */
-#magnetBtn, #scrollDownBtn {
+#magnetBtn, #scrollDownBtn, #stopFloatingBtn {
     background-color: rgba(31, 41, 55, 0.85);
     border: 1px solid #4B5563;
     border-radius: 20px;
     font-size: 18px;
     color: #F3F4F6;
 }
-#magnetBtn:hover, #scrollDownBtn:hover {
+#magnetBtn:hover, #scrollDownBtn:hover, #stopFloatingBtn:hover {
     background-color: rgba(55, 65, 81, 0.95);
     border-color: #60A5FA;
+}
+#stopFloatingBtn:hover {
+    border-color: #EF4444;
+    color: #EF4444;
 }
 #magnetBtn:checked {
     background-color: rgba(37, 99, 235, 0.9);

@@ -71,6 +71,8 @@ MainWindow::MainWindow(AppConfig* config,
             this, &MainWindow::onGenerationStarted);
     connect(m_controller, &ChatController::generationStopped,
             this, &MainWindow::onGenerationStopped);
+    connect(m_controller, &ChatController::generationStopped,
+            this, [this]() { m_scrollToBottomBtn->setEnabled(true); });
     connect(m_controller, &ChatController::errorOccurred,
             m_console, &ConsoleWidget::appendText);
     connect(m_controller, &ChatController::statusChanged,
@@ -189,6 +191,13 @@ void MainWindow::setupUi() {
     m_scrollToBottomBtn->setObjectName("scrollDownBtn");
     overlayLayout->addWidget(m_scrollToBottomBtn);
 
+    m_stopBtn = new QPushButton("⏹", btnOverlay);
+    m_stopBtn->setFixedSize(40, 40);
+    m_stopBtn->setToolTip("Stop Agent");
+    m_stopBtn->setObjectName("stopFloatingBtn");
+    m_stopBtn->setVisible(false);
+    overlayLayout->addWidget(m_stopBtn);
+
     btnOverlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     chatGrid->addWidget(btnOverlay, 0, 0, 3, 3, Qt::AlignBottom | Qt::AlignRight);
 
@@ -204,6 +213,7 @@ void MainWindow::setupUi() {
     // Wire navigation
     connect(m_scrollToBottomBtn, &QPushButton::clicked, m_chatView, &ChatView::scrollToBottom);
     connect(m_autoScrollBtn, &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
+    connect(m_stopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
 
     // Input panel
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
@@ -387,10 +397,6 @@ void MainWindow::onSendRequested(const QString& text, const QList<Attachment>& a
     m_controller->sendMessage(text, attachments);
 }
 
-void MainWindow::onStopRequested() {
-    m_controller->stopGeneration();
-}
-
 void MainWindow::onSessionSelected(const QString& id) {
     Session* s = m_sessions->openSession(id);
     if (!s) return;
@@ -472,6 +478,7 @@ void MainWindow::onGenerationStarted() {
     m_cursorTimer->start();
     m_inputPanel->setSendEnabled(false);
     m_inputPanel->setStopEnabled(true);
+    m_stopBtn->setVisible(true);
     m_statusLabel->setVisible(true);
     m_statusLabel->setText("Agent is working...");
     statusBar()->showMessage("Generating…");
@@ -483,9 +490,15 @@ void MainWindow::onGenerationStopped() {
     m_cursorVisible = false;
     m_inputPanel->setSendEnabled(true);
     m_inputPanel->setStopEnabled(false);
+    m_stopBtn->setVisible(false);
     m_statusLabel->setVisible(false);
     statusBar()->clearMessage();
     updateTokenLabel();
+}
+
+void MainWindow::onStopRequested() {
+    m_controller->stopGeneration();
+    m_stopBtn->setVisible(false);
 }
 
 void MainWindow::onProfileChanged(int index) {

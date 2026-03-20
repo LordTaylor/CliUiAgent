@@ -78,6 +78,7 @@ private:
     QCheckBox*          m_agentModeCheck;
     QPushButton*        m_scrollToBottomBtn;
     QPushButton*        m_autoScrollBtn; // Magnet button
+    QPushButton*        m_stopBtn;       // Stop agent button
     QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
 
