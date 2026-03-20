@@ -172,3 +172,12 @@ Rozwiązanie problemu "Just-a-Chat" oraz zapętlania się agenta poprzez poprawn
 - [x] **GitHub Action**: Automatyzacja Release (Win/Mac/Linux).
 - [x] **Script Modernization**: Skrypty CI-ready z obsługą dynamicznych ścieżek Qt.
 - [x] **Branding**: Integracja `app.icns` wygenerowanego z `.iconset`.
+
+## Phase 31: System Health Audit & Auto-Repair (ZAKOŃCZONA)
+- [x] **Message Parsing Fix**: Poprawa kolejności bloków myśli i tekstu w `AgentEngine`.
+- [x] **Loop Prevention**: Zaawansowane wykrywanie pętli na podstawie powtarzających się Tool Calls.
+- [x] **Session Sanitization**: Skrypt `clean_sessions.py` usuwający zbędny kontekst z sesji.
+
+## Phase 32: Toolbar Icons Restoration (ZAKOŃCZONA)
+- [x] **SVG Migration**: Zastąpienie emoji profesjonalnymi ikonami SVG.
+- [x] **Theme Consistency**: Użycie `currentColor` w ikonach dla poprawnej widoczności w trybie ciemnym.

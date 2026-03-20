@@ -1,6 +1,12 @@
 #pragma once
+#include <QString>
+#include <QStringList>
+#include <QList>
+#include <QMap>
+#include <QByteArray>
 #include "CliProfile.h"
 #include <memory>
+#include "../data/LlmProvider.h"
 
 namespace CodeHex {
 
@@ -59,6 +65,15 @@ public:
     QStringList imageArguments(const QStringList& imagePaths) const override;
 
     ApiType apiType() const { return m_type; }
+
+    // Dynamic configuration
+    void setBaseUrl(const QString& url) { m_baseUrl = url; }
+    void setApiKey(const QString& key) { m_apiKey = key; }
+    void setModel(const QString& model) { m_model = model; }
+    void setApiType(ApiType type) { m_type = type; }
+    void setDisplayName(const QString& name) { m_displayName = name; }
+
+    static std::unique_ptr<ConfigurableProfile> fromProvider(const LlmProvider& provider);
 
 private:
     ConfigurableProfile() = default;

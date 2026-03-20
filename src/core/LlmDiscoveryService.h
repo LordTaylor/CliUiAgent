@@ -18,9 +18,10 @@ public:
     /**
      * @brief Fetch models from a provider URL.
      * @param url Base URL (e.g. http://localhost:11434 or https://api.openai.com/v1)
+     * @param type Provider type ("ollama", "openai", etc.)
      * @param apiKey Optional API key for remote providers.
      */
-    void fetchModels(const QString& url, const QString& apiKey = "");
+    void fetchModels(const QString& url, const QString& type, const QString& apiKey = "");
 
 signals:
     void modelsReady(const QStringList& models);
@@ -31,7 +32,7 @@ private slots:
 
 private:
     QNetworkAccessManager* m_network;
-    QString m_currentUrl;
+    QString m_providerType;
 };
 
 } // namespace CodeHex

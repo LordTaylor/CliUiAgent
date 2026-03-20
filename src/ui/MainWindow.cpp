@@ -1,3 +1,4 @@
+#include "settings/ProviderSettingsDialog.h"
 #include "MainWindow.h"
 #include <QApplication>
 #include <QComboBox>
@@ -55,8 +56,7 @@ MainWindow::MainWindow(AppConfig* config,
       m_controller(controller),
       m_recorder(recorder),
       m_player(player),
-      m_extraProfiles(extraProfiles),
-      m_discoveryService(new LlmDiscoveryService(this)) {
+      m_extraProfiles(extraProfiles) {
     setWindowTitle("CodeHex");
     setWindowIcon(QIcon(":/resources/icons/app.png"));
     setMinimumSize(900, 600);
@@ -65,7 +65,7 @@ MainWindow::MainWindow(AppConfig* config,
     setupUi();
     setupMenuBar();
     loadStyleSheet();
-    populateProfileCombo();
+    updateProviderList();
 
     // Connect ChatController signals
     connect(m_controller, &ChatController::userMessageReady, this,
@@ -212,43 +212,37 @@ void MainWindow::setupUi() {
 
     tbLayout->addStretch();
 
-    // LLM Router: Performance vs Privacy
-    QLabel* privacyIcon = new QLabel(toolbar);
-    privacyIcon->setPixmap(QIcon(":/resources/icons/privacy.svg").pixmap(18, 18));
-    privacyIcon->setToolTip("Privacy Mode (Local LLM)");
-    tbLayout->addWidget(privacyIcon);
+    // LLM Provider Selection
+    auto* llmBar = new QWidget(toolbar);
+    auto* llmLayout = new QHBoxLayout(llmBar);
+    llmLayout->setContentsMargins(0, 0, 0, 0);
+    llmLayout->setSpacing(4);
 
-    m_llmSlider = new QSlider(Qt::Horizontal, toolbar);
-    m_llmSlider->setObjectName("llmSlider");
-    m_llmSlider->setRange(0, 1);
-    m_llmSlider->setFixedWidth(50);
-    m_llmSlider->setValue(m_config->useCloud() ? 1 : 0);
-    tbLayout->addWidget(m_llmSlider);
+    auto* manageProvidersBtn = new QPushButton(QIcon(":/resources/icons/power.svg"), "", llmBar);
+    manageProvidersBtn->setFixedSize(32, 32);
+    manageProvidersBtn->setIconSize(QSize(20, 20));
+    manageProvidersBtn->setToolTip("Manage LLM Providers");
+    manageProvidersBtn->setCursor(Qt::PointingHandCursor);
+    
+    m_providerCombo = new QComboBox(llmBar);
+    m_providerCombo->setObjectName("providerCombo");
+    m_providerCombo->setMinimumWidth(150);
+    
+    llmLayout->addWidget(manageProvidersBtn);
+    llmLayout->addWidget(m_providerCombo);
+    tbLayout->addWidget(llmBar);
 
-    QLabel* powerIcon = new QLabel(toolbar);
-    powerIcon->setPixmap(QIcon(":/resources/icons/power.svg").pixmap(18, 18));
-    powerIcon->setToolTip("Performance Mode (Cloud LLM)");
-    tbLayout->addWidget(powerIcon);
+    connect(manageProvidersBtn, &QPushButton::clicked, this, [this]() {
+        ProviderSettingsDialog dlg(m_config, this);
+        if (dlg.exec() == QDialog::Accepted) {
+            updateProviderList();
+        }
+    });
 
-    tbLayout->addSpacing(10);
+    connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onProviderChanged);
 
-    // Profile selector (Provider — Ollama, LM Studio, etc.)
-    m_profileCombo = new QComboBox(toolbar);
-    m_profileCombo->setObjectName("profileCombo");
-    m_profileCombo->setMinimumWidth(120);
-    tbLayout->addWidget(m_profileCombo);
-
-    tbLayout->addSpacing(10);
-
-    m_modelCombo = new QComboBox(toolbar);
-    m_modelCombo->setObjectName("modelCombo");
-    m_modelCombo->setMinimumWidth(150);
-    m_modelCombo->addItem("Loading models...");
-    tbLayout->addWidget(m_modelCombo);
-
-    tbLayout->addSpacing(10);
-
-    tbLayout->addSpacing(10);
+    tbLayout->addStretch();
     
     QLabel* roleLbl = new QLabel("Role:", toolbar);
     tbLayout->addWidget(roleLbl);
@@ -400,8 +394,8 @@ void MainWindow::setupUi() {
     connect(m_sessionPanel, &SessionPanel::newSessionRequested,
             this, &MainWindow::onNewSessionRequested);
 
-    connect(m_profileCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onProfileChanged);
+    connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onProviderChanged);
 
     connect(m_roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index){
         AgentEngine::Role role = (AgentEngine::Role)m_roleCombo->itemData(index).toInt();
@@ -509,29 +503,20 @@ void MainWindow::loadStyleSheet() {
     qApp->setStyleSheet(ThemeManager::instance().currentStyleSheet());
 }
 
-void MainWindow::populateProfileCombo() {
-    m_profileCombo->blockSignals(true);
-    m_profileCombo->clear();
+void MainWindow::updateProviderList() {
+    m_providerCombo->blockSignals(true);
+    m_providerCombo->clear();
 
-    // ── Built-in profiles (local-only) ────────────────────────────
-    m_profileCombo->addItem("Ollama",      "ollama");
+    const auto providers = m_config->providers();
+    const QString activeId = m_config->activeProviderId();
 
-    // ── Extra profiles from ~/.codehex/profiles/ ──────────────────
-    if (!m_extraProfiles.isEmpty()) {
-        m_profileCombo->insertSeparator(m_profileCombo->count());
-        for (const auto& entry : m_extraProfiles)
-            m_profileCombo->addItem(entry.displayName, entry.name);
-    }
-
-    // Restore selection
-    const QString active = m_config->activeProfile();
-    for (int i = 0; i < m_profileCombo->count(); ++i) {
-        if (m_profileCombo->itemData(i).toString() == active) {
-            m_profileCombo->setCurrentIndex(i);
-            break;
+    for (const auto& p : providers) {
+        m_providerCombo->addItem(p.name, p.id);
+        if (p.id == activeId) {
+            m_providerCombo->setCurrentIndex(m_providerCombo->count() - 1);
         }
     }
-    m_profileCombo->blockSignals(false);
+    m_providerCombo->blockSignals(false);
 }
 
 void MainWindow::switchSession(Session* session) {
@@ -683,14 +668,41 @@ void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObj
     }
 }
 
-void MainWindow::onProfileChanged(int index) {
-    const QString name = m_profileCombo->itemData(index).toString();
-    m_config->setActiveProfile(name);
-    m_config->save();
+void MainWindow::updateProviderList() {
+    m_providerCombo->blockSignals(true);
+    m_providerCombo->clear();
+    
+    LlmProviderList providers = m_config->providers();
+    QString activeId = m_config->activeProviderId();
+    
+    int activeIndex = -1;
+    for (int i = 0; i < providers.size(); ++i) {
+        const auto& p = providers[i];
+        if (!p.active) continue;
+        
+        m_providerCombo->addItem(p.name, p.id);
+        if (p.id == activeId) {
+            activeIndex = m_providerCombo->count() - 1;
+        }
+    }
+    
+    if (activeIndex >= 0) {
+        m_providerCombo->setCurrentIndex(activeIndex);
+    } else if (m_providerCombo->count() > 0) {
+        m_providerCombo->setCurrentIndex(0);
+        m_config->setActiveProviderId(m_providerCombo->currentData().toString());
+    }
+    
+    m_providerCombo->blockSignals(false);
+}
 
-    // Swap CliRunner profile
-    // This requires access to CliRunner — accessed through controller
-    // For now, emit a signal that Application can handle
+void MainWindow::onProviderChanged(int index) {
+    if (index < 0) return;
+    const QString id = m_providerCombo->itemData(index).toString();
+    m_config->setActiveProviderId(id);
+    
+    // Notify controller/agent to update runner profile
+    m_controller->onProviderChanged();
 }
 
 void MainWindow::onClearChatRequested() {
@@ -734,42 +746,9 @@ void MainWindow::onCommandRequested(const QString& cmd, const QStringList& args)
     }
 }
 
-void MainWindow::onDiscoveryError(const QString& error) {
-    m_statusLabel->setText("Discovery Error: " + error);
-    m_modelCombo->clear();
-    m_modelCombo->addItem("Error fetching models");
-    m_modelCombo->setToolTip(error);
-}
+// Removed legacy LLM slider and model discovery from MainWindow
 
-void MainWindow::onLlmSliderChanged(int value) {
-    bool useCloud = (value == 1);
-    m_config->setUseCloud(useCloud);
-    
-    m_modelCombo->clear();
-    m_modelCombo->addItem("Discovering...");
-    
-    if (useCloud) {
-        m_discoveryService->fetchModels(m_config->remoteLlmUrl(), m_config->openAiKey());
-        m_statusLabel->setText("Mode: Performance (Cloud)");
-    } else {
-        m_discoveryService->fetchModels(m_config->localLlmUrl());
-        m_statusLabel->setText("Mode: Privacy (Local)");
-    }
-}
-
-void MainWindow::onModelsReady(const QStringList& models) {
-    m_modelCombo->clear();
-    m_modelCombo->addItems(models);
-}
-
-void MainWindow::onModelSelected(int index) {
-    if (index < 0) return;
-    QString modelName = m_modelCombo->itemText(index);
-    if (modelName == "Discovering..." || modelName == "Loading models...") return;
-
-    m_controller->setSelectedModel(modelName);
-    m_statusLabel->setText(QString("Using Model: %1").arg(modelName));
-}
+// Removed legacy LLM slider and model discovery from MainWindow as it is now managed via ProviderSettingsDialog
 
 
 // End of MainWindow.cpp

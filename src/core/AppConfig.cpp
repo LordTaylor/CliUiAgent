@@ -39,12 +39,33 @@ QString AppConfig::configFilePath() const {
     return dataDir() + "/config.json";
 }
 
-QString AppConfig::activeProfile() const { return m_activeProfile; }
-void AppConfig::setActiveProfile(const QString& name) {
-    if (m_activeProfile == name) return;
-    m_activeProfile = name;
+/**
+ * @brief Sets the active provider ID and persists changes.
+ */
+void AppConfig::setActiveProviderId(const QString& id) {
+    if (m_activeProviderId == id) return;
+    m_activeProviderId = id;
     save();
-    emit activeProfileChanged(name);
+    emit activeProviderChanged(id);
+}
+
+/**
+ * @brief Updates the list of configured providers and persists changes.
+ */
+void AppConfig::setProviders(const LlmProviderList& list) {
+    m_providers = list;
+    save();
+}
+
+/**
+ * @brief Returns the currently active provider configuration.
+ */
+LlmProvider AppConfig::activeProvider() const {
+    for (const auto& p : m_providers) {
+        if (p.id == m_activeProviderId) return p;
+    }
+    if (!m_providers.isEmpty()) return m_providers.first();
+    return LlmProvider{};
 }
 
 QString AppConfig::workingFolder() const { return m_workingFolder; }
@@ -64,51 +85,88 @@ void AppConfig::setManualApproval(bool enabled) {
     save();
 }
 
-QString AppConfig::localLlmUrl() const { return m_localLlmUrl; }
-void    AppConfig::setLocalLlmUrl(const QString& url) { m_localLlmUrl = url; save(); }
-QString AppConfig::remoteLlmUrl() const { return m_remoteLlmUrl; }
-void    AppConfig::setRemoteLlmUrl(const QString& url) { m_remoteLlmUrl = url; save(); }
+// Removed legacy LLM URL and API Key getters/setters as they are now part of LlmProvider
 
-QString AppConfig::openAiKey() const { return m_openAiKey; }
-void    AppConfig::setOpenAiKey(const QString& key) { m_openAiKey = key; save(); }
-QString AppConfig::anthropicKey() const { return m_anthropicKey; }
-void    AppConfig::setAnthropicKey(const QString& key) { m_anthropicKey = key; save(); }
-QString AppConfig::googleKey() const { return m_googleKey; }
-void    AppConfig::setGoogleKey(const QString& key) { m_googleKey = key; save(); }
-
-bool AppConfig::useCloud() const { return m_useCloud; }
-void AppConfig::setUseCloud(bool enabled) { m_useCloud = enabled; save(); }
-
+/**
+ * @brief Loads application configuration from JSON file.
+ */
 void AppConfig::load() {
     const auto obj = JsonSerializer::readFile(configFilePath());
-    if (obj.isEmpty()) return;
-    m_activeProfile = obj["activeProfile"].toString(m_activeProfile);
+    if (obj.isEmpty()) {
+        loadDefaults();
+        return;
+    }
+    
     m_workingFolder = obj["workingFolder"].toString();
     m_lastSessionId = obj["lastSessionId"].toString();
     m_manualApproval = obj["manualApproval"].toVariant().toBool();
     if (obj.find("manualApproval") == obj.end()) m_manualApproval = true;
 
-    m_localLlmUrl  = obj["localLlmUrl"].toString(m_localLlmUrl);
-    m_remoteLlmUrl = obj["remoteLlmUrl"].toString(m_remoteLlmUrl);
-    m_openAiKey    = obj["openAiKey"].toString();
-    m_anthropicKey = obj["anthropicKey"].toString();
-    m_googleKey    = obj["googleKey"].toString();
-    m_useCloud     = obj["useCloud"].toVariant().toBool();
+    m_activeProviderId = obj["activeProviderId"].toString();
+
+    m_providers.clear();
+    QJsonArray arr = obj["providers"].toArray();
+    for (int i = 0; i < arr.size(); ++i) {
+        m_providers.append(LlmProvider::fromJson(arr[i].toObject()));
+    }
+
+    if (m_providers.isEmpty()) {
+        loadDefaults();
+    } else if (m_activeProviderId.isEmpty()) {
+        m_activeProviderId = m_providers.first().id;
+    }
 }
 
+/**
+ * @brief Saves current configuration to JSON file.
+ */
 void AppConfig::save() const {
+    QJsonArray providerArr;
+    for (const auto& p : m_providers) {
+        providerArr.append(p.toJson());
+    }
+
     JsonSerializer::writeFile(configFilePath(), {
-        {"activeProfile", m_activeProfile},
         {"workingFolder", m_workingFolder},
         {"lastSessionId", m_lastSessionId},
         {"manualApproval", m_manualApproval},
-        {"localLlmUrl", m_localLlmUrl},
-        {"remoteLlmUrl", m_remoteLlmUrl},
-        {"openAiKey", m_openAiKey},
-        {"anthropicKey", m_anthropicKey},
-        {"googleKey", m_googleKey},
-        {"useCloud", m_useCloud},
+        {"activeProviderId", m_activeProviderId},
+        {"providers", providerArr}
     });
+}
+
+/**
+ * @brief Initializes default LLM providers (Ollama, LM Studio, OpenAI).
+ */
+void AppConfig::loadDefaults() {
+    m_providers.clear();
+    
+    LlmProvider ollama;
+    ollama.id = "ollama";
+    ollama.name = "Ollama (Local)";
+    ollama.url = "http://localhost:11434";
+    ollama.type = "ollama";
+    ollama.selectedModel = "llama3:latest";
+    m_providers.append(ollama);
+
+    LlmProvider lmstudio;
+    lmstudio.id = "lmstudio";
+    lmstudio.name = "LM Studio (Local)";
+    lmstudio.url = "http://localhost:1234/v1";
+    lmstudio.type = "lmstudio";
+    lmstudio.selectedModel = "qwen-14b";
+    m_providers.append(lmstudio);
+
+    LlmProvider openai;
+    openai.id = "openai";
+    openai.name = "OpenAI (Cloud)";
+    openai.url = "https://api.openai.com/v1";
+    openai.type = "openai";
+    openai.selectedModel = "gpt-4";
+    m_providers.append(openai);
+
+    m_activeProviderId = "ollama";
+    save();
 }
 
 void AppConfig::ensureDirectories() const {

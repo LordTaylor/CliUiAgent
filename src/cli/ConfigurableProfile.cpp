@@ -241,4 +241,38 @@ QStringList ConfigurableProfile::imageArguments(const QStringList& imagePaths) c
     return {};
 }
 
+std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromProvider(const LlmProvider& provider) {
+    auto profile = std::unique_ptr<ConfigurableProfile>(new ConfigurableProfile());
+    profile->m_name = provider.id;
+    profile->m_displayName = provider.name;
+    profile->m_baseUrl = provider.url;
+    profile->m_apiKey = provider.apiKey;
+    profile->m_model = provider.selectedModel;
+    
+    if (provider.type == "ollama") {
+        profile->m_type = ApiType::Ollama;
+    } else {
+        profile->m_type = ApiType::OpenAICompatible;
+    }
+    
+    return profile;
+}
+
+std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromProvider(const LlmProvider& provider) {
+    auto profile = std::unique_ptr<ConfigurableProfile>(new ConfigurableProfile());
+    profile->m_name = provider.id;
+    profile->m_displayName = provider.name;
+    profile->m_baseUrl = provider.url;
+    profile->m_apiKey = provider.apiKey;
+    profile->m_model = provider.selectedModel;
+    
+    if (provider.type == "ollama") {
+        profile->m_type = ApiType::Ollama;
+    } else {
+        profile->m_type = ApiType::OpenAICompatible;
+    }
+    
+    return profile;
+}
+
 }  // namespace CodeHex

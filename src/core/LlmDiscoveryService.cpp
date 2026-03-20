@@ -13,15 +13,18 @@ LlmDiscoveryService::LlmDiscoveryService(QObject* parent)
     connect(m_network, &QNetworkAccessManager::finished, this, &LlmDiscoveryService::onReplyFinished);
 }
 
-void LlmDiscoveryService::fetchModels(const QString& url, const QString& apiKey) {
-    m_currentUrl = url;
+void LlmDiscoveryService::fetchModels(const QString& url, const QString& type, const QString& apiKey) {
+    m_providerType = type; // Store type for parsing
     QUrl qurl;
     
-    // Auto-detect provider endpoint
-    if (url.contains("11434") || url.toLower().contains("ollama")) {
-        qurl = QUrl(url + "/api/tags");
+    if (type == "ollama") {
+        QString cleanUrl = url;
+        if (cleanUrl.endsWith("/")) cleanUrl.chop(1);
+        qurl = QUrl(cleanUrl + "/api/tags");
     } else {
-        qurl = QUrl(url + "/models"); // Standard OpenAI-style is /v1/models (but v1 is often in the base URL)
+        QString cleanUrl = url;
+        if (cleanUrl.endsWith("/")) cleanUrl.chop(1);
+        qurl = QUrl(cleanUrl + "/models");
     }
 
     QNetworkRequest request(qurl);
@@ -45,15 +48,13 @@ void LlmDiscoveryService::onReplyFinished(QNetworkReply* reply) {
     QJsonDocument doc = QJsonDocument::fromJson(data);
     QStringList models;
 
-    if (m_currentUrl.contains("11434") || m_currentUrl.toLower().contains("ollama")) {
-        // Parse Ollama response
+    if (m_providerType == "ollama") {
         QJsonObject root = doc.object();
         QJsonArray modelArr = root["models"].toArray();
         for (const auto& m : modelArr) {
             models << m.toObject()["name"].toString();
         }
     } else {
-        // Parse OpenAI-style response
         QJsonObject root = doc.object();
         QJsonArray modelArr = root["data"].toArray();
         for (const auto& m : modelArr) {

@@ -20,3 +20,6 @@ Ten plik służy jako pamięć długotrwała agenta. Tutaj zapisujemy:
 - **SearchReplaceTool**: Najbezpieczniejsze narzędzie do dużych plików, unikaj `Write` przy edycji pojedynczych metod.
 - **Icon Generation**: `iconutil` wymaga prawdziwych plików PNG. Jeśli pliki w `.iconset` są w rzeczywistości JPEG-ami (nawet z rozszerzeniem `.png`), konwersja zawiedzie. Używaj `sips -s format png` do naprawy.
 - **CI/CD**: Skrypty buildowe muszą obsługiwać dynamiczne ścieżki (zmienne środowiskowe jak `QT_DIR`), aby działały poprawnie w GitHub Actions.
+- **Loop Detection**: Detekcja pętli oparta na sygnaturach wywołań narzędzi (nazwa + input) jest skuteczniejsza niż proste porównywanie tekstu odpowiedzi, zwłaszcza dla modeli lokalnych.
+- **Emoji vs SVG**: Emojis są zawodne w UI (problemy z renderowaniem i kontrastem). Użycie ikon SVG z `stroke="currentColor"` gwarantuje spójność i czytelność w każdym motywie.
+- **Session Integrity**: Przeładowane sesje z powtarzającymi się logami narzędzi degradują jakość odpowiedzi AI. Regularna sanitacja sesji (`clean_sessions.py`) jest kluczowa dla długich konwersacji.

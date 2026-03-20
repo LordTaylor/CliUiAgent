@@ -1,6 +1,8 @@
 #pragma once
 #include <QObject>
 #include <QString>
+#include <QList>
+#include "../data/LlmProvider.h"
 
 namespace CodeHex {
 
@@ -19,9 +21,6 @@ public:
     QString pythonScriptsDir() const;
     QString configFilePath() const;
 
-    QString activeProfile() const;
-    void setActiveProfile(const QString& name);
-
     QString workingFolder() const;
     void setWorkingFolder(const QString& path);
 
@@ -31,43 +30,33 @@ public:
     bool manualApproval() const;
     void setManualApproval(bool enabled);
 
-    // LLM Router & API Keys
-    QString localLlmUrl() const;
-    void setLocalLlmUrl(const QString& url);
-    QString remoteLlmUrl() const;
-    void setRemoteLlmUrl(const QString& url);
+    // LLM Provider Management
+    LlmProviderList providers() const { return m_providers; }
+    void setProviders(const LlmProviderList& list);
+    
+    QString activeProviderId() const { return m_activeProviderId; }
+    void setActiveProviderId(const QString& id);
 
-    QString openAiKey() const;
-    void setOpenAiKey(const QString& key);
-    QString anthropicKey() const;
-    void setAnthropicKey(const QString& key);
-    QString googleKey() const;
-    void setGoogleKey(const QString& key);
-
-    bool useCloud() const;
-    void setUseCloud(bool enabled);
+    LlmProvider activeProvider() const;
 
     void load();
     void save() const;
     void ensureDirectories() const;
 
 signals:
-    void activeProfileChanged(const QString& name);
+    void activeProviderChanged(const QString& id);
 
 private:
-    QString m_activeProfile = "lmstudio-qwen-14b";
     QString m_workingFolder;
     QString m_lastSessionId;
     QString m_dataDir;
     bool    m_manualApproval = true;
 
-    // Router State
-    QString m_localLlmUrl = "http://localhost:11434";
-    QString m_remoteLlmUrl = "https://api.openai.com/v1";
-    QString m_openAiKey;
-    QString m_anthropicKey;
-    QString m_googleKey;
-    bool    m_useCloud = false;
+    // Provider State
+    LlmProviderList m_providers;
+    QString m_activeProviderId;
+    
+    void loadDefaults();
 };
 
 }  // namespace CodeHex

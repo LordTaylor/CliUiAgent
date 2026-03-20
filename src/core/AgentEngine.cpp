@@ -14,6 +14,7 @@
 #include "TokenCounter.h"
 #include "ProjectAuditor.h"
 #include "../cli/CliRunner.h"
+#include "../cli/ConfigurableProfile.h"
 #include "../data/Session.h"
 
 namespace CodeHex {
@@ -141,10 +142,13 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
 
     emit statusChanged("🧠 Thinking...");
     
-    // Apply dynamic model selection if set
-    if (!m_selectedModel.isEmpty() && m_runner->profile()) {
-        m_runner->profile()->setModel(m_selectedModel);
+    // Select and configure LLM profile from active provider
+    const auto provider = m_config->activeProvider();
+    auto profile = ConfigurableProfile::fromProvider(provider);
+    if (!m_selectedModel.isEmpty()) {
+        profile->setModel(m_selectedModel);
     }
+    m_runner->setProfile(std::move(profile));
     
     m_runner->send(enrichedPrompt, m_config->workingFolder(), imagePaths, session->messages, systemPrompt());
 }

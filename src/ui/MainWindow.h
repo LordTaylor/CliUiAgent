@@ -56,22 +56,19 @@ private slots:
     void onClearChatRequested();
     void onThemeToggleRequested();
     void onToolApprovalRequested(const QString& toolName, const QJsonObject& input);
-    void onProfileChanged(int index);
+    void onProviderChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();
     void onTokenBufferTimeout();
     void onCommandRequested(const QString& cmd, const QStringList& args);
-    void onLlmSliderChanged(int value);
-    void onModelSelected(int index);
-    void onModelsReady(const QStringList& models);
-    void onDiscoveryError(const QString& error);
+    // Discovery logic moved to ProviderSettingsDialog
 
 private:
     void setupUi();
     void setupMenuBar();
     void loadStyleSheet();
     void switchSession(CodeHex::Session* session);
-    void populateProfileCombo();
+    void updateProviderList();
 
     CodeHex::AppConfig*      m_config;
     CodeHex::SessionManager* m_sessions;
@@ -90,10 +87,7 @@ private:
     CodeHex::InputPanel*         m_inputPanel;
     CodeHex::TerminalPanel*      m_terminalPanel;
     CodeHex::ChatControlBanner*  m_chatBanner;
-    CodeHex::LlmDiscoveryService* m_discoveryService;
-    QSlider*            m_llmSlider;     // Privacy vs Performance
-    QComboBox*          m_modelCombo;    // Dynamic model discovery
-    QComboBox*          m_profileCombo;  // Legacy (to be phased out)
+    QComboBox*          m_providerCombo;
     QComboBox*          m_roleCombo;
     QCheckBox*          m_autoApproveCheck;
     QPushButton*        m_scrollToBottomBtn;

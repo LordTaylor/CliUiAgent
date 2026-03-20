@@ -33,6 +33,7 @@ public slots:
     void setManualApproval(bool enabled);
     void approveToolCall(const CodeHex::ToolCall& call);
     void setSelectedModel(const QString& model);
+    void onProviderChanged();
     AgentEngine* agent() const { return m_agent; }
 
 signals:
