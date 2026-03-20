@@ -2,13 +2,10 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
-#include <QRegularExpression> // Added
 #include <QString>
 #include "../data/Attachment.h"
-#include "../data/CodeBlock.h" // Added
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
-#include "../data/ToolCall.h"   // Contains ToolCall and ToolResult
 
 namespace CodeHex {
 
@@ -16,6 +13,7 @@ class CliRunner;
 class SessionManager;
 class ScriptManager;
 class ToolExecutor;
+class AgentEngine;
 class AppConfig;
 
 class ChatController : public QObject {
@@ -31,11 +29,9 @@ public slots:
     void sendMessage(const QString& text, const QList<Attachment>& attachments = {});
     void stopGeneration();
     bool isRunning() const;
-    bool isProfileRunning() const;
     void setManualApproval(bool enabled);
     void approveToolCall(const CodeHex::ToolCall& call);
-    void onToolCallReady(const CodeHex::ToolCall& call);
-    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result);
+    AgentEngine* agent() const { return m_agent; }
 
 signals:
     void userMessageReady(const Message& msg);
@@ -46,45 +42,20 @@ signals:
     void generationStarted();
     void generationStopped();
     void statusChanged(const QString& status);
-
-    // Emitted when a tool_use block is fully parsed from the stream.
-    // For Claude CLI profiles the CLI executes the tool itself; this signal
-    // is used to update the UI and console display.
+    
+    // UI-specific signals (re-emitted from AgentEngine)
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
     void toolApprovalRequested(const QString& toolName, const QJsonObject& input);
-
-    // Emitted after first assistant response renames the session automatically.
+    
     void sessionRenamed(const QString& sessionId, const QString& newTitle);
 
-private slots:
-    void onOutputChunk(const QString& chunk);
-    void onRawOutput(const QString& raw);
-    void onErrorChunk(const QString& chunk);
-    void onRunnerFinished(int exitCode);
-    // New slot for simple command results
-    void onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
-    // New slot for ToolExecutor results
-
 private:
-    void buildAssistantMessage(const QList<CodeBlock>& contentBlocks,
-                               const QList<Message::ContentType>& contentTypes,
-                               const QString& plainText); // Modified signature
-    void executeBashCommand(const QString& command); // New: for executing simple bash commands
-    void onToolCallReadyAndExecute(const CodeHex::ToolCall& call); // New: intermediate slot for ToolExecutor
-    static QString formatToolCallLog(const ToolCall& call);
-
     AppConfig*      m_config;
     SessionManager* m_sessions;
     CliRunner*      m_runner;
     ScriptManager*  m_scripts;
-    ToolExecutor*   m_toolExecutor;  // available for custom (non-Claude) tool loops
-    bool            m_manualApproval = false;
-    QString         m_pendingToolCallId;
-    CodeHex::ToolCall m_pendingToolCall;
-
-    QString m_currentResponse;
-
-    // Added empty comment to trigger MOC regeneration
+    ToolExecutor*   m_toolExecutor;
+    AgentEngine*    m_agent;
 };
 
 }  // namespace CodeHex

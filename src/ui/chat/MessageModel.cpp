@@ -90,7 +90,8 @@ void MessageModel::precomputeLayout(Message& msg) const {
         bl.doc->setDocumentMargin(0);
 
         bool isMarkdown = (msg.role == Message::Role::Assistant && block.type == BlockType::Text) ||
-                          (block.type != BlockType::Text);
+                          (block.type != BlockType::Text && block.type != BlockType::Thinking) ||
+                          (block.type == BlockType::Thinking);
 
         if (isMarkdown) {
             bl.doc->setMarkdown(block.content);
@@ -106,6 +107,8 @@ void MessageModel::precomputeLayout(Message& msg) const {
             blockH += 24; // Header height
         } else if (block.type == BlockType::ToolCall) {
             blockH = 40;
+        } else if (block.type == BlockType::Thinking) {
+            blockH += 24; // Header height
         }
         
         bl.height = blockH;

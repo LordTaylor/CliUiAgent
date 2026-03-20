@@ -138,3 +138,53 @@ Implementacja mechanizmów śledzenia wydajności agenta, logowania sesji oraz o
 #### Krok 4.3: Optymalizacja narzędzi
 - [x] **Wydajność `Search`:** Dodano pomijanie plików binarnych i limit wielkości plików (1MB) dla szybszego przeszukiwania.
 - [x] **Limity wyników:** Ograniczenie do 100 trafień, aby nie przeciążać kontekstu AI.
+141: 
+142: ## Faza 5: Zaawansowana Autonomia (Inspiracja OpenCode)
+143: 
+144: ### Cel:
+145: Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI (takich jak OpenCode/Claude Dev) poprzez wprowadzenie ról, zarządzanie kontekstem i bezpieczniejsze uprawnienia.
+146: 
+147: ### Zadania (Checklista):
+148: 
+149: #### Krok 5.1: Specjalizacja Ról i Promptów
+150: - [ ] **System Sub-Agentów:** Wprowadzenie różnych system-promptów w zależności od fazy zadania:
+151:     - `explore`: Optymalizacja pod kątem przeszukiwania bazy kodu i nawigacji.
+152:     - `execute`: Skupienie na pisaniu kodu i rozwiązywaniu problemów.
+153:     - `review`: Weryfikacja zmian i testowanie.
+154: - [ ] **Zewnętrzne pliki Promptów:** Przeniesienie system-promptów do zewnętrznych plików `.txt` w celu łatwiejszej edycji.
+155: 
+156: #### Krok 5.2: Autonomiczne Zarządzanie Kontekstem (Compaction)
+157: - [ ] **Mechanizm Compaction:** Implementacja logiki, która automatycznie podsumowuje historię czatu, gdy zbliża się ona do limitu tokenów (Context Window management).
+158: - [ ] **Pruning:** Usuwanie nieistotnych wyników narzędzi z historii po ich przetworzeniu przez model.
+159: 
+160: #### Krok 5.3: Granularny System Uprawnień
+161: - [ ] **Allow/Ask/Deny:** Zamiast jednego przełącznika "Manual Approval", wprowadzanie reguł dla narzędzi:
+162:     - Zawsze pozwalaj na `Read` i `Search`.
+163:     - Zawsze pytaj o `Write` i `Bash`.
+164:     - Blokuj dostęp do określonych katalogów (sandbox).
+165: 
+166: #### Krok 5.4: Modułowe "Skills" (Refaktoryzacja ToolExecutor)
+167: - [ ] **Wtyczki narzędzi:** Przekształcenie `ToolExecutor` w system wtyczek, gdzie każde narzędzie jest osobną klasą/modułem (na wzór "Skills" w OpenCode).
+168: 
+169: #### Krok 5.5: Codebase Awareness (RAG/Embeddings)
+170: - [ ] **Indeksowanie projektu:** Wstępne badanie możliwości dodania wektorowej bazy danych dla dużych projektów, aby agent lepiej "rozumiał" architekturę bez czytania wszystkich plików.
+171: 
+172: ## Faza 6: Ekosystem i Pamięć Długotrwała (Inspiracja OpenClaw)
+173: 
+174: ### Cel:
+175: Rozszerzenie CodeHex o standardy przemysłowe (MCP) oraz mechanizmy trwałej pamięci pozwalające na realizację wielodniowych projektów.
+176: 
+177: ### Zadania (Checklista):
+178: 
+179: #### Krok 6.1: Obsługa Model Context Protocol (MCP)
+180: - [ ] **Klient MCP:** Implementacja standardu MCP, pozwalająca agentowi na korzystanie z tysięcy gotowych narzędzi (Slack, Google Drive, GitHub, etc.) bez pisania dedykowanego kodu w C++.
+181: 
+182: #### Krok 6.2: Trwała Pamięć (MEMORY.md)
+183: - [ ] **System Notatek:** Automatyczne tworzenie i aktualizowanie pliku `MEMORY.md` w folderze roboczym, gdzie agent zapisuje kluczowe decyzje architektoniczne i stan prac.
+184: - [ ] **Wstrzykiwanie Pamięci:** Automatyczne dołączanie fragmentów `MEMORY.md` do promptu systemowego na starcie nowej sesji.
+185: 
+186: #### Krok 6.3: "Session Yielding" (Pauza i Wznowienie)
+187: - [ ] **Asynchroniczne zadania:** Możliwość zatrzymania pętli agenta, gdy oczekuje on na długotrwały proces zewnętrzny, i wznowienia jej bez utraty kontekstu.
+188: 
+189: #### Krok 6.4: Piaskownica (Sandboxing)
+190: - [ ] **Bezpieczne Wykonywanie:** Izolacja poleceń `Bash` w kontenerze (np. Docker) lub wirtualnym systemie plików, aby zapobiec przypadkowemu uszkodzeniu systemu użytkownika.

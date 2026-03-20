@@ -15,7 +15,7 @@ struct PrecomputedLayout;
 
 struct Message {
     enum class Role { User, Assistant, System };
-    enum class ContentType { Text, Image, Voice, Code, Output }; // Added Code and Output types
+    enum class ContentType { Text, Image, Voice, Code, Output, Thinking }; // Added Thinking
 
     QUuid id;
     Role role = Role::User;

@@ -99,6 +99,36 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->restore();
 
             currentY += bl.height + kRowMargin;
+        } else if (block.type == BlockType::Thinking) {
+            const int headerH = 24;
+            int x = kAvatarSize + 12;
+
+            // Thinking Bubble (Subtle glassmorphism)
+            const QColor thinkingBg(45, 55, 72, 180); // Semi-transparent dark slate
+            p->setPen(Qt::NoPen);
+            p->setBrush(thinkingBg);
+            p->setRenderHint(QPainter::Antialiasing);
+            p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
+
+            // "Thinking..." Header
+            p->setPen(QColor(0xA0AEC0));
+            QFont headerFont = opt.font;
+            headerFont.setItalic(true);
+            headerFont.setPointSizeF(headerFont.pointSizeF() * 0.85);
+            p->setFont(headerFont);
+            p->drawText(QRect(x + kBubblePadding, currentY + 4, bl.width - 2 * kBubblePadding, headerH), 
+                        Qt::AlignVCenter | Qt::AlignLeft, "💭 Agent thinking...");
+
+            // Thought content
+            p->save();
+            p->translate(x + kBubblePadding, currentY + kBubblePadding + headerH);
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            ctx.palette.setColor(QPalette::Text, QColor(0xCBD5E0));
+            bl.doc->documentLayout()->draw(p, ctx);
+            p->restore();
+
+            p->setFont(opt.font);
+            currentY += bl.height + kRowMargin;
         } else if (block.type == BlockType::Output) {
             const int headerH = 24;
             int x = kAvatarSize + 12;
