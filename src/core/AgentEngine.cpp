@@ -161,12 +161,20 @@ void AgentEngine::setToolPermission(const QString& toolName, Permission p) {
 bool AgentEngine::isPathAllowed(const QString& path) const {
     if (path.isEmpty()) return true;
     
-    QFileInfo info(path);
-    QString absPath = info.absoluteFilePath();
     QString workDir = m_config->workingFolder();
     
+    // Resolve relative paths against working directory, NOT process CWD
+    QFileInfo info(QDir(workDir), path);
+    QString absPath = info.absoluteFilePath();
+    
+    qDebug() << "[AgentEngine] isPathAllowed: path=" << path << " resolved=" << absPath << " workDir=" << workDir;
+    
     // Sandbox: Allow only within working directory or its subdirectories
-    return absPath.startsWith(workDir);
+    bool allowed = absPath.startsWith(workDir);
+    if (!allowed) {
+        qWarning() << "[AgentEngine] SANDBOX BLOCKED: " << absPath << " is outside " << workDir;
+    }
+    return allowed;
 }
 
 AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) const {
@@ -182,30 +190,36 @@ AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) con
 }
 
 void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
-    if (!m_isRunning) return;
+    qDebug() << "[AgentEngine] onToolCallReady: tool=" << call.name << " m_isRunning=" << m_isRunning;
+    // NOTE: Do NOT check m_isRunning here — onRunnerFinished sets it to false
+    // before calling this method. The guard was silently blocking ALL tool executions.
 
     // --- Sandbox Check ---
     if (call.input.contains("path")) {
         QString path = call.input.value("path").toString();
         if (!isPathAllowed(path)) {
+            qWarning() << "[AgentEngine] Sandbox violation for path:" << path;
             emit errorOccurred("Sandbox violation: Path is outside of working directory: " + path);
             return;
         }
     }
 
     Permission p = toolPermission(call.name);
+    qDebug() << "[AgentEngine] Permission for" << call.name << "=" << (int)p << " (0=Allow,1=Ask,2=Deny)";
     if (p == Permission::Deny) {
         emit errorOccurred("Tool execution denied: " + call.name);
         return;
     }
     
     if (p == Permission::Ask) {
+        qDebug() << "[AgentEngine] Requesting approval for" << call.name;
         emit toolApprovalRequested(call.name, call.input);
-        m_pendingCalls.append(call); // Re-added this line to maintain pending calls for approval
+        m_pendingCalls.append(call);
         return;
     }
 
     // Execute Tool
+    qDebug() << "[AgentEngine] EXECUTING tool:" << call.name;
     emit toolCallStarted(call.name, call.input);
     if (m_syncTools) {
         m_toolExecutor->executeSync(call, m_config->workingFolder());
@@ -309,9 +323,12 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         }
     }
 
+    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parsedCalls.size();
     if (!parsedCalls.isEmpty()) {
+        qDebug() << "[AgentEngine] Dispatching tool:" << parsedCalls.first().name;
         onToolCallReady(parsedCalls.first());
     } else {
+        qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
     }
 }
