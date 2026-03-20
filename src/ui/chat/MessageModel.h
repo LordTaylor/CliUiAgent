@@ -25,11 +25,13 @@ public:
 
     void setSession(Session* session);
     void appendMessage(const Message& msg);
+    void appendToken(const QString& token);
     // Update the text of the last visible message in-place (live streaming).
     void updateLastMessage(const QString& text);
     void loadMoreMessages();
     bool canLoadMore() const;
     void clear();
+    void toggleBlock(int row, int blockIndex);
 
     // Optimization: Pre-calculate layouts
     void setViewWidth(int width);

@@ -1,4 +1,5 @@
 #include "InputPanel.h"
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
@@ -23,16 +24,35 @@ protected:
     void keyPressEvent(QKeyEvent* event) override {
         const bool enter = (event->key() == Qt::Key_Return ||
                             event->key() == Qt::Key_Enter);
-        // Ctrl+Enter → send; plain Enter → send; Shift+Enter → newline
+        
         if (enter && !(event->modifiers() & Qt::ShiftModifier)) {
             emit sendTriggered();
             return;
         }
+
+        if (event->key() == Qt::Key_Up) {
+            // Trigger history-up only if we are at the top of the text
+            if (textCursor().blockNumber() == 0) {
+                emit historyUp();
+                return;
+            }
+        }
+
+        if (event->key() == Qt::Key_Down) {
+            // Trigger history-down only if we are at the bottom of the text
+            if (textCursor().blockNumber() == document()->blockCount() - 1) {
+                emit historyDown();
+                return;
+            }
+        }
+
         QTextEdit::keyPressEvent(event);
     }
 
 signals:
     void sendTriggered();
+    void historyUp();
+    void historyDown();
 };
 
 InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(parent) {
@@ -88,6 +108,32 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     connect(m_voiceBtn, &VoiceButton::voiceMessageReady,
             this, &InputPanel::onVoiceMessageReady);
     connect(te, &ExpandingTextEdit::sendTriggered, this, &InputPanel::onSendClicked);
+    connect(te, &ExpandingTextEdit::historyUp, this, [this]() {
+        if (m_history.isEmpty()) return;
+        
+        if (m_historyIndex == -1) {
+            m_tempInput = m_textEdit->toPlainText();
+            m_historyIndex = m_history.size() - 1;
+        } else if (m_historyIndex > 0) {
+            m_historyIndex--;
+        }
+
+        m_textEdit->setPlainText(m_history.at(m_historyIndex));
+        m_textEdit->moveCursor(QTextCursor::End);
+    });
+
+    connect(te, &ExpandingTextEdit::historyDown, this, [this]() {
+        if (m_historyIndex == -1) return;
+
+        if (m_historyIndex < m_history.size() - 1) {
+            m_historyIndex++;
+            m_textEdit->setPlainText(m_history.at(m_historyIndex));
+        } else {
+            m_historyIndex = -1;
+            m_textEdit->setPlainText(m_tempInput);
+        }
+        m_textEdit->moveCursor(QTextCursor::End);
+    });
     // Refresh Send button + badge whenever the attachment list changes
     connect(m_attachBtn, &AttachmentButton::attachmentsChanged,
             this, &InputPanel::onAttachmentsChanged);
@@ -117,7 +163,29 @@ void InputPanel::clearInput() {
 void InputPanel::onSendClicked() {
     const QString text = m_textEdit->toPlainText().trimmed();
     const QList<Attachment> att = m_attachBtn->pendingAttachments();
+    
     if (text.isEmpty() && att.isEmpty()) return;
+
+    // Handle Commands
+    if (text.startsWith("/") && !text.startsWith("//")) {
+        QStringList parts = text.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+        if (!parts.isEmpty()) {
+            QString cmd = parts.takeFirst();
+            emit commandRequested(cmd, parts);
+            clearInput();
+            return;
+        }
+    }
+
+    // Normal Message: Add to history
+    if (!text.isEmpty()) {
+        if (m_history.isEmpty() || m_history.last() != text) {
+            m_history.append(text);
+            if (m_history.size() > 50) m_history.removeFirst();
+        }
+    }
+    m_historyIndex = -1;
+
     emit sendRequested(text, att);
     clearInput();
 }

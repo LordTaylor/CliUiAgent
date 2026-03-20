@@ -6,6 +6,7 @@
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
 #include "../data/Attachment.h"
+#include <QQueue>
 
 namespace CodeHex {
 
@@ -44,6 +45,11 @@ public:
      */
     void stop();
 
+    /**
+     * @brief Reset the agent state, clearing queues and pending calls.
+     */
+    void reset();
+
     bool isRunning() const;
     void setRunningForTest(bool r) { m_isRunning = r; }
     void setSyncTools(bool s) { m_syncTools = s; }
@@ -57,6 +63,9 @@ public:
 
     void setRole(Role role) { m_currentRole = role; }
     Role currentRole() const { return m_currentRole; }
+
+    void setSelectedModel(const QString& model) { m_selectedModel = model; }
+    QString selectedModel() const { return m_selectedModel; }
 
 signals:
     void statusChanged(const QString& status);
@@ -91,12 +100,24 @@ private:
     AppConfig* m_config;
     QString m_currentResponse;
     QList<ToolCall> m_pendingCalls;
+    struct PendingRequest {
+        QString input;
+        QList<Attachment> attachments;
+    };
+    QQueue<PendingRequest> m_requestQueue;
     bool m_isRunning = false;
     bool m_syncTools = false;
+    QString m_selectedModel;
+
+    QString m_autoContext; 
+    bool m_isThinkingStream = false;
+    QString m_thoughtBuffer;
+    void injectAutoContext(const QString& query);
 
     bool isPathAllowed(const QString& path) const;
     QString loadRolePrompt(Role role) const;
     QString systemPrompt() const;
+    void processNextQueueItem();
 };
 
 } // namespace CodeHex

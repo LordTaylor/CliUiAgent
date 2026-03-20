@@ -7,6 +7,7 @@
 namespace CodeHex {
 
 WorkFolderSelector::WorkFolderSelector(QWidget* parent) : QWidget(parent) {
+    setObjectName("folderSelector");
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(4, 2, 4, 2);
     layout->setSpacing(6);
@@ -20,6 +21,7 @@ WorkFolderSelector::WorkFolderSelector(QWidget* parent) : QWidget(parent) {
 
     m_label = new QLabel("(no folder)", this);
     m_label->setObjectName("folderLabel");
+    m_label->setMinimumWidth(100);
     layout->addWidget(m_label, 1);
 
     connect(m_btn, &QToolButton::clicked, this, &WorkFolderSelector::onBrowse);

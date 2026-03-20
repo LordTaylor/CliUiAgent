@@ -12,6 +12,9 @@ public:
     QString displayName() const override { return "Ollama"; }
     QString executable() const override { return "ollama"; }
     QString defaultModel() const override { return m_model; }
+    
+    void setModel(const QString& model) override { m_model = model; }
+    QString model() const override { return m_model; }
 
     QStringList buildArguments(const QString& prompt,
                                const QString& workDir) const override;

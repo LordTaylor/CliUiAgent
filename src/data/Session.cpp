@@ -15,6 +15,13 @@ void Session::updateTokens(int inputDelta, int outputDelta) {
     tokens.input += inputDelta;
     tokens.output += outputDelta;
     tokens.total = tokens.input + tokens.output;
+    updatedAt = QDateTime::currentDateTime();
+}
+
+void Session::clear() {
+    messages.clear();
+    tokens = {0,0,0};
+    updatedAt = QDateTime::currentDateTime();
 }
 
 bool Session::save() const {

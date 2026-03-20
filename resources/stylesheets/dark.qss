@@ -8,7 +8,14 @@ QWidget {
 }
 
 QMainWindow {
-    background-color: #111827;
+    background-color: #0B0F1A; /* Darker than before */
+}
+
+/* Glassmorphism Classes or IDs */
+#toolbar, #chatBanner, #inputPanelContainer {
+    background-color: rgba(30, 41, 59, 0.7); /* Translucent Slate */
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 12px;
 }
 
 /* ---- Session Panel ---- */
@@ -176,11 +183,13 @@ QPushButton:disabled {
     background: transparent;
     border: none;
     font-size: 18px;
-    padding: 4px 6px;
-    border-radius: 6px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    color: #9CA3AF;
 }
 #attachBtn:hover, #voiceBtn:hover {
-    background-color: #374151;
+    background-color: rgba(71, 85, 105, 0.3);
+    color: #F3F4F6;
 }
 #voiceBtn:checked {
     background-color: #7F1D1D;

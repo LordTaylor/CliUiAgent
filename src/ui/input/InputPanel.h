@@ -1,6 +1,7 @@
 #pragma once
-#include <QFileInfo>
 #include <QList>
+#include <QString>
+#include <QStringList>
 #include <QWidget>
 #include "../../data/Attachment.h"
 
@@ -26,6 +27,7 @@ public:
 
 signals:
     void sendRequested(const QString& text, const QList<Attachment>& attachments);
+    void commandRequested(const QString& cmd, const QStringList& args);
     void stopRequested();
 
 private slots:
@@ -41,6 +43,11 @@ private:
     VoiceButton*     m_voiceBtn;
     QPushButton*     m_sendBtn;
     QPushButton*     m_stopBtn;
+    
+    // History
+    QStringList      m_history;
+    int              m_historyIndex = -1;
+    QString          m_tempInput;
 };
 
 }  // namespace CodeHex

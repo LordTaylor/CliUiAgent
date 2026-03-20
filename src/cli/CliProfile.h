@@ -29,6 +29,10 @@ public:
     virtual QString executable()   const = 0;
     virtual QString defaultModel() const = 0;
 
+    // Dynamic model override (used by LLM Router)
+    virtual void setModel(const QString& /*model*/) {}
+    virtual QString model() const { return defaultModel(); }
+
     // ── Argument builders ─────────────────────────────────────────────────────
     virtual QStringList buildArguments(const QString& prompt,
                                        const QString& workDir) const {

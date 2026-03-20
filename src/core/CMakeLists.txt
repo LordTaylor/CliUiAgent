@@ -5,6 +5,7 @@ add_library(codehex_core STATIC
     ChatController.h ChatController.cpp
     ToolExecutor.h   ToolExecutor.cpp
     AgentEngine.h    AgentEngine.cpp
+    LlmDiscoveryService.h LlmDiscoveryService.cpp
     Tool.h
     tools/ToolUtils.h
     tools/ReadFileTool.h

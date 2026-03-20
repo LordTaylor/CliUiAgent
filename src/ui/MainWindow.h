@@ -10,23 +10,20 @@
 #include "../data/Attachment.h"
 #include "../data/Message.h"
 #include "../data/Session.h"
+#include "widgets/TerminalPanel.h"
+#include "widgets/ThemeManager.h"
 #include "help/HelpDialog.h"
 #include "chat/ToolApprovalDialog.h"
 
-namespace CodeHex {
-
-class AppConfig;
-class SessionManager;
-class ChatController;
-class AudioRecorder;
-class AudioPlayer;
-
+class LlmDiscoveryService;
+class ChatControlBanner;
 class ChatView;
 class MessageModel;
 class InputPanel;
 class ConsoleWidget;
-class WorkFolderSelector;
+class WorkFolderPanel;
 class SessionPanel;
+class QSlider;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -48,11 +45,18 @@ private slots:
     void onResponseComplete(const Message& msg);
     void onGenerationStarted();
     void onGenerationStopped();
+    void onClearChatRequested();
+    void onThemeToggleRequested();
     void onToolApprovalRequested(const QString& toolName, const QJsonObject& input);
     void onProfileChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();
     void onTokenBufferTimeout();
+    void onCommandRequested(const QString& cmd, const QStringList& args);
+    void onLlmSliderChanged(int value);
+    void onModelSelected(int index);
+    void onModelsReady(const QStringList& models);
+    void onDiscoveryError(const QString& error);
 
 private:
     void setupUi();
@@ -69,18 +73,25 @@ private:
     ProfileList     m_extraProfiles;
 
     // UI widgets
-    QSplitter*          m_splitter;
-    SessionPanel*       m_sessionPanel;
-    ChatView*           m_chatView;
+    QSplitter*          m_splitter = nullptr;
+    QSplitter*          m_sidebarSplitter = nullptr;
+    SessionPanel*       m_sessionPanel = nullptr;
+    WorkFolderPanel*    m_workFolderPanel = nullptr;
+    ChatView*           m_chatView = nullptr;
     MessageModel*       m_messageModel;
     InputPanel*         m_inputPanel;
-    ConsoleWidget*      m_console;
-    WorkFolderSelector* m_folderSelector;
-    QComboBox*          m_profileCombo;
-    QCheckBox*          m_agentModeCheck;
+    TerminalPanel*      m_terminalPanel;
+    ChatControlBanner*  m_chatBanner;
+    LlmDiscoveryService* m_discoveryService;
+    QSlider*            m_llmSlider;     // Privacy vs Performance
+    QComboBox*          m_modelCombo;    // Dynamic model discovery
+    QComboBox*          m_profileCombo;  // Legacy (to be phased out)
+    QComboBox*          m_roleCombo;
+    QCheckBox*          m_autoApproveCheck;
     QPushButton*        m_scrollToBottomBtn;
     QPushButton*        m_autoScrollBtn; // Magnet button
     QPushButton*        m_stopBtn;       // Stop agent button
+    QPushButton*        m_themeBtn;      // Dark/Light toggle
     QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
 

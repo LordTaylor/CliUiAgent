@@ -10,12 +10,14 @@ enum class BlockType {
     Lua,
     Output, // For CLI command output
     ToolCall, // For tool invocation
-    Thinking // For agent reasoning
+    Thinking, // For agent reasoning
+    LogStep   // Compact status/step log (Antigravity style)
 };
 
 struct CodeBlock {
     QString content;
     BlockType type;
+    bool isCollapsed = false;
 };
 
 } // namespace CodeHex

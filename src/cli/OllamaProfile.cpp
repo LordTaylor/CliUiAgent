@@ -9,7 +9,7 @@ static constexpr int kMaxHistoryMessages = 20;
 QStringList OllamaProfile::buildArguments(const QString& prompt,
                                           const QString& /*workDir*/) const {
     // ollama run <model> "<prompt>" — non-interactive: prints response and exits.
-    return {"run", m_model, prompt};
+    return {"run", model(), prompt};
 }
 
 QStringList OllamaProfile::buildArguments(const QString& prompt,
@@ -22,14 +22,30 @@ QStringList OllamaProfile::buildArguments(const QString& prompt,
 
     QString context;
     if (!systemPrompt.isEmpty()) {
-        context += "System: " + systemPrompt + "\n";
+        context += "System: " + systemPrompt + "\n\n";
     }
+
+    QString lastAssContent;
+    int repeatCount = 0;
+
     for (int i = histStart; i < histEnd; ++i) {
         const Message& msg = history.at(i);
-        if (msg.role == Message::Role::User)
-            context += "User: " + msg.textFromContentBlocks() + "\n";
-        else if (msg.role == Message::Role::Assistant)
-            context += "Assistant: " + msg.textFromContentBlocks() + "\n";
+        QString currentText = msg.textFromContentBlocks();
+
+        if (msg.role == Message::Role::Assistant) {
+            if (!lastAssContent.isEmpty() && currentText == lastAssContent) {
+                repeatCount++;
+                continue;
+            }
+            lastAssContent = currentText;
+            context += "Assistant: " + currentText + "\n";
+        } else if (msg.role == Message::Role::User) {
+            context += "User: " + currentText + "\n";
+        }
+    }
+
+    if (repeatCount >= 2) {
+        context += "\nSystem: WARNING: You are appearing to repeat previous actions. Please finish the task or change your technical approach to avoid looping.\n";
     }
 
     const QString fullPrompt = context.isEmpty()

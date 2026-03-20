@@ -14,8 +14,9 @@ public:
 
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
                const QModelIndex& index) const override;
-    QSize sizeHint(const QStyleOptionViewItem& option,
-                   const QModelIndex& index) const override;
+    QSize sizeHint(const QStyleOptionViewItem& opt, const QModelIndex& index) const override;
+
+    int blockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
 
 private:
     static constexpr int kBubblePadding  = 12;

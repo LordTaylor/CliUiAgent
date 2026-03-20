@@ -98,12 +98,18 @@ DEFAULT_MODEL=gpt-4-turbo
 
 ---
 
-## Switching profiles at runtime
+## Switching Models at Runtime (LLM Router)
 
-Use the **profile dropdown** in the top-right of the chat area. The change takes effect for the next message. The active profile is saved to `~/.codehex/config.json`:
-```json
-{ "activeProfile": "ollama" }
-```
+CodeHex features a dual-layer **LLM Router** in the top control bar:
+
+1.  **Privacy vs. Performance Slider**: 
+    -   **Privacy (Left)**: Uses your local **Ollama** infrastructure. Data stays on your machine.
+    -   **Performance (Right)**: Uses cloud-based providers (OpenAI, Anthropic, Google) for higher reasoning capabilities.
+2.  **Model Selection Dropdown**: 
+    -   Once a mode is selected, CodeHex dynamically **discovers** available models from the provider.
+    -   Simply select your preferred model (e.g., `llama3.1:8b` or `gpt-4o`) from the list.
+
+The active selection is persistent and saved to `~/.codehex/config.json`.
 
 ---
 
