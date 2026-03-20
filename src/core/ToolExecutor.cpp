@@ -10,6 +10,7 @@
 #include <QtConcurrent>
 #include <QMetaType>
 #include <QJsonDocument>
+#include <QJsonObject>
 
 namespace CodeHex {
 
@@ -93,12 +94,23 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
 }
 
 QString ToolExecutor::getToolDefinitions() const {
-    QString defs = "## Available Tools\n\n";
+    QString defs = "## Narzędzia Systemowe (Tool Use)\n\n";
+    defs += "Aby wykonać u mnie akcję, MUSISZ użyć poniższego formatu XML w swojej odpowiedzi:\n\n";
+    defs += "```xml\n";
+    defs += "<tool_call>\n";
+    defs += "<name>NazwaNarzedzia</name>\n";
+    defs += "<input>\n";
+    defs += "{ ... JSON params ... }\n";
+    defs += "</input>\n";
+    defs += "</tool_call>\n";
+    defs += "```\n\n";
+    defs += "Zawsze formatuj argumenty jako poprawny JSON tekst w bloku <input>. Wypisuj tylko jeden `<tool_call>` na raz!\n\n";
+    defs += "Lista dostępnych narzędzi:\n\n";
     for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
         auto tool = it.value();
         defs += QString("### %1\n").arg(tool->name());
         defs += tool->description() + "\n";
-        defs += "Parameters:\n";
+        defs += "Parameters (JSON schema):\n";
         QJsonDocument doc(tool->parameters());
         defs += "```json\n" + doc.toJson(QJsonDocument::Indented) + "```\n\n";
     }

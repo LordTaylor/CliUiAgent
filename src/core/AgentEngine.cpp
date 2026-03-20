@@ -1,6 +1,7 @@
 #include "AgentEngine.h"
 #include <QDebug>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QTimer>
 #include "ToolExecutor.h"
 #include "tools/ToolUtils.h"
@@ -135,6 +136,10 @@ QString AgentEngine::loadRolePrompt(Role role) const {
 QString AgentEngine::systemPrompt() const {
     QString base = loadRolePrompt(Role::Base);
     
+    if (m_toolExecutor) {
+        base += "\n\n" + m_toolExecutor->getToolDefinitions();
+    }
+    
     if (m_currentRole == Role::Base) return base;
     
     QString rolePrompt = loadRolePrompt(m_currentRole);
@@ -260,7 +265,37 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     }
 
     buildAssistantMessage(m_currentResponse);
+
+    // Parse LLM-agnostic XML tool calls
+    QRegularExpression re("<tool_call>\\s*<name>([^<]+)</name>\\s*<input>(.*?)</input>\\s*</tool_call>", 
+                          QRegularExpression::DotMatchesEverythingOption | QRegularExpression::InvertedGreedinessOption);
+    
+    QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
+    QList<ToolCall> parsedCalls;
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        ToolCall call;
+        call.id = QUuid::createUuid().toString();
+        call.name = match.captured(1).trimmed();
+        
+        QString jsonStr = match.captured(2).trimmed();
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
+        if (!doc.isNull() && doc.isObject()) {
+            call.input = doc.object();
+            parsedCalls.append(call);
+        } else {
+            qWarning() << "AgentEngine: Failed to parse JSON from XML tool:" << err.errorString() << "\nJSON:\n" << jsonStr;
+        }
+    }
+
+    if (!parsedCalls.isEmpty()) {
+        onToolCallReady(parsedCalls.first());
+    } else {
+        emit statusChanged("");
+    }
 }
+
 
 void AgentEngine::buildAssistantMessage(const QString& plainText) {
     auto* session = m_sessions->currentSession();
