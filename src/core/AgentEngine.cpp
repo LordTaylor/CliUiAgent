@@ -238,34 +238,42 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     Q_UNUSED(toolName);
     
     auto* session = m_sessions->currentSession();
-    if (!session) {
-        return;
-    }
+    if (!session) return;
 
-    // Convert ToolResult to a Message (normally this is handled as part of the tool turn)
+    // Create a NEW message for the Tool Result
     Message toolMsg;
     toolMsg.id = QUuid::createUuid();
-    toolMsg.role = Message::Role::User; // In some APIs this is Role::Tool
+    toolMsg.role = Message::Role::User; // Fallback for local models
+    toolMsg.timestamp = QDateTime::currentDateTime();
     
+    // Add the tool result data
+    toolMsg.toolResults << result;
+    
+    // Add text block for display and model context
     CodeBlock block;
-    block.type = BlockType::Text; // Or a specific 'Result' type if available
+    block.type = BlockType::Text;
     block.content = result.content;
     toolMsg.contentBlocks << block;
-    toolMsg.timestamp = QDateTime::currentDateTime();
+    toolMsg.addText(result.content); // Ensures compatibility with all serializers
 
     session->appendMessage(toolMsg);
     session->save();
 
+    // Automatically trigger the next agent turn if the profile isn't already doing something
     if (!m_runner->isProfileRunning()) {
-        toolMsg.addText(result.content);
-        toolMsg.toolResults << result; 
-        session->appendMessage(toolMsg);
-
         if (!result.isError) {
             QString sp = systemPrompt();
             if (m_runner) {
-                m_runner->send("", m_config->workingFolder(), {}, session->messages, sp);
+                // For local models, a small nudge helps prevent loops or empty responses
+                m_runner->send("Tool executed successfully. Please continue or finalize the task.", 
+                              m_config->workingFolder(), {}, session->messages, sp);
             }
+        } else {
+            // If it was an error, just notify the user/model without automatic continue if preferred
+            // but usually agent should try to fix the error.
+             QString sp = systemPrompt();
+             m_runner->send("Tool execution failed. Analyze the error and try a different approach.", 
+                           m_config->workingFolder(), {}, session->messages, sp);
         }
     }
 }

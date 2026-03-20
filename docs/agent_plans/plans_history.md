@@ -90,3 +90,17 @@ Zapewnienie użytkownikowi jasnej informacji o stanie agenta i aktualizacja cał
 - [x] **Ulepszenia Dialogów**: Nowy, czytelniejszy `ToolApprovalDialog` z ostrzeżeniami Safety Mode.
 - [x] **Synchronizacja Zasobów**: Aktualizacja `CMakeLists.txt` i usunięcie nieaktualnych zasobów.
 - [x] **Organizacja Projektu**: Utworzenie `docs/agent_plans/` i archiwizacja wszystkich planów.
+
+---
+
+## Faza 10: Naprawa Autonomii i Eliminacja Pętli (ZAKOŃCZONA)
+
+### Cel:
+Rozwiązanie problemu "Just-a-Chat" oraz zapętlania się agenta poprzez poprawne ładowanie zasobów i eliminację duplikacji wiadomości.
+
+#### Zrealizowane zadania:
+- [x] **Zasoby Qt**: Przeniesienie wszystkich promptów systemowych do zasobów binarnych (`Resources`).
+- [x] **Eliminacja Duplikacji**: Naprawa błędu w `AgentEngine`, który powodował podwójne dopisywanie wyników narzędzi do historii (główna przyczyna pętli).
+- [x] **Robust Parser**: Ulepszenie parsera XML, aby był odporny na nieregularne formatowanie modeli lokalnych.
+- [x] **Instrukcje Anty-Loop**: Dodanie do głównego promptu wyraźnych zakazów powtarzania tych samych akcji bez zmiany stanu.
+- [x] **Weryfikacja**: Potwierdzenie stabilności 21 testami (100% success).
