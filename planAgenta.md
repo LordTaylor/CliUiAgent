@@ -89,6 +89,9 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 
 #### Krok 5.3: Granular Permissions & Sandbox
     - [x] Allow/Ask/Deny: Implementowane w `AgentEngine.cpp`.
+    - [x] Wstrzykiwanie schematów narzędzi (`getToolDefinitions()`) do promptów.
+    - [x] Wdrożenie agnostycznego względem modelu protokołu `tool_call` (XML) dla wsparcia modeli opensource (np. LM Studio).
+    - [x] Pełna autonomia: wyłączenie zapytań o uprawnienia, gdy wyłączony jest tryb manualny.
     - [x] Sandbox: `isPathAllowed` blokuje dostęp poza `/CodeHex`.
     - [x] Tool Approval UI: `ToolApprovalDialog` dla krytycznych akcji.
 
@@ -103,3 +106,27 @@ Zbliżenie funkcjonalności CodeHex do profesjonalnych agentów AI poprzez wprow
 - [ ] **6.2. Trwała Pamięć (MEMORY.md).**
 - [ ] **6.3. "Session Yielding" (Pauza i Wznowienie).**
 - [ ] **6.4. Piaskownica (Docker/Containerization).**
+
+## Faza 7: Modernizacja Interfejsu i Stabilność Agenta (ZAKOŃCZONA)
+
+### Cel:
+Zaprojektowanie nowoczesnego, przejrzystego interfejsu czatu (nowy wygląd) oraz całkowite rozwiązanie problemu "zapętlania się" modelu przy błędnym formacie narzędzi, poparte testami jednostkowymi.
+
+### Zadania (Checklista):
+
+#### Krok 7.1: Nowoczesny Wygląd UI
+- [x] **7.1.1. Przebudowa delegata w `ChatView`:** Akcenty kolorystyczne na lewej krawędzi bąbelków asystenta (fioletowy=thinking, zielony=output, niebieski=tool calls).
+- [x] **7.1.2. Upiększenie formatowania Markdown:** Premium dark-mode CSS stylesheet z kolorowymi nagłówkami, zielonym inline code, tłem bloków kodu, stylami blockquote i linków.
+- [x] **7.1.3. Rozwiązanie błędów wizualnych:** Naprawa paska przewijania i layoutu (wcześniejsze fazy).
+
+#### Krok 7.2: Ostateczna poprawka parsera ToolCall (Zapętlanie i JSON)
+- [x] **7.2.1. Obsługa wielu XMLów:** `break` po pierwszym poprawnym bloku XML/Bash.
+- [x] **7.2.2. Usunięcie InvertedGreedinessOption:** Naprawiony greedy regex Qt.
+- [x] **7.2.3. CRITICAL: m_isRunning guard:** Usunięty guard blokujący WSZYSTKIE toole (onRunnerFinished ustawiał false przed onToolCallReady).
+- [x] **7.2.4. Sandbox path resolution:** Ścieżki względne rozwiązywane wobec workingFolder (nie process CWD).
+- [x] **7.2.5. Weryfikacja Popupa (ToolApprovalDialog):** Popup priorytetyzuje główny wątek; logowanie dodane.
+
+#### Krok 7.3: Testy Autonomii Agenta
+- [x] **7.3.1. Utworzenie testu jednostkowego Parsera:** 3 testy Catch2 (valid XML, looped XML, Bash fallback).
+- [x] **7.3.2. Weryfikacja skuteczności ekstrakta:** Wszystkie 19/19 testów projektu przechodzą.
+

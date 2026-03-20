@@ -14,18 +14,23 @@ ToolApprovalDialog::ToolApprovalDialog(const ToolCall& call, QWidget* parent)
     layout->setContentsMargins(20, 20, 20, 20);
     layout->setSpacing(15);
 
-    auto* title = new QLabel("<b>Agent wants to use a tool:</b>", this);
+    auto* warning = new QLabel("⚠️ <b>Safety Mode:</b> The agent requires your explicit approval to perform this action.", this);
+    warning->setStyleSheet("color: #F59E0B;");
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+
+    auto* title = new QLabel("<b>Request Details:</b>", this);
     layout->addWidget(title);
 
     m_infoLabel = new QLabel(this);
     m_infoLabel->setWordWrap(true);
     
-    QString details = "<b>Tool:</b> " + call.name + "<br>";
+    QString details = "<b>Tool:</b> <code style='color: #10B981;'>" + call.name + "</code><br><br>";
     details += "<b>Arguments:</b><br>";
-    details += "<pre>" + QJsonDocument(call.input).toJson(QJsonDocument::Indented) + "</pre>";
+    details += "<pre style='font-size: 11px;'>" + QJsonDocument(call.input).toJson(QJsonDocument::Indented) + "</pre>";
     
     m_infoLabel->setText(details);
-    m_infoLabel->setStyleSheet("background-color: #1F2937; color: #E5E7EB; padding: 10px; border-radius: 6px;");
+    m_infoLabel->setStyleSheet("background-color: #1F2937; color: #E5E7EB; padding: 12px; border: 1px solid #374151; border-radius: 8px;");
     layout->addWidget(m_infoLabel);
 
     auto* btnLayout = new QHBoxLayout();

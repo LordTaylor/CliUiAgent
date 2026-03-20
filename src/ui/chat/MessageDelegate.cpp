@@ -41,7 +41,7 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         p->setPen(Qt::white);
         p->drawText(QRect(avatarX, avatarY, kAvatarSize, kAvatarSize), Qt::AlignCenter, "U");
     } else {
-        QPixmap pix(":/icons/app.png");
+        QPixmap pix(":/resources/icons/app.png");
         if (!pix.isNull()) {
             p->drawPixmap(avatarX, avatarY, kAvatarSize, kAvatarSize, pix);
         } else {
@@ -87,6 +87,19 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         p->setBrush(bubbleColor);
         p->setRenderHint(QPainter::Antialiasing);
         p->drawRoundedRect(x, currentY, bl.width, bl.height, kBubbleRadius, kBubbleRadius);
+
+        // Subtle accent border for premium feel
+        if (!isUser) {
+            QColor accentColor;
+            switch(block.type) {
+                case BlockType::Thinking:  accentColor = QColor(0x8B5CF6); break; // Purple
+                case BlockType::Output:    accentColor = QColor(0x10B981); break; // Green  
+                case BlockType::ToolCall:  accentColor = QColor(0x60A5FA); break; // Blue
+                default:                   accentColor = QColor(0x4B5563); break; // Gray
+            }
+            p->setPen(QPen(accentColor, 2));
+            p->drawLine(x + 1, currentY + kBubbleRadius, x + 1, currentY + bl.height - kBubbleRadius);
+        }
 
         // --- Text/Content ---
         int headerHeight = 0;
@@ -189,12 +202,18 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
 QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
     const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
-    if (msg.layoutCache && msg.layoutCache->lastViewWidth == option.rect.width()) {
-        return {option.rect.width(), msg.layoutCache->totalHeight};
+    if (msg.layoutCache) {
+        // Allow a small delta to prevent oscillating fallbacks during resize
+        if (qAbs(msg.layoutCache->lastViewWidth - option.rect.width()) <= 2) {
+            return {option.rect.width(), msg.layoutCache->totalHeight};
+        }
     }
 
     const int viewWidth = option.rect.width() > 0 ? option.rect.width() : 600;
-    // Fallback if not precomputed or width changed (should be handled by setViewWidth)
+    // Fallback if not precomputed or width changed significantly
+    if (msg.layoutCache) {
+        return {viewWidth, msg.layoutCache->totalHeight};
+    }
     return {viewWidth, kAvatarSize + 2 * kRowMargin};
 }
 

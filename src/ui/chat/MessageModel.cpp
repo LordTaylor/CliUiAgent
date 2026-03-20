@@ -92,6 +92,22 @@ void MessageModel::precomputeLayout(Message& msg) const {
         bl.doc->setDefaultFont(docFont);
         bl.doc->setDocumentMargin(0);
 
+        // Premium dark-mode stylesheet for rich Markdown rendering
+        bl.doc->setDefaultStyleSheet(
+            "body { color: #E5E7EB; }"
+            "h1 { color: #F9FAFB; font-size: 18px; font-weight: bold; margin-top: 8px; margin-bottom: 4px; }"
+            "h2 { color: #F3F4F6; font-size: 16px; font-weight: bold; margin-top: 6px; margin-bottom: 3px; }"
+            "h3 { color: #D1D5DB; font-size: 14px; font-weight: bold; margin-top: 4px; margin-bottom: 2px; }"
+            "code { background-color: #1F2937; color: #34D399; padding: 1px 4px; border-radius: 3px; font-family: 'Menlo', 'Courier New', monospace; font-size: 12px; }"
+            "pre { background-color: #111827; color: #9CA3AF; padding: 8px; border-radius: 6px; font-family: 'Menlo', 'Courier New', monospace; font-size: 12px; }"
+            "a { color: #60A5FA; text-decoration: none; }"
+            "blockquote { border-left: 3px solid #4B5563; margin-left: 4px; padding-left: 8px; color: #9CA3AF; }"
+            "ul, ol { margin-left: 16px; }"
+            "li { margin-bottom: 2px; }"
+            "strong { color: #F9FAFB; }"
+            "em { color: #D1D5DB; }"
+        );
+
         bool isMarkdown = (msg.role == Message::Role::Assistant && block.type == BlockType::Text) ||
                           (block.type != BlockType::Text);
 
@@ -101,12 +117,15 @@ void MessageModel::precomputeLayout(Message& msg) const {
             bl.doc->setPlainText(block.content);
         }
 
-        // Set width and force layout
+        // Set width constraint and force layout
         bl.doc->setTextWidth(textW);
         
-        // Calculate required width: the smaller of maxW or the document's actual content width
-        int contentWidth = static_cast<int>(bl.doc->size().width());
+        // Use idealWidth to get the actual minimum width needed for the text
+        int contentWidth = static_cast<int>(std::ceil(bl.doc->idealWidth()));
         bl.width = qMax(60, qMin(maxW, contentWidth + 2 * kBubblePadding));
+        
+        // Re-set text width to the final bubble content width to get accurate height
+        bl.doc->setTextWidth(bl.width - 2 * kBubblePadding);
         
         // Calculate height with specific header offsets
         int headerOffset = 0;

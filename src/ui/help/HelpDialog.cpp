@@ -17,7 +17,6 @@ static const QList<QPair<QString, QString>> TOC = {
     {"Interface Guide",        "ui-guide"},
     {"Sessions",               "sessions"},
     {"CLI Profiles & Models",  "cli-profiles"},
-    {"Claude Code Wizard",     "wizard-claude-code"},
     {"Scripting (Lua/Python)", "scripting"},
     {"Voice & Attachments",    "voice-and-attachments"},
     {"Keyboard Shortcuts",     "keyboard-shortcuts"},

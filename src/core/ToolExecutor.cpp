@@ -9,6 +9,8 @@
 #include "tools/GitTool.h"
 #include <QtConcurrent>
 #include <QMetaType>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace CodeHex {
 
@@ -89,6 +91,36 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
     emit toolFinished(toolName, result);
     
     return result;
+}
+
+QString ToolExecutor::getToolDefinitions() const {
+    QString defs = "## Narzędzia Systemowe (Tool Use)\n\n";
+    defs += "Aby wykonać akcję, MUSISZ użyć poniższego formatu XML w swojej odpowiedzi:\n\n";
+    defs += "```xml\n";
+    defs += "<tool_call>\n";
+    defs += "<name>NazwaNarzedzia</name>\n";
+    defs += "<input>\n";
+    defs += "{\"parametr\": \"wartość\"}\n";
+    defs += "</input>\n";
+    defs += "</tool_call>\n";
+    defs += "```\n\n";
+    
+    defs += "### ZASADY:\n";
+    defs += "1. **Tylko jeden `<tool_call>` na raz.** Nie wysyłaj wielu narzędzi w jednej odpowiedzi.\n";
+    defs += "2. **Poprawny JSON.** Zawartość `<input>` MUSI być poprawnym obiektem JSON.\n";
+    defs += "3. **Brak Markdown wewnątrz.** Nie używaj ` ```json ` wewnątrz tagu `<input>`.\n";
+    defs += "4. **Myśl przed działaniem.** Używaj `<thought>` do zaplanowania kroku przed wysłaniem XML.\n\n";
+    
+    defs += "Lista dostępnych narzędzi:\n\n";
+    for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
+        auto tool = it.value();
+        defs += QString("### %1\n").arg(tool->name());
+        defs += tool->description() + "\n";
+        defs += "Parameters (JSON schema):\n";
+        QJsonDocument doc(tool->parameters());
+        defs += "```json\n" + doc.toJson(QJsonDocument::Indented) + "```\n\n";
+    }
+    return defs;
 }
 
 }  // namespace CodeHex

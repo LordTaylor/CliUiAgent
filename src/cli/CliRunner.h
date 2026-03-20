@@ -41,8 +41,7 @@ signals:
     void finished(int exitCode);
     void started();
     // Emitted when a complete tool-use block has been parsed from the stream.
-    // Claude CLI executes the tool internally; this signal is used for display
-    // and for custom tool loops in non-Claude profiles.
+    // This signal is used for display and for tool execution loops.
     void toolCallReady(const CodeHex::ToolCall& call);
 
     // New signals for simple commands

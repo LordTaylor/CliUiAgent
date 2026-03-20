@@ -48,17 +48,23 @@ qt_add_resources(CodeHex "resources"
         resources/icons/mic.svg
         resources/icons/folder.svg
         resources/icons/app.png
+        resources/prompts/base.txt
+        resources/prompts/explorer.txt
+        resources/prompts/executor.txt
+        resources/prompts/reviewer.txt
 )
 
 qt_add_resources(CodeHex "help"
     PREFIX "/help/en"
     BASE "docs/help/en"
     FILES
+        docs/help/en/index.md
         docs/help/en/getting-started.md
         docs/help/en/ui-guide.md
+        docs/help/en/autonomous-agent.md
+        docs/help/en/lm-studio.md
         docs/help/en/sessions.md
         docs/help/en/cli-profiles.md
-        docs/help/en/wizard-claude-code.md
         docs/help/en/scripting.md
         docs/help/en/voice-and-attachments.md
         docs/help/en/keyboard-shortcuts.md

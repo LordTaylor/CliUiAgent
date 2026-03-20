@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QScrollBar>
 #include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
@@ -17,9 +18,7 @@
 #include "help/HelpDialog.h"
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
-#include "../cli/ClaudeProfile.h"
 #include "../cli/CliRunner.h"
-#include "../cli/GptProfile.h"
 #include "../cli/OllamaProfile.h"
 #include "../core/AppConfig.h"
 #include "../core/ChatController.h"
@@ -49,7 +48,7 @@ MainWindow::MainWindow(AppConfig* config,
       m_player(player),
       m_extraProfiles(extraProfiles) {
     setWindowTitle("CodeHex");
-    setWindowIcon(QIcon(":/icons/app.png"));
+    setWindowIcon(QIcon(":/resources/icons/app.png"));
     setMinimumSize(900, 600);
     resize(1200, 800);
 
@@ -216,8 +215,17 @@ void MainWindow::setupUi() {
     // Status Label (Floating at bottom-left or center-bottom)
     m_statusLabel = new QLabel(chatContainer);
     m_statusLabel->setObjectName("agentStatusLabel");
-    m_statusLabel->setVisible(false);
-    m_statusLabel->setStyleSheet("background: rgba(31, 41, 55, 0.9); color: #10B981; padding: 6px 16px; border-radius: 12px; border: 1px solid #10B981;");
+    m_statusLabel->setVisible(true);
+    m_statusLabel->setText("Ready");
+    m_statusLabel->setStyleSheet(
+        "background: rgba(31, 41, 55, 0.95); "
+        "color: #9CA3AF; "
+        "padding: 8px 20px; "
+        "border-radius: 14px; "
+        "border: 1px solid #4B5563; "
+        "font-weight: bold; "
+        "font-size: 13px;"
+    );
     chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
     m_statusLabel->raise();
 
@@ -227,6 +235,15 @@ void MainWindow::setupUi() {
     connect(m_scrollToBottomBtn, &QPushButton::clicked, m_chatView, &ChatView::scrollToBottom);
     connect(m_autoScrollBtn, &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
     connect(m_stopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
+
+    // Uncheck magnet if user scrolls up manually
+    connect(m_chatView->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int value) {
+        if (value < m_chatView->verticalScrollBar()->maximum() - 20) {
+            if (m_autoScrollBtn->isChecked()) {
+                m_autoScrollBtn->setChecked(false);
+            }
+        }
+    });
 
     // Input panel
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
@@ -308,7 +325,6 @@ void MainWindow::setupMenuBar() {
         {"&Interface Guide",       "ui-guide",             ""},
         {"&Sessions",              "sessions",             ""},
         {"&CLI Profiles & Models", "cli-profiles",         ""},
-        {"Claude Code &Wizard",    "wizard-claude-code",   ""},
         {"Sc&ripting (Lua/Python)","scripting",            ""},
         {"&Voice && Attachments",  "voice-and-attachments",""},
         {"&Keyboard Shortcuts",    "keyboard-shortcuts",   ""},
@@ -344,11 +360,11 @@ void MainWindow::onHelpRequested(const QString& page) {
 void MainWindow::onAbout() {
     QMessageBox about(this);
     about.setWindowTitle("About CodeHex");
-    about.setIconPixmap(QPixmap(":/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    about.setIconPixmap(QPixmap(":/resources/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     about.setText("<h2>CodeHex 0.1.0</h2>"
         "<p>A desktop coding chatbot for developers.</p>"
-        "<p>Supports <b>Claude CLI</b>, <b>Ollama</b>, and <b>OpenAI</b> "
-        "backends with Lua/Python scripting hooks.</p>"
+        "<p>Supports <b>LM Studio</b>, <b>Ollama</b>, and other local "
+        "OpenAI-compatible LLMs with Lua/Python scripting hooks.</p>"
         "<p>Built with Qt6/C++ · <a href='https://github.com/LordTaylor/CliUiAgent'>"
         "GitHub</a></p>");
     about.exec();
@@ -365,10 +381,8 @@ void MainWindow::populateProfileCombo() {
     m_profileCombo->blockSignals(true);
     m_profileCombo->clear();
 
-    // ── Built-in profiles ─────────────────────────────────────────
-    m_profileCombo->addItem("Claude CLI",  "claude");
+    // ── Built-in profiles (local-only) ────────────────────────────
     m_profileCombo->addItem("Ollama",      "ollama");
-    m_profileCombo->addItem("OpenAI/sgpt", "gpt");
 
     // ── Extra profiles from ~/.codehex/profiles/ ──────────────────
     if (!m_extraProfiles.isEmpty()) {
@@ -493,8 +507,9 @@ void MainWindow::onGenerationStarted() {
     m_inputPanel->setStopEnabled(true);
     m_stopBtn->setVisible(true);
     m_statusLabel->setVisible(true);
-    m_statusLabel->setText("Agent is working...");
-    statusBar()->showMessage("Generating…");
+    m_statusLabel->setText("Agent is Thinking...");
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #3B82F6").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #3B82F6"));
+    statusBar()->showMessage("Processing…");
 }
 
 void MainWindow::onGenerationStopped() {
@@ -504,7 +519,8 @@ void MainWindow::onGenerationStopped() {
     m_inputPanel->setSendEnabled(true);
     m_inputPanel->setStopEnabled(false);
     m_stopBtn->setVisible(false);
-    m_statusLabel->setVisible(false);
+    m_statusLabel->setText("Ready");
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #9CA3AF").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #4B5563"));
     statusBar()->clearMessage();
     updateTokenLabel();
 }
@@ -515,16 +531,19 @@ void MainWindow::onStopRequested() {
 }
 
 void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObject& input) {
+    m_statusLabel->setText("Waiting for Tool Approval: " + toolName);
+    m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #F59E0B").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #F59E0B"));
+    
     ToolCall call;
     call.name = toolName;
     call.input = input;
-    
-    ToolApprovalDialog dialog(call, this);
-    if (dialog.exec() == QDialog::Accepted) {
+    ToolApprovalDialog dlg(call, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        m_statusLabel->setText("Executing Tool: " + toolName);
+        m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #10B981").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #10B981"));
         m_controller->approveToolCall(call);
     } else {
-        // Stop generation if denied
-        m_controller->stopGeneration();
+        onGenerationStopped();
     }
 }
 

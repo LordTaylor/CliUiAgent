@@ -4,6 +4,7 @@
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QScrollBar>
+#include <QResizeEvent>
 #include "MessageDelegate.h"
 #include "MessageModel.h"
 
@@ -13,6 +14,8 @@ ChatView::ChatView(QWidget* parent) : QListView(parent) {
     setItemDelegate(new MessageDelegate(this));
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    setUniformItemSizes(false);
+    setResizeMode(QListView::Adjust);
     setSelectionMode(QAbstractItemView::NoSelection);
     setFrameShape(QFrame::NoFrame);
     setSpacing(4);
@@ -22,6 +25,9 @@ ChatView::ChatView(QWidget* parent) : QListView(parent) {
 void ChatView::setMessageModel(MessageModel* model) {
     m_msgModel = model;
     setModel(model);
+    if (m_msgModel) {
+        m_msgModel->setViewWidth(viewport()->width());
+    }
 }
 
 void ChatView::scrollToBottom() {
@@ -32,6 +38,16 @@ void ChatView::scrollToBottom() {
 
 bool ChatView::autoScrollEnabled() const { return m_autoScroll; }
 void ChatView::setAutoScrollEnabled(bool enabled) { m_autoScroll = enabled; }
+
+void ChatView::resizeEvent(QResizeEvent* event) {
+    QListView::resizeEvent(event);
+    if (m_msgModel) {
+        m_msgModel->setViewWidth(viewport()->width());
+    }
+    if (m_autoScroll) {
+        scrollToBottom();
+    }
+}
 
 void ChatView::contextMenuEvent(QContextMenuEvent* event) {
     const QModelIndex idx = indexAt(event->pos());

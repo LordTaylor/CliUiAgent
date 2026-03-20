@@ -39,7 +39,7 @@ signals:
     void activeProfileChanged(const QString& name);
 
 private:
-    QString m_activeProfile = "claude";
+    QString m_activeProfile = "lmstudio-qwen-14b";
     QString m_workingFolder;
     QString m_lastSessionId;
     QString m_dataDir;

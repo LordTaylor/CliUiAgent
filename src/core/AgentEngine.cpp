@@ -1,6 +1,7 @@
 #include "AgentEngine.h"
 #include <QDebug>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QTimer>
 #include "ToolExecutor.h"
 #include "tools/ToolUtils.h"
@@ -123,17 +124,22 @@ QString AgentEngine::loadRolePrompt(Role role) const {
         case Role::Reviewer: fileName = "reviewer.txt"; break;
     }
     
-    QDir projectRoot(m_config->workingFolder());
-    QFile file(projectRoot.absoluteFilePath("resources/prompts/" + fileName));
-    
+    // Load from Qt Resources instead of working directory
+    QFile file(":/resources/prompts/" + fileName);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return QString::fromUtf8(file.readAll());
     }
+    qWarning() << "[AgentEngine] Failed to load prompt from resource:" << file.fileName();
     return QString();
 }
 
 QString AgentEngine::systemPrompt() const {
     QString base = loadRolePrompt(Role::Base);
+    
+    if (m_toolExecutor) {
+        base += "\n\n" + m_toolExecutor->getToolDefinitions();
+    }
+    
     if (m_currentRole == Role::Base) return base;
     
     QString rolePrompt = loadRolePrompt(m_currentRole);
@@ -155,52 +161,65 @@ void AgentEngine::setToolPermission(const QString& toolName, Permission p) {
 bool AgentEngine::isPathAllowed(const QString& path) const {
     if (path.isEmpty()) return true;
     
-    QFileInfo info(path);
-    QString absPath = info.absoluteFilePath();
     QString workDir = m_config->workingFolder();
     
+    // Resolve relative paths against working directory, NOT process CWD
+    QFileInfo info(QDir(workDir), path);
+    QString absPath = info.absoluteFilePath();
+    
+    qDebug() << "[AgentEngine] isPathAllowed: path=" << path << " resolved=" << absPath << " workDir=" << workDir;
+    
     // Sandbox: Allow only within working directory or its subdirectories
-    return absPath.startsWith(workDir);
+    bool allowed = absPath.startsWith(workDir);
+    if (!allowed) {
+        qWarning() << "[AgentEngine] SANDBOX BLOCKED: " << absPath << " is outside " << workDir;
+    }
+    return allowed;
 }
 
 AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) const {
-    // Check global manual override
-    if (m_manualApproval) return Permission::Ask;
-    
-    // Always allow Read
-    if (toolName == "ReadFile" || toolName == "ListDir" || toolName == "Search") {
+    if (!m_manualApproval) {
         return Permission::Allow;
     }
     
-    // Default to Ask for everything else (Write, Bash, etc.)
+    if (m_toolPermissions.contains(toolName)) {
+        return m_toolPermissions.value(toolName);
+    }
+    
     return Permission::Ask;
 }
 
 void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
-    if (!m_isRunning) return;
+    qDebug() << "[AgentEngine] onToolCallReady: tool=" << call.name << " m_isRunning=" << m_isRunning;
+    // NOTE: Do NOT check m_isRunning here — onRunnerFinished sets it to false
+    // before calling this method. The guard was silently blocking ALL tool executions.
 
     // --- Sandbox Check ---
     if (call.input.contains("path")) {
         QString path = call.input.value("path").toString();
         if (!isPathAllowed(path)) {
+            qWarning() << "[AgentEngine] Sandbox violation for path:" << path;
             emit errorOccurred("Sandbox violation: Path is outside of working directory: " + path);
             return;
         }
     }
 
     Permission p = toolPermission(call.name);
+    qDebug() << "[AgentEngine] Permission for" << call.name << "=" << (int)p << " (0=Allow,1=Ask,2=Deny)";
     if (p == Permission::Deny) {
         emit errorOccurred("Tool execution denied: " + call.name);
         return;
     }
     
     if (p == Permission::Ask) {
+        qDebug() << "[AgentEngine] Requesting approval for" << call.name;
         emit toolApprovalRequested(call.name, call.input);
-        m_pendingCalls.append(call); // Re-added this line to maintain pending calls for approval
+        m_pendingCalls.append(call);
         return;
     }
 
     // Execute Tool
+    qDebug() << "[AgentEngine] EXECUTING tool:" << call.name;
     emit toolCallStarted(call.name, call.input);
     if (m_syncTools) {
         m_toolExecutor->executeSync(call, m_config->workingFolder());
@@ -219,34 +238,42 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     Q_UNUSED(toolName);
     
     auto* session = m_sessions->currentSession();
-    if (!session) {
-        return;
-    }
+    if (!session) return;
 
-    // Convert ToolResult to a Message (normally this is handled as part of the tool turn)
+    // Create a NEW message for the Tool Result
     Message toolMsg;
     toolMsg.id = QUuid::createUuid();
-    toolMsg.role = Message::Role::User; // In some APIs this is Role::Tool
+    toolMsg.role = Message::Role::User; // Fallback for local models
+    toolMsg.timestamp = QDateTime::currentDateTime();
     
+    // Add the tool result data
+    toolMsg.toolResults << result;
+    
+    // Add text block for display and model context
     CodeBlock block;
-    block.type = BlockType::Text; // Or a specific 'Result' type if available
+    block.type = BlockType::Text;
     block.content = result.content;
     toolMsg.contentBlocks << block;
-    toolMsg.timestamp = QDateTime::currentDateTime();
+    toolMsg.addText(result.content); // Ensures compatibility with all serializers
 
     session->appendMessage(toolMsg);
     session->save();
 
+    // Automatically trigger the next agent turn if the profile isn't already doing something
     if (!m_runner->isProfileRunning()) {
-        toolMsg.addText(result.content);
-        toolMsg.toolResults << result; 
-        session->appendMessage(toolMsg);
-
         if (!result.isError) {
             QString sp = systemPrompt();
             if (m_runner) {
-                m_runner->send("", m_config->workingFolder(), {}, session->messages, sp);
+                // For local models, a small nudge helps prevent loops or empty responses
+                m_runner->send("Tool executed successfully. Please continue or finalize the task.", 
+                              m_config->workingFolder(), {}, session->messages, sp);
             }
+        } else {
+            // If it was an error, just notify the user/model without automatic continue if preferred
+            // but usually agent should try to fix the error.
+             QString sp = systemPrompt();
+             m_runner->send("Tool execution failed. Analyze the error and try a different approach.", 
+                           m_config->workingFolder(), {}, session->messages, sp);
         }
     }
 }
@@ -260,7 +287,68 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     }
 
     buildAssistantMessage(m_currentResponse);
+
+    // 1. Optimized XML Parser (Lax mode for local LLMs)
+    // We look for <name> and <input> blocks. They may or may not be inside <tool_call>.
+    // Using a more robust regex that ignores leading/trailing whitespace and block tags.
+    QRegularExpression re("<name>\\s*([^<\\s]+)\\s*</name>\\s*<input>\\s*(.*?)\\s*</input>", 
+                          QRegularExpression::DotMatchesEverythingOption);
+    
+    QRegularExpressionMatchIterator i = re.globalMatch(m_currentResponse);
+    QList<ToolCall> parsedCalls;
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        QString tname = match.captured(1).trimmed();
+        QString jsonStr = match.captured(2).trimmed();
+        
+        qDebug() << "[AgentEngine] Found potential tool call:" << tname << "with input length:" << jsonStr.length();
+
+        ToolCall call;
+        call.id = QUuid::createUuid().toString();
+        call.name = tname;
+        
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
+        if (!doc.isNull() && doc.isObject()) {
+            call.input = doc.object();
+            parsedCalls.append(call);
+            qDebug() << "[AgentEngine] Successfully parsed tool:" << tname;
+            break; // Parse only the first valid one
+        } else {
+            qWarning() << "[AgentEngine] FAILED to parse JSON for tool" << tname << ":" << err.errorString();
+            qDebug() << "[AgentEngine] Bad JSON snippet:" << jsonStr.left(100) << "...";
+        }
+    }
+
+    // Fallback: Parse standard Markdown Bash blocks if no explicit tools found
+    // This perfectly supports Faza 1 behavior for generic OSS coding models
+    if (parsedCalls.isEmpty()) {
+        QRegularExpression bashRe("```bash\\n(.*?)```", 
+                              QRegularExpression::DotMatchesEverythingOption);
+        QRegularExpressionMatchIterator bashIter = bashRe.globalMatch(m_currentResponse);
+        while (bashIter.hasNext()) {
+            QRegularExpressionMatch match = bashIter.next();
+            ToolCall call;
+            call.id = QUuid::createUuid().toString();
+            call.name = "Bash";
+            QJsonObject input;
+            input["command"] = match.captured(1).trimmed();
+            call.input = input;
+            parsedCalls.append(call);
+            break; // Parse only the first Bash block
+        }
+    }
+
+    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parsedCalls.size();
+    if (!parsedCalls.isEmpty()) {
+        qDebug() << "[AgentEngine] Dispatching tool:" << parsedCalls.first().name;
+        onToolCallReady(parsedCalls.first());
+    } else {
+        qDebug() << "[AgentEngine] No tool calls found in response";
+        emit statusChanged("");
+    }
 }
+
 
 void AgentEngine::buildAssistantMessage(const QString& plainText) {
     auto* session = m_sessions->currentSession();
