@@ -4,6 +4,7 @@
 #include <QProcess>
 #include <QTimer>
 #include <QJsonObject>
+#include <QStringDecoder>
 #include <memory>
 #include "CliProfile.h"
 #include "../data/Message.h"
@@ -53,7 +54,7 @@ private slots:
     void retrySend();
 
 private:
-    void processLine(const QByteArray& line);
+    void processChunk(const QString& chunk);
 
     QProcess m_process;
     std::unique_ptr<CliProfile> m_profile;
@@ -78,6 +79,7 @@ private:
     QByteArray m_simpleErrorBuf;
 
     void startProcessInternal();
+    QStringDecoder m_stdoutDecoder;
 
 private slots: // New slots for simple commands
     void onSimpleReadyReadStdout();

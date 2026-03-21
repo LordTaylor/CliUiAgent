@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include "CliProfile.h"
 #include "../data/ToolCall.h"
 #include <QJsonObject>
@@ -10,7 +11,8 @@
 
 namespace CodeHex {
 
-CliRunner::CliRunner(QObject* parent) : QObject(parent) {
+CliRunner::CliRunner(QObject* parent) 
+    : QObject(parent), m_stdoutDecoder(QStringDecoder::Utf8) {
     m_backoffTimer = new QTimer(this);
     m_backoffTimer->setSingleShot(true);
     connect(m_backoffTimer, &QTimer::timeout, this, &CliRunner::retrySend);
@@ -104,8 +106,6 @@ void CliRunner::startProcessInternal() {
     }
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    
-    // Ensure common paths are in PATH, especially for Mac GUI apps
     QString path = env.value("PATH");
     QStringList commonPaths = {"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin", "/opt/homebrew/bin"};
     for (const QString& cp : commonPaths) {
@@ -115,6 +115,10 @@ void CliRunner::startProcessInternal() {
         }
     }
     env.insert("PATH", path);
+    
+    // Also set some common environment variables for better compatibility
+    if (!env.contains("TERM")) env.insert("TERM", "xterm-256color");
+    if (!env.contains("LANG")) env.insert("LANG", "en_US.UTF-8");
 
     const auto extra = m_profile->extraEnvironment();
     if (!extra.isEmpty()) {
@@ -143,7 +147,15 @@ void CliRunner::startProcessInternal() {
         }
     }
 
-    m_process.setProgram(m_profile->executable());
+    QString program = m_profile->executable();
+    // Try to resolve absolute path if it's just a name
+    if (!program.contains('/')) {
+        QString fullPath = QStandardPaths::findExecutable(program);
+        if (!fullPath.isEmpty()) {
+            program = fullPath;
+        }
+    }
+    m_process.setProgram(program);
     m_process.setArguments(baseArgs);
     
     QString workDir = m_lastRequest.workDir;
@@ -153,11 +165,12 @@ void CliRunner::startProcessInternal() {
     m_process.setWorkingDirectory(workDir);
 
     m_lineBuf.clear();
+    m_stdoutDecoder = QStringDecoder(QStringDecoder::Utf8); // Reset state
     m_process.start();
 
     if (!m_process.waitForStarted()) {
-        qWarning() << "CliRunner: failed to start process:" << m_process.errorString();
-        emit errorChunk(QString("Error: Failed to start CLI process: %1").arg(m_process.errorString()));
+        qWarning() << "CliRunner: failed to start process:" << m_process.errorString() << "Program:" << program;
+        emit errorChunk(QString("Error: Failed to start CLI process (%1): %2").arg(program).arg(m_process.errorString()));
         emit finished(1);
         return;
     }
@@ -210,15 +223,11 @@ void CliRunner::runSimpleCommand(const QString& command, const QString& workingD
 }
 
 void CliRunner::onReadyReadStdout() {
-    m_lineBuf += m_process.readAllStandardOutput();
-    int start = 0;
-    while (true) {
-        const int nl = m_lineBuf.indexOf('\n', start);
-        if (nl < 0) break;
-        processLine(m_lineBuf.mid(start, nl - start + 1));
-        start = nl + 1;
-    }
-    m_lineBuf = m_lineBuf.mid(start);
+    QByteArray raw = m_process.readAllStandardOutput();
+    QString decoded = m_stdoutDecoder(raw);
+    
+    if (decoded.isEmpty()) return;
+    processChunk(decoded);
 }
 
 void CliRunner::onReadyReadStderr() {
@@ -228,10 +237,6 @@ void CliRunner::onReadyReadStderr() {
 
 void CliRunner::onProcessFinished(int exitCode, QProcess::ExitStatus) {
     onReadyReadStdout();
-    if (!m_lineBuf.isEmpty()) {
-        processLine(m_lineBuf);
-        m_lineBuf.clear();
-    }
 
     if (exitCode != 0 && m_retryCount < m_maxRetries) {
         bool retryable = (exitCode == 429 || exitCode == 503 || exitCode == 1);
@@ -252,12 +257,12 @@ void CliRunner::onProcessError(QProcess::ProcessError error) {
     emit errorChunk(QString("Process error: %1").arg(static_cast<int>(error)));
 }
 
-void CliRunner::processLine(const QByteArray& line) {
+void CliRunner::processChunk(const QString& chunk) {
     if (!m_profile) {
-        emit outputChunk(QString::fromLocal8Bit(line));
+        emit outputChunk(chunk);
         return;
     }
-    StreamResult res = m_profile->parseLine(line);
+    StreamResult res = m_profile->parseLine(chunk.toUtf8());
     if (!res.textToken.isEmpty()) emit outputChunk(res.textToken);
     if (res.toolCall) emit toolCallReady(*res.toolCall);
     if (res.inputTokens || res.outputTokens) {

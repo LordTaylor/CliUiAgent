@@ -6,7 +6,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 
 ### Core Engine & Intelligence
 1.  **Refactor**: Isolate XML/Tool parsing into a dedicated, unit-tested `ResponseParser` class.
-2.  **Streaming**: Optimize `ResponseFilter` to handle multi-byte Unicode characters split across chunks.
+2.  **Streaming**: [x] Optimize `ResponseFilter` to handle multi-byte Unicode characters split across chunks.
 3.  **Context**: Implement "Dynamic Context Pruning" to remove least relevant history when near token limits.
 4.  **Token Counting**: Replace manual estimates with a real Tiktoken-based counter (via Python/C++ bindings).
 5.  **Multi-Model**: Support simultaneous reasoning across different LLMs for cross-verification.
@@ -74,7 +74,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 6.  **Codebase Visualizer**: Generate a Mermaid diagram of the project structure automatically.
 7.  **Auto-Walkthrough**: Automatically generate a `walkthrough.md` for any pull request the agent makes.
 8.  **Automated Dependency Management**: Agent detects outdated libraries and proposes updates.
-9.  **Unit Test Generator**: One-click "Generate Tests for this File" using the agent.
 10. **Refactoring Assistant**: Specialized role for simplifying complex functions.
 11. **Smart File Explorer**: Files sorted by "Hotness" (most frequently modified/relevant).
 12. **Interactive Scratchpad**: A multi-tab editor for the agent's internal scripts.
@@ -84,15 +83,10 @@ This document outlines 60 proposed technical and user experience improvements, a
 16. **Performance Profiler Integration**: Agent analyzes flamegraphs to find bottlenecks.
 17. **Knowledge Graph**: A persistent graph of how functions and classes relate across the project.
 18. **Custom Skill Builder**: User can "teach" the agent a repeat task by recording a series of actions.
-19. **Secure Vault**: Encrypted storage for API keys and sensitive project secrets.
-20. **Theme Builder**: AI-powered theme generation based on a single color or image description.
 21. **Docker Integration**: Agent can start/stop containers to test environment parity.
-22. **CI/CD Monitor**: Agent watches GitHub Actions and automatically tries to fix failures.
 23. **Code Quality Scoreboard**: Real-time linting score and "cleanliness" metrics.
-24. **Remote Coding**: Support for SSH/VS Code Server style remote development.
 25. **Export to PDF/Docs**: Export session history or project analysis to professional reports.
 26. **SQL Query Assistant**: specialized tools for DB schema exploration and query optimization.
-27. **Security Auditor**: Role that specifically looks for vulnerabilities (SQLi, XSS, etc.).
 28. **Natural Language UI Builder**: "Add a blue button that saves state" - agent modifies the QML/Qt UI.
 29. **Auto-Documenter**: Automatically update `README.md` and Doxygen comments as code changes.
 30. **Health Check**: One-click "Project Health Check" where the agent audits the entire repo for issues.
