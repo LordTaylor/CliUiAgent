@@ -83,7 +83,8 @@ QJsonObject Message::toJson() const {
         {"timestamp", timestamp.toUTC().toString(Qt::ISODate)},
         {"tokenCount", tokenCount},
         {"attachments", attArr},
-        {"toolResults", toolResultsArr}
+        {"toolResults", toolResultsArr},
+        {"showThinking", showThinking}
     };
 }
 
@@ -120,6 +121,9 @@ Message Message::fromJson(const QJsonObject& obj) {
             resObj["isError"].toBool()
         });
     }
+    m.showThinking = obj["showThinking"].toVariant().toBool();
+    if (obj.find("showThinking") == obj.end()) m.showThinking = true;
+
     return m;
 }
 
@@ -155,6 +159,7 @@ QString Message::typeToString(ContentType t) {
         case ContentType::Voice: return "voice";
         case ContentType::Code:  return "code";
         case ContentType::Output: return "output";
+        case ContentType::Thinking: return "thinking";
     }
     return "text";
 }
@@ -164,6 +169,7 @@ Message::ContentType Message::typeFromString(const QString& s) {
     if (s == "voice")  return ContentType::Voice;
     if (s == "code")   return ContentType::Code;
     if (s == "output") return ContentType::Output;
+    if (s == "thinking") return ContentType::Thinking;
     return ContentType::Text;
 }
 

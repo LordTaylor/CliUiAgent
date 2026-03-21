@@ -94,11 +94,11 @@ void Application::discoverProfiles() {
 }
 
 void Application::setupCliRunner() {
-    const QString profile = m_config->activeProviderId();
+    const QString profileId = m_config->activeProviderId();
 
-    // Check extra (configurable) profiles first
+    // 1. Check extra (configurable) profiles first
     for (const auto& entry : m_extraProfiles) {
-        if (entry.name == profile) {
+        if (entry.name == profileId) {
             auto p = ConfigurableProfile::fromFile(entry.filePath);
             if (p) {
                 m_runner->setProfile(std::move(p));
@@ -107,14 +107,15 @@ void Application::setupCliRunner() {
         }
     }
 
-    // Built-in profiles (local-only)
-    std::unique_ptr<CliProfile> p;
-    if (profile == "ollama") {
-        p = std::make_unique<OllamaProfile>();
-    } else {
-        p = std::make_unique<OllamaProfile>();  // Default fallback
+    // 2. Use active provider from config
+    const auto provider = m_config->activeProvider();
+    if (!provider.id.isEmpty()) {
+        m_runner->setProfile(ConfigurableProfile::fromProvider(provider));
+        return;
     }
-    m_runner->setProfile(std::move(p));
+
+    // 3. Absolute fallback to a basic profile that uses curl (robust)
+    m_runner->setProfile(std::make_unique<ConfigurableProfile>());
 }
 
 }  // namespace CodeHex

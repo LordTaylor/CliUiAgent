@@ -76,8 +76,9 @@ public:
 
     static std::unique_ptr<ConfigurableProfile> fromProvider(const LlmProvider& provider);
 
-private:
     ConfigurableProfile() = default;
+
+private:
 
     QString parseOpenAIStream(const QByteArray& line) const;
 
