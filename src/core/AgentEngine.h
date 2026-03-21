@@ -10,6 +10,7 @@
 #include "Attachment.h"
 #include "AgentRole.h" // Added
 
+#include "ContextManager.h"
 #include "ResponseParser.h"
 
 namespace CodeHex {
@@ -92,6 +93,7 @@ signals:
     void statusChanged(const QString& status);
     void tokenReceived(const QString& token);
     void tokenStatsUpdated(int input, int output);
+    void contextStatsUpdated(const CodeHex::ContextManager::ContextStats& stats);
     void consoleOutput(const QString& raw);
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
     void toolApprovalRequested(const CodeHex::ToolCall& call);

@@ -42,3 +42,11 @@ target_link_libraries(codehex_tests PRIVATE
 include(CTest)
 include(Catch)
 catch_discover_tests(codehex_tests)
+
+add_executable(prompt_tests PromptTesting.cpp)
+target_link_libraries(prompt_tests PRIVATE
+    codehex_data
+    codehex_core
+    Qt6::Core Qt6::Test
+)
+add_test(NAME prompt_tests COMMAND prompt_tests)

@@ -36,7 +36,8 @@ public:
                                const QJsonArray& tools,
                                int thinkingBudget = 0,
                                bool useCache = false,
-                               const QString& ragContext = QString()) const;
+                               const QString& ragContext = QString(),
+                               ContextManager::ContextStats* statsOut = nullptr) const;
 
     /**
      * @brief Strategy description for the given role.

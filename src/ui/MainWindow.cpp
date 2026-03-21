@@ -79,9 +79,21 @@ MainWindow::MainWindow(AppConfig* config,
         m_messageModel->appendToken(chunk);
         m_chatView->scrollToBottomSmooth();
     });
-    connect(m_controller, &ChatController::tokenStatsUpdated, this, [this](int in, int out) {
-        updateTokenLabel(in, out);
-    });
+    m_contextBar = new QProgressBar(this);
+    m_contextBar->setMaximumWidth(150);
+    m_contextBar->setTextVisible(false);
+    m_contextBar->setToolTip("Context Usage (Tokens)");
+    m_contextBar->setStyleSheet("QProgressBar { border: 1px solid #3F3F46; border-radius: 4px; background: #18181B; } "
+                               "QProgressBar::chunk { background: #3B82F6; border-radius: 3px; }");
+                               
+    m_contextLabel = new QLabel("CTX: 0%", this);
+    m_contextLabel->setStyleSheet("color: #A1A1AA; font-size: 11px; margin-left: 5px;");
+
+    statusBar()->addPermanentWidget(m_contextBar);
+    statusBar()->addPermanentWidget(m_contextLabel);
+
+    connect(m_controller, &ChatController::contextStatsUpdated, this, &MainWindow::onContextStatsUpdated);
+    connect(m_controller, &ChatController::tokenStatsUpdated,   this, &MainWindow::onTokenStatsUpdated);
     connect(m_controller, &ChatController::responseComplete,
             this, &MainWindow::onResponseComplete);
     connect(m_controller, &ChatController::cliOutputReceived,
@@ -596,6 +608,7 @@ void MainWindow::onNewSessionRequested() {
     if (!s) return;
     m_sessions->setCurrentSession(s);
     switchSession(s);
+    m_sessionPanel->selectSession(s->id.toString(QUuid::WithoutBraces));
 }
 
 void MainWindow::onTokenReceived(const QString& token) {
@@ -706,6 +719,29 @@ void MainWindow::onGenerationStopped() {
 void MainWindow::onStopRequested() {
     m_controller->stopGeneration();
     m_stopBtn->setVisible(false);
+}
+
+void MainWindow::onContextStatsUpdated(const CodeHex::ContextManager::ContextStats& stats) {
+    if (!m_contextBar || !m_contextLabel) return;
+    
+    int percentage = qRound(stats.usagePercentage * 100.0f);
+    m_contextBar->setValue(percentage);
+    m_contextLabel->setText(QString("CTX: %1%").arg(percentage));
+    
+    // Change color based on pressure
+    if (percentage > 90) {
+        m_contextBar->setStyleSheet("QProgressBar { border: 1px solid #3F3F46; border-radius: 4px; background: #18181B; } "
+                                   "QProgressBar::chunk { background: #EF4444; border-radius: 3px; }");
+    } else if (percentage > 75) {
+        m_contextBar->setStyleSheet("QProgressBar { border: 1px solid #3F3F46; border-radius: 4px; background: #18181B; } "
+                                   "QProgressBar::chunk { background: #F59E0B; border-radius: 3px; }");
+    } else {
+        m_contextBar->setStyleSheet("QProgressBar { border: 1px solid #3F3F46; border-radius: 4px; background: #18181B; } "
+                                   "QProgressBar::chunk { background: #3B82F6; border-radius: 3px; }");
+    }
+    
+    m_contextBar->setToolTip(QString("Context Usage: %1 / %2 tokens (%3 messages)")
+                             .arg(stats.totalTokens).arg(stats.maxTokens).arg(stats.messageCount));
 }
 
 void MainWindow::onToolApprovalRequested(const CodeHex::ToolCall& call) {
@@ -846,6 +882,12 @@ void MainWindow::updateButtonIcons() {
             }
         }
     }
+}
+
+void MainWindow::onTokenStatsUpdated(int input, int output) {
+    // Optional: update a separate label or tooltip with total session tokens
+    Q_UNUSED(input);
+    Q_UNUSED(output);
 }
 
 // End of MainWindow.cpp

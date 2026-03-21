@@ -151,7 +151,11 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
     if (useJsonSchema) {
         emit statusChanged("🧠 Reasoning (JSON Schema)...");
         QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
-        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, prompt, session->messages, tools, 31999, true, ragContext);
+        ContextManager::ContextStats stats;
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, prompt, session->messages, tools, 16000, true, ragContext, &stats);
+        emit contextStatsUpdated(stats);
+        m_lastRawRequest = QJsonDocument(request).toJson();
+        m_lastRawResponse.clear();
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
         emit statusChanged("🧠 Thinking...");
@@ -234,7 +238,9 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
 
     if (useJsonSchema) {
         QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
-        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, nudge, session->messages, tools, 31999, true);
+        ContextManager::ContextStats stats;
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, nudge, session->messages, tools, 16000, true, QString(), &stats);
+        emit contextStatsUpdated(stats);
         m_lastRawRequest = QJsonDocument(request).toJson();
         m_lastRawResponse.clear();
         m_runner->sendJson(request, m_config->workingFolder());
@@ -520,6 +526,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     ResponseParser::ParseResult parseResult = ResponseParser::parse(currentResp);
     // --- Phase 5: Auto-walkthrough generation is now triggered by CompleteTask tool ---
     
+    m_lastRawResponse = currentResp;
     buildAssistantMessage(parseResult, currentResp);
 
     qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();

@@ -33,6 +33,7 @@ ChatController::ChatController(AppConfig* config,
     connect(m_agent, &AgentEngine::tokenStatsUpdated,    this, &ChatController::tokenStatsUpdated, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::consoleOutput,           this, &ChatController::consoleOutput, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::toolCallStarted,        this, &ChatController::toolCallStarted, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::contextStatsUpdated, this, &ChatController::contextStatsUpdated, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::toolApprovalRequested,   this, &ChatController::toolApprovalRequested, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::responseComplete,        this, [this](const Message& msg){
         emit responseComplete(msg);

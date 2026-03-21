@@ -14,6 +14,8 @@
 #include "widgets/ThemeManager.h"
 #include "help/HelpDialog.h"
 #include "chat/ToolApprovalDialog.h"
+#include <QProgressBar>
+#include "../core/ContextManager.h"
 
 namespace CodeHex {
     class AppConfig;
@@ -55,6 +57,8 @@ private slots:
     void onGenerationStopped();
     void onClearChatRequested();
     void onThemeToggleRequested();
+    void onContextStatsUpdated(const CodeHex::ContextManager::ContextStats& stats);
+    void onTokenStatsUpdated(int input, int output);
     void onToolApprovalRequested(const CodeHex::ToolCall& call);
     void onProviderChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
@@ -88,6 +92,8 @@ private:
     CodeHex::InputPanel*         m_inputPanel;
     CodeHex::TerminalPanel*      m_terminalPanel;
     CodeHex::ChatControlBanner*  m_chatBanner;
+    QLabel* m_contextLabel;
+    QProgressBar* m_contextBar;
     QComboBox*          m_providerCombo;
     QComboBox*          m_roleCombo;
     QCheckBox*          m_autoApproveCheck;

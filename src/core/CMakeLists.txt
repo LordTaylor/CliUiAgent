@@ -42,11 +42,12 @@ add_library(codehex_core STATIC
 target_include_directories(codehex_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(codehex_core PUBLIC
     codehex_data
+    codehex_cli
     Qt6::Core
     Qt6::Widgets
     Qt6::Network
     Qt6::Concurrent
-    pybind11::pybind11
+    pybind11::embed
 )
 # ChatController depends on CLI and Scripting — use INTERFACE to avoid circular deps
 # Actual linking happens in the executable target

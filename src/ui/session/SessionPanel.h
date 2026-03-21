@@ -1,5 +1,7 @@
 #pragma once
 #include <QWidget>
+#include <QObject>
+#include <QString>
 
 class QListWidget;
 class QListWidgetItem;
@@ -16,6 +18,7 @@ public:
     explicit SessionPanel(SessionManager* manager, QWidget* parent = nullptr);
 
     void refresh();
+    void selectSession(const QString& sessionId);
 
 signals:
     void sessionSelected(const QString& sessionId);

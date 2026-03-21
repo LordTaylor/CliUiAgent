@@ -9,17 +9,26 @@ namespace CodeHex {
  */
 class ContextManager {
 public:
+    struct ContextStats {
+        int totalTokens = 0;
+        int messageCount = 0;
+        int maxTokens = 0;
+        float usagePercentage = 0.0f;
+    };
+
     struct PruningOptions {
-        int maxTokens = 4096;
-        float keepRatio = 0.75f; // Keep 75% of newest messages by default
-        bool summarizeOld = false; // Placeholder for future summarization logic
+        int maxTokens = 32000; // Will be set dynamically by PromptManager
+        float keepRatio = 0.75f;
+        bool summarizeOld = false;
+        bool trimLargeToolResults = true; // New: Trim old large outputs
     };
 
     /**
-     * @brief Prunes the message history to fit within maxTokens.
-     * Always keeps the system prompt (if first) and "pinned" messages.
+     * @brief Prunes the message history and returns stats.
      */
-    static QList<Message> prune(const QList<Message>& history, const PruningOptions& options);
+    static QList<Message> prune(const QList<Message>& history, 
+                               const PruningOptions& options,
+                               ContextStats* statsOut = nullptr);
 
     /**
      * @brief Helper to check if a message should be protected from pruning.

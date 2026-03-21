@@ -51,6 +51,15 @@ void SessionPanel::refresh() {
     }
 }
 
+void SessionPanel::selectSession(const QString& sessionId) {
+    for (int i = 0; i < m_list->count(); ++i) {
+        if (m_list->item(i)->data(Qt::UserRole).toString() == sessionId) {
+            m_list->setCurrentRow(i);
+            break;
+        }
+    }
+}
+
 void SessionPanel::onItemClicked(QListWidgetItem* item) {
     if (!item) return;
     emit sessionSelected(item->data(Qt::UserRole).toString());

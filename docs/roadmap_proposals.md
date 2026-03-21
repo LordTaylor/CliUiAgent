@@ -40,7 +40,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 34. **Logging**: [x] Implement a "Debug Console" window showing raw model I/O.
 35. [x] **Profiles**: Validation for `profiles.json` to prevent app crashes on malformed config.
 36. **Update**: Add an "Check for Updates" mechanism for the binary itself.
-38. **Audio**: Optimize sample rate conversion in `AudioRecorder` for better whisper accuracy.
 39. [x] **Network**: Support for proxy configurations (SOCKS5/HTTP).
 40. **Plugins**: Standardize the Tool interface to allow easy creation of new tools.
 
@@ -52,8 +51,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 45. [x] **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
 46. [x] **Context**: Add "Include File" button in the file explorer to manually push files into context.
 47. [x] **Search**: Highlighting of matched keywords in search results.
-48. **Audio**: Visual sound waveform during voice recording.
-50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
 51. [x] **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
 52. [x] **Performance**: Use `mmap` for reading large files in `ViewFile`.
 56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
@@ -71,10 +68,10 @@ This document outlines 60 proposed technical and user experience improvements, a
 5.  **Multi-Agent Collaborative Mode**: Two agents (e.g., Architect and Coder) debating the best approach.
 6. [x] **Codebase Visualizer** (Generowanie diagramu Mermaid struktury projektu).
 7. [x] **Auto-Walkthrough** (Automatyczne generowanie walkthrough.md po zakończeniu zadania).ull request the agent makes.
-8.  **Automated Dependency Management**: Agent detects outdated libraries and proposes updates.
 10. [x] **Refactoring Assistant** (Specjalna rola do upraszczania i optymalizacji kodu).
 - [x] #11. **Smart File Explorer**: Sort files by "hotness" (most recently/frequently modified based on Git history).
-- [ ] #12. **Context-Aware Diff Viewer**: Enhanced diff panel that shows changes with AI explanations of the impact.ontext later.
+- [x] 12. **Context-Aware Diff Viewer** (Rich diffs + AI context in approvals)
+- [x] 13. **Adaptive Resource Management** (Dynamic context window adjustment)r.
 16. **Performance Profiler Integration**: Agent analyzes flamegraphs to find bottlenecks.
 17. **Knowledge Graph**: A persistent graph of how functions and classes relate across the project.
 18. **Custom Skill Builder**: User can "teach" the agent a repeat task by recording a series of actions.

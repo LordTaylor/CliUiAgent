@@ -2,11 +2,12 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
-#include <QRegularExpression> // Added
+#include <QRegularExpression>
 #include <QString>
 #include "../data/Attachment.h"
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
+#include "ContextManager.h"
 #include "ToolCall.h"
 
 namespace CodeHex {
@@ -39,7 +40,9 @@ public slots:
     AgentEngine* agent() const { return m_agent; }
 
 signals:
-    void userMessageReady(const Message& msg);
+    void userMessageReady(const CodeHex::Message& msg);
+    void contextStatsUpdated(const CodeHex::ContextManager::ContextStats& stats);
+    void messageReceived(const CodeHex::Message& msg);
     void tokenReceived(const QString& token);
     void tokenStatsUpdated(int input, int output);
     void responseComplete(const Message& msg);
@@ -66,14 +69,14 @@ private slots:
     // New slot for simple command results
     void onSimpleCommandFinished(int exitCode, const QString& output, const QString& errorOutput);
     // New slot for ToolExecutor results
-    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result); // Modified signature
+    void onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result);
 
 private:
     void buildAssistantMessage(const QList<CodeBlock>& contentBlocks,
                                const QList<Message::ContentType>& contentTypes,
-                               const QString& plainText); // Modified signature
-    void executeBashCommand(const QString& command); // New: for executing simple bash commands
-    void onToolCallReadyAndExecute(const CodeHex::ToolCall& call); // New: intermediate slot for ToolExecutor
+                               const QString& plainText);
+    void executeBashCommand(const QString& command);
+    void onToolCallReadyAndExecute(const CodeHex::ToolCall& call);
     static QString formatToolCallLog(const ToolCall& call);
 
     AppConfig*      m_config;
@@ -84,8 +87,6 @@ private:
     AgentEngine*    m_agent;
 
     QString m_currentResponse;
-
-    // Added empty comment to trigger MOC regeneration
 };
 
 }  // namespace CodeHex

@@ -168,7 +168,8 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
                                           const QJsonArray& tools,
                                           int thinkingBudget,
                                           bool useCache,
-                                          const QString& ragContext) const {
+                                          const QString& ragContext,
+                                          ContextManager::ContextStats* statsOut) const {
     QJsonObject request;
 
     // 1. System Prompt (Array of blocks)
@@ -199,8 +200,20 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
     }
 
     ContextManager::PruningOptions pruneOptions;
-    pruneOptions.maxTokens = 32000; // Safe default for most modern models
-    QList<Message> prunedHistory = ContextManager::prune(fullHistory, pruneOptions);
+    // Dynamic token threshold based on model capability
+    // (In a real app, this would come from a model registry/config)
+    int modelLimit = 120000; 
+    QString model = m_config->activeProvider().selectedModel.toLower();
+    if (model.contains("sonnet") || model.contains("opus")) {
+        modelLimit = 120000;
+    } else if (model.contains("haiku") || model.contains("gpt-4o-mini")) {
+        modelLimit = 128000;
+    }
+    
+    // We reserve some room for system prompt and tools (roughly 20% or 10k)
+    pruneOptions.maxTokens = modelLimit - 10000; 
+    
+    QList<Message> prunedHistory = ContextManager::prune(fullHistory, pruneOptions, statsOut);
 
     QJsonArray messages;
     for (const auto& msg : prunedHistory) {
