@@ -1,11 +1,23 @@
 #pragma once
-#include <QComboBox>
-#include <QCheckBox>
-#include <QPushButton>
-#include <QLabel>
 #include <QMainWindow>
+#include <QMenuBar>
+#include <QStatusBar>
 #include <QSplitter>
+#include <QProgressBar>
+#include <QComboBox>
+#include <QLabel>
+#include <QShortcut>
+#include <QAction>
+#include <QDialog>
+#include <QPainter>
+#include <QSvgRenderer>
+#include <QFileInfo>
+#include <QRegularExpression>
+#include <QMessageBox>
 #include <QTimer>
+#include <QScrollBar>
+#include <QApplication>
+#include <QWidget>
 #include "../cli/ProfileEntry.h"
 #include "../data/Attachment.h"
 #include "../data/Message.h"
@@ -14,7 +26,6 @@
 #include "widgets/ThemeManager.h"
 #include "help/HelpDialog.h"
 #include "chat/ToolApprovalDialog.h"
-#include <QProgressBar>
 #include "../core/ContextManager.h"
 
 namespace CodeHex {
@@ -33,7 +44,6 @@ namespace CodeHex {
     class ChatControlBanner;
     class LlmDiscoveryService;
     class HelpDialog;
-}
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -122,3 +132,5 @@ private:
     void updateButtonIcons();
     void onCursorBlink();
 };
+
+}  // namespace CodeHex

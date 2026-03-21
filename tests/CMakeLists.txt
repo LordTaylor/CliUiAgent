@@ -16,6 +16,8 @@ add_executable(codehex_tests
     test_context_manager.cpp
     test_lmstudio_integration.cpp
     test_java_codegen.cpp
+    test_screenshot_tool.cpp
+    test_consult_collaborator_tool.cpp
 )
 
 qt_add_resources(codehex_tests "resources"

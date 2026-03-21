@@ -23,6 +23,7 @@
 #include "tools/VisualizeCodebaseTool.h"
 #include "tools/CompleteTaskTool.h"
 #include "tools/WebSearchTool.h"
+#include "tools/ConsultCollaboratorTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -73,6 +74,15 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::VisualizeCodebaseTool>()));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::CompleteTaskTool>(m_sessions, m_config)));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::WebSearchTool>(m_config)));
+
+    // Item #5: Multi-Agent Collaborative Mode
+    // ConsultCollaboratorTool needs a pointer to *this* so it can call consultCollaborator().
+    // We pass a raw pointer — safe because AgentEngine outlives ToolExecutor.
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ConsultCollaboratorTool>(this)));
+    m_toolExecutor->registerAlias("Consult", "ConsultCollaborator");
+
+    // Create the dedicated secondary runner for collaborator queries
+    m_collaboratorRunner = new CliRunner(this);
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
@@ -682,6 +692,96 @@ QString AgentEngine::getSystemPrompt() const {
         sp += "\n\n" + m_toolExecutor->getToolDefinitions();
     }
     return sp;
+}
+
+// ---------------------------------------------------------------------------
+// Item #5: Multi-Agent Collaborative Mode
+// ---------------------------------------------------------------------------
+
+QString AgentEngine::consultCollaborator(const QString& prompt, const QString& role)
+{
+    // Build a role-specific system prompt for the collaborator.
+    // The collaborator is stateless — no conversation history is passed.
+    QString collaboratorSystemPrompt = QString(
+        "You are a specialized AI %1. Your task is to provide a concise, expert-level "
+        "analysis of the problem presented to you. Be direct, critical, and constructive. "
+        "Do NOT use tool calls. Respond in plain text with your analysis."
+    ).arg(role);
+
+    // Acquire the active provider's profile for the collaborator runner.
+    // This reuses the same LLM backend but with a fully independent context.
+    LlmProvider provider = m_config->activeProvider();
+    auto profile = ConfigurableProfile::fromProvider(provider);
+    if (!m_selectedModel.isEmpty()) {
+        profile->setModel(m_selectedModel);
+    }
+    m_collaboratorRunner->setProfile(std::move(profile));
+
+    m_collaboratorResponse.clear();
+    bool finished = false;
+    QString errorMsg;
+
+    // --- Synchronous bridge via Qt's meta-object connection system ---
+    // We create temporary connections that feed output chunks into m_collaboratorResponse.
+    // The QEventLoop below processes events (including signal deliveries) until 'finished'
+    // transitions to true, then quits. A 60 s timeout guards against infinite hangs.
+    QEventLoop loop;
+    QTimer timeoutTimer;
+    timeoutTimer.setSingleShot(true);
+    timeoutTimer.setInterval(60000); // 60 seconds
+
+    // Lambda captures by reference — safe because loop is on the stack.
+    auto chunkConn = connect(m_collaboratorRunner, &CliRunner::outputChunk,
+        [this](const QString& chunk) {
+            m_collaboratorResponse += chunk;
+        });
+
+    auto finishedConn = connect(m_collaboratorRunner, &CliRunner::finished,
+        [&loop, &finished](int /*exitCode*/) {
+            finished = true;
+            loop.quit();
+        });
+
+    auto errorConn = connect(m_collaboratorRunner, &CliRunner::errorChunk,
+        [&errorMsg](const QString& err) {
+            errorMsg += err;
+        });
+
+    auto timeoutConn = connect(&timeoutTimer, &QTimer::timeout,
+        [&loop, &finished]() {
+            finished = true;
+            loop.quit();
+        });
+
+    // Fire the LLM call — history is empty (stateless collaborator)
+    m_collaboratorRunner->send(prompt, m_config->workingFolder(), {}, {}, collaboratorSystemPrompt);
+    timeoutTimer.start();
+
+    // Block the CALLING thread's event loop until the collaborator is done.
+    // NOTE: This MUST be called from a background thread (QtConcurrent / BashTool thread).
+    // If called from the main thread it will block signal delivery and deadlock.
+    loop.exec();
+
+    // Tear down temporary connections
+    disconnect(chunkConn);
+    disconnect(finishedConn);
+    disconnect(errorConn);
+    disconnect(timeoutConn);
+    timeoutTimer.stop();
+
+    if (!timeoutTimer.isActive() && m_collaboratorResponse.isEmpty()) {
+        // Timed out
+        qWarning() << "[AgentEngine] consultCollaborator: timed out waiting for collaborator response.";
+        return QString("[Collaborator timed out after 60 seconds. No response received.]");
+    }
+
+    if (m_collaboratorResponse.isEmpty() && !errorMsg.isEmpty()) {
+        qWarning() << "[AgentEngine] consultCollaborator error:" << errorMsg;
+        return QString("[Collaborator error: %1]").arg(errorMsg);
+    }
+
+    qInfo() << "[AgentEngine] consultCollaborator: got response of" << m_collaboratorResponse.size() << "chars.";
+    return m_collaboratorResponse.trimmed();
 }
 
 } // namespace CodeHex

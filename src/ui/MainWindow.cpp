@@ -141,6 +141,10 @@ MainWindow::MainWindow(AppConfig* config,
     m_sessions->setCurrentSession(last);
     switchSession(last);
     updateButtonIcons();
+
+    // Connect SessionPanel signals
+    connect(m_sessionPanel, &SessionPanel::newSessionRequested, this, &MainWindow::onNewSessionRequested);
+    connect(m_sessionPanel, &SessionPanel::sessionSelected, this, &MainWindow::onSessionSelected);
 }
 
 void MainWindow::setupUi() {

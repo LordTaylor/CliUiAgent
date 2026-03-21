@@ -85,6 +85,24 @@ public:
      * @brief Sets the list of files to be injected as mandatory context in the next prompt.
      */
     void setForcedContextFiles(const QSet<QString>& files) { m_forcedContextFiles = files; }
+
+    /**
+     * @brief Consults an independent LLM collaborator synchronously.
+     *
+     * Roadmap Item #5: Multi-Agent Collaborative Mode.
+     * Sends 'prompt' to a fresh LLM context (no conversation history), prefixed with
+     * a system prompt embodying the given 'role'. Blocks using a QEventLoop until
+     * the response is received or a 60-second timeout elapses.
+     *
+     * IMPORTANT: This method MUST be called from a background thread (e.g., from within
+     * a Tool::execute() running via QtConcurrent). Calling it from the main GUI thread
+     * would deadlock because the main event loop would no longer process signals.
+     *
+     * @param prompt   The question or context to send to the collaborator.
+     * @param role     Role description (e.g. "Code Reviewer", "Security Architect").
+     * @return         The collaborator's text response, or an error string.
+     */
+    QString consultCollaborator(const QString& prompt, const QString& role = "Collaborator");
     
     // CoVe State Machine
     enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
@@ -154,6 +172,12 @@ private:
 
     QString m_lastRawRequest;
     QString m_lastRawResponse;
+
+    // --- Collaborator (Item #5) ---
+    // A dedicated secondary runner used for stateless collaborator queries.
+    // Owned by AgentEngine; separate from m_runner to avoid interference.
+    CliRunner* m_collaboratorRunner = nullptr;
+    QString    m_collaboratorResponse;
 };
 
 }  // namespace CodeHex

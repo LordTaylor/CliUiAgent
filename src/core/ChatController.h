@@ -8,7 +8,6 @@
 #include "../data/Message.h"
 #include "../data/ToolCall.h"
 #include "ContextManager.h"
-#include "ToolCall.h"
 
 namespace CodeHex {
 
@@ -87,6 +86,7 @@ private:
     AgentEngine*    m_agent;
 
     QString m_currentResponse;
+
 };
 
 }  // namespace CodeHex
