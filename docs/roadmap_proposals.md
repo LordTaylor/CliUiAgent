@@ -47,7 +47,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 ### Polish & Details
 41. **Status Bar**: Show current token usage and cost estimate in the status bar.
 42. **Sessions**: Auto-archive old sessions to a `history/` subdirectory.
-43. **Title**: Sanitize auto-generated session titles (remove special characters).
+43. [x] **Title**: Sanitize auto-generated session titles (remove special characters).
 44. **Icons**: Replace generic icons with a custom, cohesive SVG icon set.
 45. **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
 46. **Context**: Add "Include File" button in the file explorer to manually push files into context.
@@ -57,7 +57,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
 52. **Performance**: Use `mmap` for reading large files in `ViewFile`.
 56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
-57. **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
+57. [x] **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).
 59. **Keyboard**: Full navigation of the app using only the keyboard.
 60. [x] **Documentation**: Inline help tooltips for all settings and tool permissions.

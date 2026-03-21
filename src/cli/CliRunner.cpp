@@ -38,8 +38,6 @@ CliRunner::CliRunner(QObject* parent)
 
 CliRunner::~CliRunner() {
     stop();
-    m_simpleProcess.terminate();
-    m_simpleProcess.waitForFinished(100);
 }
 
 void CliRunner::setProfile(std::unique_ptr<CliProfile> profile) {
@@ -185,11 +183,17 @@ void CliRunner::stop() {
     m_backoffTimer->stop();
     if (m_process.state() == QProcess::Running) {
         m_process.terminate();
-        m_process.waitForFinished(1000);
+        if (!m_process.waitForFinished(1000)) {
+            m_process.kill();
+            m_process.waitForFinished(500);
+        }
     }
     if (m_simpleProcess.state() == QProcess::Running) {
         m_simpleProcess.terminate();
-        m_simpleProcess.waitForFinished(1000);
+        if (!m_simpleProcess.waitForFinished(1000)) {
+            m_simpleProcess.kill();
+            m_simpleProcess.waitForFinished(500);
+        }
     }
 }
 
@@ -224,10 +228,22 @@ void CliRunner::runSimpleCommand(const QString& command, const QString& workingD
 
 void CliRunner::onReadyReadStdout() {
     QByteArray raw = m_process.readAllStandardOutput();
-    QString decoded = m_stdoutDecoder(raw);
+    if (raw.isEmpty()) return;
     
-    if (decoded.isEmpty()) return;
-    processChunk(decoded);
+    m_lineBuf += raw;
+    
+    int newlineIdx;
+    while ((newlineIdx = m_lineBuf.indexOf('\n')) != -1) {
+        QByteArray line = m_lineBuf.left(newlineIdx);
+        m_lineBuf.remove(0, newlineIdx + 1);
+        
+        if (!line.trimmed().isEmpty()) {
+            QString decoded = m_stdoutDecoder(line);
+            if (!decoded.isEmpty()) {
+                processChunk(decoded);
+            }
+        }
+    }
 }
 
 void CliRunner::onReadyReadStderr() {
