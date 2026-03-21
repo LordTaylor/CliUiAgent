@@ -33,9 +33,11 @@ public:
 
     static bool isIgnored(const QString& relPath) {
         if (relPath.startsWith("node_modules/") || relPath.contains("/node_modules/")) return true;
-        if (relPath.startsWith("build/") || relPath.contains("/build/")) return true;
+        if (relPath.startsWith("build/") || relPath.contains("/build/") || relPath.endsWith("/build")) return true;
         if (relPath.startsWith(".git/") || relPath.contains("/.git/")) return true;
         if (relPath.startsWith(".agent/") || relPath.contains("/.agent/")) return true;
+        if (relPath.contains(".DS_Store") || relPath.contains(".pyc") || relPath.contains("__pycache__")) return true;
+        if (relPath.startsWith("bin/") || relPath.startsWith("obj/")) return true;
         return false;
     }
 };

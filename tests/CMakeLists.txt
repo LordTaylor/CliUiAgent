@@ -10,6 +10,7 @@ add_executable(codehex_tests
     test_chat_controller.cpp
     test_agent_engine_parser.cpp
     test_response_parser.cpp
+    test_tool_utils.cpp
     test_agent_engine_parser_advanced.cpp
     test_response_filter_streaming.cpp
     test_context_manager.cpp

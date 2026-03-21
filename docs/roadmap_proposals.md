@@ -5,7 +5,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 ## 60 Technical & UX Improvements (Usprawnienia)
 
 ### Core Engine & Intelligence
-1.  **Refactor**: Isolate XML/Tool parsing into a dedicated, unit-tested `ResponseParser` class.
+1.  **Refactor**: [x] Isolate XML/Tool parsing into a dedicated, unit-tested `ResponseParser` class.
 2.  **Streaming**: [x] Optimize `ResponseFilter` to handle multi-byte Unicode characters split across chunks.
 3.  [x] **Context**: Implement "Dynamic Context Pruning" to remove least relevant history when near token limits.
 4.  [x] **Token Counting**: Replace manual estimates with a real Tiktoken-based counter (via Python/C++ bindings).
@@ -22,7 +22,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 17. **Debugger**: Provide the agent with a `ReadStacktrace` tool for analyzing crashes.
 18. **Build**: Stream build logs directly to the agent so it can fix compilation errors autonomously.
 19. **Scratchpad**: Automatically clean up the `.agent/scratchpad/` directory after task completion.
-20. **Search**: Optimize `GrepSearch` to exclude `node_modules` and `build/` by default.
+20. **Search**: [x] Optimize `GrepSearch` to exclude `node_modules` and `build/` by default.
 
 ### UI & UX
 21. **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
