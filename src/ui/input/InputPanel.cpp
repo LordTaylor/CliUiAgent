@@ -160,6 +160,10 @@ void InputPanel::clearInput() {
     // Badge hidden via onAttachmentsChanged which clearAttachments() triggers
 }
 
+void InputPanel::addAttachments(const QList<Attachment>& attachments) {
+    m_attachBtn->addAttachments(attachments);
+}
+
 void InputPanel::onSendClicked() {
     const QString text = m_textEdit->toPlainText().trimmed();
     const QList<Attachment> att = m_attachBtn->pendingAttachments();

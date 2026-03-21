@@ -18,6 +18,9 @@
 #include <QScrollBar>
 #include <QApplication>
 #include <QWidget>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 #include "../cli/ProfileEntry.h"
 #include "../data/Attachment.h"
 #include "../data/Message.h"
@@ -44,6 +47,7 @@ namespace CodeHex {
     class ChatControlBanner;
     class LlmDiscoveryService;
     class HelpDialog;
+    class UpdateChecker;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -55,6 +59,10 @@ public:
                         CodeHex::AudioPlayer* player,
                         const CodeHex::ProfileList& extraProfiles = {},
                         QWidget* parent = nullptr);
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
 
 private slots:
     void onSendRequested(const QString& text, const QList<CodeHex::Attachment>& attachments);
@@ -76,6 +84,7 @@ private slots:
     void onDebugLogRequested();
     void onTokenBufferTimeout();
     void onCommandRequested(const QString& cmd, const QStringList& args);
+    void onUpdateAvailable(const QString& version, const QString& url);
     // Discovery logic moved to ProviderSettingsDialog
 
 private:
@@ -114,6 +123,7 @@ private:
     QPushButton*        m_debugBtn;      // Save debug logs
     QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
+    QLabel*             m_foxLabel     = nullptr;
 
     // Streaming state
     QString m_streamingText;
@@ -127,6 +137,7 @@ private:
     QTimer* m_tokenTimer        = nullptr;
 
     CodeHex::HelpDialog* m_helpDialog = nullptr;
+    CodeHex::UpdateChecker* m_updateChecker = nullptr;
 
     void updateTokenLabel(int in = -1, int out = -1);
     void updateButtonIcons();

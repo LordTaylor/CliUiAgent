@@ -148,4 +148,48 @@ QList<IndexChunk> CodebaseIndexer::chunkFile(const QString& path) {
     return chunks;
 }
 
+void CodebaseIndexer::save(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) return;
+
+    QDataStream out(&file);
+    out << (int)1; // Version
+    
+    QMutexLocker locker(&m_mutex);
+    out << (int)m_index.size();
+    for (const auto& chunk : m_index) {
+        out << chunk.filePath << chunk.startLine << chunk.endLine << chunk.content;
+        out << (int)chunk.embedding.size();
+        for (float f : chunk.embedding) out << f;
+    }
+    
+    out << m_fileState;
+}
+
+void CodebaseIndexer::load(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return;
+
+    QDataStream in(&file);
+    int version;
+    in >> version;
+    if (version != 1) return;
+
+    QMutexLocker locker(&m_mutex);
+    int size;
+    in >> size;
+    m_index.clear();
+    for (int i = 0; i < size; ++i) {
+        IndexChunk chunk;
+        in >> chunk.filePath >> chunk.startLine >> chunk.endLine >> chunk.content;
+        int eSize;
+        in >> eSize;
+        chunk.embedding.resize(eSize);
+        for (int j = 0; j < eSize; ++j) in >> chunk.embedding[j];
+        m_index.append(chunk);
+    }
+    
+    in >> m_fileState;
+}
+
 } // namespace CodeHex

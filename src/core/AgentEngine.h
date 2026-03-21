@@ -86,6 +86,9 @@ public:
      */
     void setForcedContextFiles(const QSet<QString>& files) { m_forcedContextFiles = files; }
 
+    void loadPersistence();
+    void savePersistence();
+
     /**
      * @brief Consults an independent LLM collaborator synchronously.
      *

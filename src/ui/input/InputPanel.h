@@ -24,6 +24,7 @@ public:
     void setSendEnabled(bool enabled);
     void setStopEnabled(bool enabled);
     void clearInput();
+    void addAttachments(const QList<Attachment>& attachments);
 
 signals:
     void sendRequested(const QString& text, const QList<Attachment>& attachments);

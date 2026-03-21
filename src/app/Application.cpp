@@ -13,6 +13,7 @@
 #include "../ui/MainWindow.h"
 #include "../core/TokenCounter.h"
 #include "../core/CrashHandler.h"
+#include "../core/AgentEngine.h"
 
 namespace CodeHex {
 
@@ -22,7 +23,11 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv) {
     setOrganizationName("CodeHex");
 }
 
-Application::~Application() = default;
+Application::~Application() {
+    if (m_controller && m_controller->agent()) {
+        m_controller->agent()->savePersistence();
+    }
+}
 
 int Application::run() {
     setupComponents();
@@ -68,8 +73,7 @@ void Application::setupComponents() {
     // Audio
     m_recorder = std::make_unique<AudioRecorder>();
     m_player   = std::make_unique<AudioPlayer>();
-
-    // Main window — pass discovered profile entries for the combo box
+    
     m_mainWindow = std::make_unique<MainWindow>(
         m_config.get(),
         m_sessions.get(),
@@ -77,6 +81,10 @@ void Application::setupComponents() {
         m_recorder.get(),
         m_player.get(),
         m_extraProfiles);
+
+
+    // --- Persistence (Roadmap #9 & #10) ---
+    m_controller->agent()->loadPersistence();
 
     // When the user switches provider in MainWindow, re-configure CliRunner
     connect(m_config.get(), &AppConfig::activeProviderChanged,

@@ -1,6 +1,8 @@
 #include "settings/ProviderSettingsDialog.h"
 #include "MainWindow.h"
+#include <QDesktopServices>
 #include <QApplication>
+#include "UpdateChecker.h"
 #include <QComboBox>
 #include <QFile>
 #include <QHBoxLayout>
@@ -71,6 +73,15 @@ MainWindow::MainWindow(AppConfig* config,
     setupMenuBar();
     loadStyleSheet();
     updateProviderList();
+
+    // --- Update Checker (Roadmap #36) ---
+    m_updateChecker = new UpdateChecker("1.2.0", this); 
+    connect(m_updateChecker, &UpdateChecker::updateAvailable,
+            this, &MainWindow::onUpdateAvailable);
+    QTimer::singleShot(2000, m_updateChecker, &UpdateChecker::checkForUpdates);
+
+    // D&D support
+    setAcceptDrops(true);
 
     // Connect ChatController signals
     connect(m_controller, &ChatController::userMessageReady, this,
@@ -161,25 +172,75 @@ void MainWindow::setupUi() {
     // --- Left Sidebar: Vertical Splitter (Sessions | Files) ---
     m_sidebarSplitter = new QSplitter(Qt::Vertical, m_splitter);
     m_sidebarSplitter->setObjectName("sidebarSplitter");
-    m_sidebarSplitter->setMinimumWidth(200);
+    m_sidebarSplitter->setMinimumWidth(240);
     m_sidebarSplitter->setMaximumWidth(320);
 
-    m_sessionPanel = new SessionPanel(m_sessions, m_sidebarSplitter);
-    m_sessionPanel->setMinimumHeight(150);
+    // Sidebar Content Container (to allow styling)
+    auto* sidebarWidget = new QWidget(m_sidebarSplitter);
+    sidebarWidget->setObjectName("sidebarWidget");
+    auto* sidebarLayout = new QVBoxLayout(sidebarWidget);
+    sidebarLayout->setContentsMargins(0, 0, 0, 0);
+    sidebarLayout->setSpacing(0);
+
+    // Sidebar Header: Buttons
+    auto* sideHeader = new QWidget(sidebarWidget);
+    auto* sideHeaderLayout = new QVBoxLayout(sideHeader);
+    sideHeaderLayout->setContentsMargins(12, 12, 12, 8);
+    sideHeaderLayout->setSpacing(4);
+
+    auto* newTaskBtn = new QPushButton("New Task", sideHeader);
+    newTaskBtn->setObjectName("newTaskBtn");
+    auto* newChatBtn1 = new QPushButton("New Chat", sideHeader);
+    newChatBtn1->setObjectName("newSessionBtn");
+    auto* newChatBtn2 = new QPushButton("New Chat", sideHeader);
+    newChatBtn2->setObjectName("newSessionBtn");
+
+    sideHeaderLayout->addWidget(newTaskBtn);
+    sideHeaderLayout->addWidget(newChatBtn1);
+    sideHeaderLayout->addWidget(newChatBtn2);
     
-    m_workFolderPanel = new WorkFolderPanel(m_sidebarSplitter);
+    QLabel* dirLabel = new QLabel("<I current directory contents to unde", sideHeader);
+    dirLabel->setStyleSheet("color: #6B7280; font-size: 11px; margin-top: 8px;");
+    sideHeaderLayout->addWidget(dirLabel);
+    
+    QLabel* thoughtLabel = new QLabel("<thought>", sideHeader);
+    thoughtLabel->setStyleSheet("color: #6B7280; font-size: 11px; font-style: italic;");
+    sideHeaderLayout->addWidget(thoughtLabel);
+
+    sidebarLayout->addWidget(sideHeader);
+
+    m_sessionPanel = new SessionPanel(m_sessions, sidebarWidget);
+    m_sessionPanel->setMinimumHeight(150);
+    sidebarLayout->addWidget(m_sessionPanel);
+    
+    m_workFolderPanel = new WorkFolderPanel(sidebarWidget);
     m_workFolderPanel->setFolder(m_config->workingFolder());
     connect(m_workFolderPanel, &WorkFolderPanel::folderChanged,
             m_config, &AppConfig::setWorkingFolder);
     connect(m_workFolderPanel, &WorkFolderPanel::contextFilesChanged,
             m_controller->agent(), &AgentEngine::setForcedContextFiles);
+    sidebarLayout->addWidget(m_workFolderPanel);
+
+    // Sidebar Footer: Fox Icon
+    sidebarLayout->addStretch();
+    auto* sideFooter = new QWidget(sidebarWidget);
+    auto* sideFooterLayout = new QHBoxLayout(sideFooter);
+    sideFooterLayout->setContentsMargins(15, 10, 15, 30);
     
-    m_sidebarSplitter->addWidget(m_sessionPanel);
-    m_sidebarSplitter->addWidget(m_workFolderPanel);
-    
-    // Set 30/70 ratio
-    m_sidebarSplitter->setStretchFactor(0, 3);
-    m_sidebarSplitter->setStretchFactor(1, 7);
+    m_foxLabel = new QLabel(sideFooter);
+    m_foxLabel->setObjectName("foxIconLabel");
+    QPixmap foxPix(":/resources/icons/fox_icon.png");
+    if (foxPix.isNull()) {
+        // Fallback to absolute path for now since it's not yet in .qrc
+        foxPix.load("/Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex/resources/icons/fox_icon.png");
+    }
+    if (!foxPix.isNull()) {
+        m_foxLabel->setPixmap(foxPix.scaled(180, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    sideFooterLayout->addWidget(m_foxLabel, 0, Qt::AlignCenter);
+    sidebarLayout->addWidget(sideFooter);
+
+    m_sidebarSplitter->addWidget(sidebarWidget);
     
     m_splitter->addWidget(m_sidebarSplitter);
 
@@ -542,9 +603,50 @@ void MainWindow::onHelpRequested(const QString& page) {
 
 void MainWindow::onAbout() {
     QMessageBox::about(this, "About CodeHex",
-        "CodeHex v" + qApp->applicationVersion() + "\n\n"
-        "Advanced Agentic Coding Environment\n"
-        "Built with Qt 6.7 and LLMs.");
+                       "CodeHex v" + qApp->applicationVersion() + "\n\n"
+                       "Advanced Agentic Coding Environment\n"
+                       "Built with Qt 6.7 and LLMs.");
+}
+
+void MainWindow::onUpdateAvailable(const QString& version, const QString& url) {
+    QMessageBox::StandardButton res = QMessageBox::information(this, "Update Available",
+        QString("A new version (%1) of CodeHex is available!\nWould you like to view the release page?").arg(version),
+        QMessageBox::Yes | QMessageBox::No);
+    
+    if (res == QMessageBox::Yes) {
+        QDesktopServices::openUrl(QUrl(url));
+    }
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+    if (event->mimeData()->hasUrls()) {
+        event->acceptProposedAction();
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent* event) {
+    const QList<QUrl> urls = event->mimeData()->urls();
+    if (urls.isEmpty()) return;
+
+    QList<Attachment> newAttachments;
+    for (const QUrl& url : urls) {
+        QString localPath = url.toLocalFile();
+        if (localPath.isEmpty()) continue;
+        
+        Attachment att;
+        att.filePath = localPath;
+        QFileInfo fi(localPath);
+        QString ext = fi.suffix().toLower();
+        if (ext == "png" || ext == "jpg" || ext == "jpeg") att.type = Attachment::Type::Image;
+        else if (ext == "mp3" || ext == "wav" || ext == "m4a") att.type = Attachment::Type::Audio;
+        else att.type = Attachment::Type::File;
+        
+        newAttachments.append(att);
+    }
+
+    if (!newAttachments.isEmpty()) {
+        m_inputPanel->addAttachments(newAttachments);
+    }
 }
 
 void MainWindow::onDebugLogRequested() {

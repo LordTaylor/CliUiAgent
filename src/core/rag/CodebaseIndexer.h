@@ -37,6 +37,16 @@ public:
 
     bool isIndexing() const { return m_isIndexing; }
 
+    /**
+     * @brief Persist the index to disk.
+     */
+    void save(const QString& path);
+
+    /**
+     * @brief Load the index from disk.
+     */
+    void load(const QString& path);
+
 signals:
     void indexingStarted();
     void indexingFinished();

@@ -16,6 +16,10 @@
 #include "PromptManager.h"
 #include "EnsembleManager.h"
 #include "WalkthroughGenerator.h"
+#include "ThinkingCache.h"
+#include "rag/CodebaseIndexer.h"
+#include <QStandardPaths>
+#include <QDir>
 #include "tools/ToolUtils.h"
 #include "tools/SearchRepoTool.h"
 #include "tools/SearchReplaceTool.h"
@@ -129,6 +133,25 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_auditor->start(300000); // Audit every 5 minutes
 
     connect(m_toolExecutor, &ToolExecutor::toolFinished, this, &AgentEngine::onToolResultReceived);
+}
+
+void AgentEngine::loadPersistence() {
+    QString configDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    QDir(configDir).mkpath(".");
+    
+    ThinkingCache::instance().load(configDir + "/thinking_cache.json");
+    if (m_indexer) {
+        m_indexer->load(configDir + "/codebase_index.bin");
+    }
+}
+
+void AgentEngine::savePersistence() {
+    QString configDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    
+    ThinkingCache::instance().save();
+    if (m_indexer) {
+        m_indexer->save(configDir + "/codebase_index.bin");
+    }
 }
 
 void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) {
@@ -485,8 +508,18 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     bool potentialLoop = false;
     if (m_lastToolResults.size() == MAX_LOOP_RESULTS) {
         potentialLoop = true;
+        
+        // Roadmap #13: Semantic Fingerprint Loop Detection
+        auto getFingerprint = [](QString s) {
+            s = s.trimmed().toLower();
+            s.remove(QRegularExpression("\\s+")); // Remove all whitespace
+            if (s.length() > 500) s = s.left(500); // Only look at first 500 chars
+            return s;
+        };
+        
+        QString firstFingerprint = getFingerprint(m_lastToolResults[0]);
         for (int i = 1; i < m_lastToolResults.size(); ++i) {
-            if (m_lastToolResults[i] != m_lastToolResults[0]) {
+            if (getFingerprint(m_lastToolResults[i]) != firstFingerprint) {
                 potentialLoop = false;
                 break;
             }

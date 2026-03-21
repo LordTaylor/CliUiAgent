@@ -20,6 +20,11 @@ void AttachmentButton::clearAttachments() {
     emit attachmentsChanged(m_attachments);
 }
 
+void AttachmentButton::addAttachments(const QList<Attachment>& attachments) {
+    m_attachments.append(attachments);
+    emit attachmentsChanged(m_attachments);
+}
+
 void AttachmentButton::onClicked() {
     const QStringList files = QFileDialog::getOpenFileNames(
         this, "Select Attachments", QDir::homePath(),
