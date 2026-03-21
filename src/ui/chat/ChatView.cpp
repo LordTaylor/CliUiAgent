@@ -46,6 +46,14 @@ void ChatView::setMessageModel(MessageModel* model) {
 bool ChatView::autoScrollEnabled() const { return m_autoScroll; }
 void ChatView::setAutoScrollEnabled(bool enabled) { m_autoScroll = enabled; }
 
+void ChatView::setSearchTerm(const QString& term) {
+    if (m_searchTerm == term) return;
+    m_searchTerm = term;
+    if (m_msgModel) {
+        m_msgModel->setSearchTerm(term);
+    }
+}
+
 void ChatView::scrollToBottom() {
     scrollToBottomSmooth();
 }

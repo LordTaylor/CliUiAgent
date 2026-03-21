@@ -17,6 +17,7 @@ public:
     void setAutoScrollEnabled(bool enabled);
 
     void scrollToBottomSmooth();
+    void setSearchTerm(const QString& term);
 
 signals:
     void loadMoreRequested();
@@ -30,6 +31,7 @@ protected:
 private:
     MessageModel* m_msgModel = nullptr;
     bool m_autoScroll = true;
+    QString m_searchTerm;
 };
 
 }  // namespace CodeHex

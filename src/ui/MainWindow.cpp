@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QScrollBar>
@@ -198,6 +199,16 @@ void MainWindow::setupUi() {
         settingsLayout->addWidget(b);
     }
     tbLayout->addWidget(settingsBar);
+
+    // Search Bar (Item 47)
+    auto* searchEdit = new QLineEdit(toolbar);
+    searchEdit->setPlaceholderText("Search in chat...");
+    searchEdit->setFixedWidth(200);
+    searchEdit->setClearButtonEnabled(true);
+    tbLayout->addStretch();
+    tbLayout->addWidget(searchEdit);
+
+    connect(searchEdit, &QLineEdit::textChanged, m_chatView, &ChatView::setSearchTerm);
 
     connect(genSettingsBtn, &QPushButton::clicked, this, [this]() {
         SettingsDialog dlg(this);

@@ -35,6 +35,9 @@ public:
     void toggleThinkingVisibility(int row);
 
     // Optimization: Pre-calculate layouts
+    void setSearchTerm(const QString& term);
+
+    // Optimization: Pre-calculate layouts
     void setViewWidth(int width);
     void precomputeLayout(Message& msg) const;
 
@@ -49,6 +52,7 @@ private:
     QList<Message> m_visible;
     int m_loadedOffset = 0;  // index from the END of session->messages
     int m_viewWidth = 600;
+    QString m_searchTerm;
 };
 
 }  // namespace CodeHex

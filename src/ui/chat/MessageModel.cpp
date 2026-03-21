@@ -13,6 +13,18 @@ namespace CodeHex {
 
 MessageModel::MessageModel(QObject* parent) : QAbstractListModel(parent) {}
 
+void MessageModel::setSearchTerm(const QString& term) {
+    if (m_searchTerm == term) return;
+    m_searchTerm = term;
+    for (Message& msg : m_visible) {
+        msg.layoutCache.reset();
+        precomputeLayout(msg);
+    }
+    if (!m_visible.isEmpty()) {
+        emit dataChanged(index(0), index(m_visible.size() - 1));
+    }
+}
+
 void MessageModel::setSession(Session* session) {
     beginResetModel();
     m_session = session;
@@ -155,6 +167,18 @@ void MessageModel::precomputeLayout(Message& msg) const {
             bl.doc->setMarkdown(block.content);
         } else {
             bl.doc->setPlainText(block.content);
+        }
+
+        // Apply search highlighting (Item 47)
+        if (!m_searchTerm.isEmpty()) {
+            QTextCharFormat highlightFormat;
+            highlightFormat.setBackground(QColor(0xFBBF24)); // Amber-400
+            highlightFormat.setForeground(Qt::black);
+            
+            QTextCursor cursor(bl.doc.get());
+            while (!(cursor = bl.doc->find(m_searchTerm, cursor)).isNull()) {
+                cursor.mergeCharFormat(highlightFormat);
+            }
         }
 
         // Set width constraint and force layout
