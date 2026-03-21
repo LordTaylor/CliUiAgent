@@ -36,16 +36,16 @@ void PromptManager::ensureEnvCache() const {
     m_envVersionCache = info;
 }
 
-QString PromptManager::buildSystemPrompt(AgentEngine::Role role, const QString& autoContext) const {
+QString PromptManager::buildSystemPrompt(AgentRole role, const QString& autoContext) const {
     ensureEnvCache();
 
     QString base = "### CURRENT HOST CONTEXT:\n"
                    "- **Operating System**: " + QSysInfo::prettyProductName() + "\n"
                    "- **CPU Architecture**: " + QSysInfo::currentCpuArchitecture() + "\n"
                    "- **Working Directory**: " + QDir(m_config->workingFolder()).absolutePath() + "\n"
-                   "- **Current Role**: " + (role == AgentEngine::Role::Executor ? "Executor" : 
-                                            (role == AgentEngine::Role::Reviewer ? "Reviewer" : 
-                                            (role == AgentEngine::Role::Explorer ? "Explorer" : "Base"))) + "\n\n";
+                   "- **Current Role**: " + (role == AgentRole::Executor ? "Executor" : 
+                                            (role == AgentRole::Reviewer ? "Reviewer" : 
+                                            (role == AgentRole::Explorer ? "Explorer" : "Base"))) + "\n\n";
 
     base += m_envVersionCache + "\n\n";
     base += roleStrategy(role) + "\n\n";
@@ -86,21 +86,21 @@ QString PromptManager::buildSystemPrompt(AgentEngine::Role role, const QString& 
     return base;
 }
 
-QString PromptManager::roleStrategy(AgentEngine::Role role) const {
+QString PromptManager::roleStrategy(AgentRole role) const {
     switch (role) {
-        case AgentEngine::Role::Explorer:
+        case AgentRole::Explorer:
             return "### ROLE STRATEGY: EXPLORER (Researcher)\n"
                    "You are in EXPLORATION mode. Your goal is to map the codebase and understand requirements.\n"
                    "- **Preferred Tools**: `SearchRepo`, `ListDir`, `ViewFile`, `GrepSearch`.\n"
                    "- **Guidelines**: Focus on understanding logic and architecture. Do NOT modify files or start implementation yet. "
                    "Summarize findings clearly for the next stage.";
-        case AgentEngine::Role::Executor:
+        case AgentRole::Executor:
             return "### ROLE STRATEGY: EXECUTOR (Implementer)\n"
                    "You are in EXECUTION mode. Your goal is to implement the approved plan.\n"
                    "- **Preferred Tools**: `WriteFile`, `ReplaceFileContent`, `Bash` (for building/running).\n"
                    "- **Guidelines**: Follow the user's implementation plan strictly. Verify every change with a build or test. "
                    "If you hit unexpected complexity, stop and ask for a plan update.";
-        case AgentEngine::Role::Reviewer:
+        case AgentRole::Reviewer:
             return "### ROLE STRATEGY: REVIEWER (Quality Assurance)\n"
                    "You are in REVIEW mode. Your goal is to validate the work done.\n"
                    "- **Preferred Tools**: `ViewFile`, `GrepSearch`, `Bash` (for running tests).\n"
@@ -139,13 +139,13 @@ QString PromptManager::detectImplicitGoals(const QString& query) const {
     return goals;
 }
 
-QString PromptManager::loadRolePrompt(AgentEngine::Role role) const {
+QString PromptManager::loadRolePrompt(AgentRole role) const {
     QString fileName;
     switch (role) {
-        case AgentEngine::Role::Base:     fileName = "base.txt"; break;
-        case AgentEngine::Role::Explorer: fileName = "explorer.txt"; break;
-        case AgentEngine::Role::Executor: fileName = "executor.txt"; break;
-        case AgentEngine::Role::Reviewer: fileName = "reviewer.txt"; break;
+        case AgentRole::Base:     fileName = "base.txt"; break;
+        case AgentRole::Explorer: fileName = "explorer.txt"; break;
+        case AgentRole::Executor: fileName = "executor.txt"; break;
+        case AgentRole::Reviewer: fileName = "reviewer.txt"; break;
     }
     
     QFile file(":/resources/prompts/" + fileName);
@@ -155,7 +155,7 @@ QString PromptManager::loadRolePrompt(AgentEngine::Role role) const {
     return QString();
 }
 
-QJsonObject PromptManager::buildRequestJson(AgentEngine::Role role, 
+QJsonObject PromptManager::buildRequestJson(AgentRole role, 
                                           const QString& userInput, 
                                           const QList<Message>& history, 
                                           const QJsonArray& tools,

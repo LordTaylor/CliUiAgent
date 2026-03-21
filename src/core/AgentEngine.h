@@ -8,6 +8,7 @@
 #include "Message.h"
 #include "ToolCall.h"
 #include "Attachment.h"
+#include "AgentRole.h" // Added
 
 #include "ResponseParser.h"
 
@@ -23,6 +24,7 @@ class ProjectAuditor;
 class ResponseFilter;
 class PromptManager;
 class EnsembleManager;
+class ModelRouter;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -34,7 +36,6 @@ class AgentEngine : public QObject {
     Q_OBJECT
 public:
     enum class Permission { Allow, Ask, Deny };
-    enum class Role { Base, Explorer, Executor, Reviewer };
 
     explicit AgentEngine(AppConfig* config, 
                          SessionManager* sessions, 
@@ -68,8 +69,8 @@ public:
     void setToolPermission(const QString& toolName, Permission p);
     Permission toolPermission(const QString& toolName) const;
 
-    void setRole(Role role) { m_currentRole = role; }
-    Role currentRole() const { return m_currentRole; }
+    void setRole(AgentRole role) { m_currentRole = role; }
+    AgentRole currentRole() const { return m_currentRole; }
 
     void setSelectedModel(const QString& model) { m_selectedModel = model; }
     QString selectedModel() const { return m_selectedModel; }
@@ -109,11 +110,12 @@ private:
     ResponseFilter*   m_filter;
     PromptManager*    m_prompts;
     EnsembleManager*  m_ensemble;
+    ModelRouter*      m_router; // Added
 
     bool m_manualApproval = false;
     CoVeState m_coveState = CoVeState::None;
     QMap<QString, Permission> m_toolPermissions;
-    Role m_currentRole = Role::Base;
+    AgentRole m_currentRole = AgentRole::Base;
     AppConfig* m_config;
     QList<ToolCall> m_pendingCalls;
     struct PendingRequest {

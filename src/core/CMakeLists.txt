@@ -23,6 +23,8 @@ add_library(codehex_core STATIC
     tools/MathLogicTool.h tools/MathLogicTool.cpp
     ProjectAuditor.h ProjectAuditor.cpp
     EnsembleManager.h EnsembleManager.cpp
+    AgentRole.h
+    ModelRouter.h    ModelRouter.cpp
     tools/GitTool.h
     tools/SearchRepoTool.h
     rag/EmbeddingManager.h rag/EmbeddingManager.cpp
@@ -33,6 +35,7 @@ target_include_directories(codehex_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(codehex_core PUBLIC
     codehex_data
     Qt6::Core
+    Qt6::Widgets
     Qt6::Network
     Qt6::Concurrent
     pybind11::pybind11

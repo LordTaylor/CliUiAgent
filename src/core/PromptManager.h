@@ -6,7 +6,7 @@
 #include <QJsonArray>
 #include <QList>
 
-#include "AgentEngine.h"
+#include "AgentRole.h"
 #include "ContextManager.h"
 #include "Message.h"
 
@@ -25,12 +25,12 @@ public:
     /**
      * @brief Builds the full system prompt for the current role and state.
      */
-    QString buildSystemPrompt(AgentEngine::Role role, const QString& autoContext) const;
+    QString buildSystemPrompt(AgentRole role, const QString& autoContext) const;
 
     /**
      * @brief Builds a structured JSON request for Claude Code API.
      */
-    QJsonObject buildRequestJson(AgentEngine::Role role, 
+    QJsonObject buildRequestJson(AgentRole role, 
                                const QString& userInput, 
                                const QList<Message>& history, 
                                const QJsonArray& tools,
@@ -40,7 +40,7 @@ public:
     /**
      * @brief Strategy description for the given role.
      */
-    QString roleStrategy(AgentEngine::Role role) const;
+    QString roleStrategy(AgentRole role) const;
 
     /**
      * @brief Analyzes the query for implicit goals and returns a context string.
@@ -50,7 +50,7 @@ public:
     /**
      * @brief Loads the base role prompt from resources.
      */
-    QString loadRolePrompt(AgentEngine::Role role) const;
+    QString loadRolePrompt(AgentRole role) const;
 
 private:
     AppConfig* m_config;

@@ -30,6 +30,7 @@
 #include "../core/ChatController.h"
 #include "../core/SessionManager.h"
 #include "../core/AgentEngine.h"
+#include "../core/AgentRole.h" // Added
 #include "../data/Message.h"
 #include "chat/ChatView.h"
 #include "chat/ChatControlBanner.h"
@@ -246,10 +247,10 @@ void MainWindow::setupUi() {
     QLabel* roleLbl = new QLabel("Role:", toolbar);
     tbLayout->addWidget(roleLbl);
     m_roleCombo = new QComboBox(toolbar);
-    m_roleCombo->addItem("Base", (int)AgentEngine::Role::Base);
-    m_roleCombo->addItem("Explorer", (int)AgentEngine::Role::Explorer);
-    m_roleCombo->addItem("Executor", (int)AgentEngine::Role::Executor);
-    m_roleCombo->addItem("Reviewer", (int)AgentEngine::Role::Reviewer);
+    m_roleCombo->addItem("Base", (int)AgentRole::Base);
+    m_roleCombo->addItem("Explorer", (int)AgentRole::Explorer);
+    m_roleCombo->addItem("Executor", (int)AgentRole::Executor);
+    m_roleCombo->addItem("Reviewer", (int)AgentRole::Reviewer);
     m_roleCombo->setMinimumWidth(100);
     tbLayout->addWidget(m_roleCombo);
     
@@ -397,7 +398,7 @@ void MainWindow::setupUi() {
             this, &MainWindow::onProviderChanged);
 
     connect(m_roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index){
-        AgentEngine::Role role = (AgentEngine::Role)m_roleCombo->itemData(index).toInt();
+        AgentRole role = (AgentRole)m_roleCombo->itemData(index).toInt();
         m_controller->agent()->setRole(role);
     });
 

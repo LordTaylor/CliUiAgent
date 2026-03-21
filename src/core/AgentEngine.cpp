@@ -1,8 +1,10 @@
+#include <QObject>
 #include "AgentEngine.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <memory>
 #include <QSysInfo>
 #include <QOperatingSystemVersion>
 #include "ResponseParser.h"
@@ -13,6 +15,7 @@
 #include "ResponseFilter.h"
 #include "PromptManager.h"
 #include "EnsembleManager.h"
+#include "WalkthroughGenerator.h"
 #include "tools/ToolUtils.h"
 #include "tools/SearchRepoTool.h"
 #include "tools/SearchReplaceTool.h"
@@ -22,6 +25,7 @@
 #include "SessionManager.h"
 #include "AppConfig.h"
 #include "TokenCounter.h"
+#include "ModelRouter.h" // Added
 #include "ProjectAuditor.h"
 #include "../cli/CliRunner.h"
 #include "../cli/ConfigurableProfile.h"
@@ -34,13 +38,10 @@ AgentEngine::AgentEngine(AppConfig* config,
                          CliRunner* runner, 
                          ToolExecutor* toolExecutor,
                          QObject* parent)
-    : QObject(parent)
-    , m_config(config)
-    , m_sessions(sessions)
-    , m_runner(runner)
-    , m_toolExecutor(toolExecutor)
+    : QObject(parent), m_sessions(sessions), m_runner(runner), 
+      m_toolExecutor(toolExecutor), m_currentRole(AgentRole::Base), m_config(config)
 {
-    m_currentRole = Role::Base;
+    m_router = new ModelRouter(config, this); // Initialize Router
     m_manualApproval = false;
     // Default Permissions - use tool.name() case as standard
     m_toolPermissions["ReadFile"]      = Permission::Allow;
@@ -57,15 +58,15 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_prompts = new PromptManager(m_config, this);
     m_ensemble = new EnsembleManager(m_config, this);
 
-    connect(m_ensemble, &EnsembleManager::responseReady, this, [this](const QString& response) {
+    connect(m_ensemble, &CodeHex::EnsembleManager::responseReady, this, [this](const QString& response) {
         onOutputChunk(response);
         onRunnerFinished(0);
     });
 
     // Register tools
-    m_toolExecutor->registerTool(std::make_shared<SearchReplaceTool>());
-    m_toolExecutor->registerTool(std::make_shared<SearchRepoTool>(m_indexer));
-    m_toolExecutor->registerTool(std::make_shared<MathLogicTool>());
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::SearchReplaceTool>()));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::SearchRepoTool>(m_indexer)));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::MathLogicTool>()));
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
@@ -87,6 +88,59 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_auditor->start(300000); // Audit every 5 minutes
 
     connect(m_toolExecutor, &ToolExecutor::toolFinished, this, &AgentEngine::onToolResultReceived);
+}
+
+void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) {
+    if (!m_isRunning) return;
+
+    // Switch model/profile based on current role BEFORE sending
+    QString profileId = m_router->getProfileIdForRole(m_currentRole);
+    LlmProvider provider = m_config->activeProvider(); // Default
+    
+    // Find provider by profileId
+    for (const auto& p : m_config->providers()) {
+        if (p.id == profileId) {
+            provider = p;
+            break;
+        }
+    }
+
+    qInfo() << "AgentEngine: Using profile" << provider.name << "for role" << (int)m_currentRole;
+    auto profile = ConfigurableProfile::fromProvider(provider);
+    if (!m_selectedModel.isEmpty() && m_currentRole == AgentRole::Base) {
+        profile->setModel(m_selectedModel);
+    }
+    m_runner->setProfile(std::move(profile));
+
+    emit statusChanged(QString("Thinking (%1)...").arg(prompt.left(20)));
+    auto session = m_sessions->currentSession();
+    if (!session) return;
+
+    // Prepare message (Already done in process() usually, but runLoop is direct)
+    // Actually, process() calls runLoop(). So we don't need to append here if already done.
+    // However, tool loops calls runLoop() directly.
+    
+    // Select and configure LLM profile from active provider (ALREADY DONE ABOVE with Router)
+
+    // Determine if we use the new Structured JSON Schema
+    bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
+
+    if (useJsonSchema) {
+        emit statusChanged("🧠 Reasoning (JSON Schema)...");
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, prompt, session->messages, tools, 31999, true);
+        m_runner->sendJson(request, m_config->workingFolder());
+    } else {
+        emit statusChanged("🧠 Thinking...");
+        QString implicitGoals = m_prompts->detectImplicitGoals(prompt);
+        QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + prompt; 
+        
+        // Estimate tokens for non-JSON path
+        const int inputTokens = TokenCounter::estimate(enrichedPrompt);
+        session->updateTokens(inputTokens, 0);
+
+        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+    }
 }
 
 void AgentEngine::process(const QString& userInput, const QList<Attachment>& attachments) {
@@ -138,41 +192,9 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     m_isRunning = true;
     
     // Background indexing
-    QtConcurrent::run([this]() {
-        m_indexer->indexDirectory(m_config->workingFolder());
-    });
+    (void)QtConcurrent::run(&CodebaseIndexer::indexDirectory, m_indexer, m_config->workingFolder());
     
-    emit statusChanged("Agent is thinking...");
-    injectAutoContext(userInput);
-    
-    QString implicitGoals = m_prompts->detectImplicitGoals(userInput);
-    
-    // Select and configure LLM profile from active provider
-    const auto provider = m_config->activeProvider();
-    auto profile = ConfigurableProfile::fromProvider(provider);
-    if (!m_selectedModel.isEmpty()) {
-        profile->setModel(m_selectedModel);
-    }
-    m_runner->setProfile(std::move(profile));
-
-    // Determine if we use the new Structured JSON Schema
-    bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
-
-    if (useJsonSchema) {
-        emit statusChanged("🧠 Reasoning (JSON Schema)...");
-        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
-        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, userInput, session->messages, tools, 31999, true);
-        m_runner->sendJson(request, m_config->workingFolder());
-    } else {
-        emit statusChanged("🧠 Thinking...");
-        QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + userInput; 
-        
-        // Estimate tokens for non-JSON path
-        const int inputTokens = TokenCounter::estimate(enrichedPrompt);
-        session->updateTokens(inputTokens, 0);
-
-        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
-    }
+    runLoop(userInput, imagePaths);
 }
 
 void AgentEngine::sendContinueRequest(const QString& nudge) {
@@ -463,13 +485,18 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     
     m_coveState = CoVeState::None; // Reset after completion
 
-    ResponseParser::ParseResult result = ResponseParser::parse(currentResp);
-    buildAssistantMessage(result);
+    ResponseParser::ParseResult parseResult = ResponseParser::parse(currentResp);
+    // --- Phase 5: Auto-walkthrough generation ---
+    if (m_sessions->currentSession()) {
+        WalkthroughGenerator::generate(m_sessions->currentSession(), m_config);
+    }
 
-    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << result.toolCalls.size();
-    if (!result.toolCalls.isEmpty()) {
-        qDebug() << "[AgentEngine] Dispatching tool:" << result.toolCalls.first().name;
-        onToolCallReady(result.toolCalls.first());
+    buildAssistantMessage(parseResult);
+
+    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();
+    if (!parseResult.toolCalls.isEmpty()) {
+        qDebug() << "[AgentEngine] Dispatching tool:" << parseResult.toolCalls.first().name;
+        onToolCallReady(parseResult.toolCalls.first());
     } else {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
