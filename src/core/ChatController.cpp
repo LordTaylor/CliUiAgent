@@ -49,7 +49,39 @@ ChatController::ChatController(AppConfig* config,
 }
 
 void ChatController::sendMessage(const QString& text, const QList<Attachment>& attachments) {
-    if (text.isEmpty()) return;
+    qDebug() << "[ChatController] sendMessage called with text:" << text;
+    if (text.isEmpty()) {
+        qDebug() << "[ChatController] Text is empty, returning.";
+        return;
+    }
+
+    auto session = m_sessions->currentSession();
+    if (!session) {
+        qCritical() << "[ChatController] ERROR: currentSession is NULL! Cannot send message.";
+        return;
+    }
+
+    // Roadmap Item 15: Detect merge conflicts
+    if (!text.contains("conflict", Qt::CaseInsensitive) && !text.contains("merge", Qt::CaseInsensitive)) {
+        QProcess gitProc;
+        gitProc.setWorkingDirectory(m_config->workingFolder());
+        gitProc.start("git", {"ls-files", "--unmerged"});
+        if (gitProc.waitForFinished(1000)) {
+            QString unmerged = QString::fromLocal8Bit(gitProc.readAllStandardOutput()).trimmed();
+            if (!unmerged.isEmpty()) {
+                Message warnMsg;
+                warnMsg.id = QUuid::createUuid();
+                warnMsg.role = Message::Role::System;
+                CodeBlock warnBlock;
+                warnBlock.type = BlockType::Text;
+                warnBlock.content = "⚠️ **Merge Conflicts Detected!**\n\nThere are unresolved Git merge conflicts in your repository. Please resolve them before asking me to modify code to prevent accidental corruption of the conflict markers.\n\n*(If you want my help to resolve them, just include the word 'conflict' in your message).*";
+                warnMsg.contentBlocks << warnBlock;
+                warnMsg.timestamp = QDateTime::currentDateTime();
+                emit responseComplete(warnMsg); // show warning immediately
+                return; // Stop processing
+            }
+        }
+    }
 
     // Immediate UI feedback
     Message userMsg;
@@ -69,6 +101,7 @@ void ChatController::sendMessage(const QString& text, const QList<Attachment>& a
     emit generationStarted();
     m_agent->process(text, attachments);
 }
+
 
 void ChatController::stopGeneration() {
     m_agent->stop();
