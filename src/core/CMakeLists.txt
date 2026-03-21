@@ -21,8 +21,9 @@ add_library(codehex_core STATIC
     tools/GrepTool.h
     CodebaseVisualizer.h CodebaseVisualizer.cpp
     tools/VisualizeCodebaseTool.h
-    tools/CompleteTaskTool.h
+     tools/CompleteTaskTool.h
     tools/WebSearchTool.h
+    tools/TakeScreenshotTool.h
     FileHotnessProvider.h
     FileHotnessProvider.cpp
     DiffUtils.cpp
@@ -40,6 +41,7 @@ add_library(codehex_core STATIC
 )
 
 target_include_directories(codehex_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(codehex_core PRIVATE ${CMAKE_SOURCE_DIR}/src/data)
 target_link_libraries(codehex_core PUBLIC
     codehex_data
     codehex_cli

@@ -1,5 +1,3 @@
-#pragma once
-
 #include <QObject>
 #include <QString>
 #include <QMap>
@@ -8,8 +6,8 @@
 #include <memory>
 #include <atomic>
 
-#include "Tool.h"
 #include "ToolCall.h"
+#include "Tool.h"
 
 namespace CodeHex {
 

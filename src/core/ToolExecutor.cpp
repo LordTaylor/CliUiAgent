@@ -1,4 +1,5 @@
 #include "ToolExecutor.h"
+#include "ToolCall.h"
 #include "tools/ReadFileTool.h"
 #include "tools/WriteFileTool.h"
 #include "tools/ListDirectoryTool.h"
@@ -8,6 +9,7 @@
 #include "tools/ReplaceTool.h"
 #include "tools/GitTool.h"
 #include "tools/MathLogicTool.h"
+#include "tools/TakeScreenshotTool.h"
 #include <QtConcurrent>
 #include <QMetaType>
 #include <QJsonDocument>
@@ -32,6 +34,7 @@ ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Diff));
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Log));
     registerTool(std::make_shared<MathLogicTool>());
+    registerTool(std::make_shared<TakeScreenshotTool>());
 
     // Register Aliases
     registerAlias("Read",  "ReadFile");
@@ -42,6 +45,7 @@ ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     registerAlias("Glob",  "SearchFiles");
     registerAlias("Grep",  "Search");
     registerAlias("Sed",   "Replace");
+    registerAlias("Screenshot", "TakeScreenshot");
 }
 
 void ToolExecutor::registerTool(std::shared_ptr<Tool> tool) {
@@ -58,12 +62,8 @@ void ToolExecutor::execute(const ToolCall& call, const QString& workDir) {
     emit toolStarted(call.name, call.input);
 
     // Capture everything needed by value to ensure thread safety
-    QString toolName = call.name;
-    QJsonObject input = call.input;
-    QString toolUseId = call.id;
-
-    QtConcurrent::run([this, toolName, input, workDir, toolUseId]() {
-        executeSync(ToolCall{toolUseId, toolName, input}, workDir);
+    QtConcurrent::run([this, call, workDir]() {
+        executeSync(call, workDir);
     });
 }
 

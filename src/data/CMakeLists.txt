@@ -1,8 +1,11 @@
 add_library(codehex_data STATIC
-    Attachment.h Attachment.cpp
-    Message.h    Message.cpp
-    Session.h    Session.cpp
-    JsonSerializer.h JsonSerializer.cpp
+    Attachment.h      Attachment.cpp
+    Message.h         Message.cpp
+    Session.h         Session.cpp
+    JsonSerializer.h  JsonSerializer.cpp
+    ToolCall.h
+    LlmProvider.h
+    CodeBlock.h
 )
 
 target_include_directories(codehex_data PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
