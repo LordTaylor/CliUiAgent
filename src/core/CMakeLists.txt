@@ -19,6 +19,8 @@ add_library(codehex_core STATIC
     tools/BashTool.h
     tools/SearchFilesTool.h
     tools/GrepTool.h
+    CodebaseVisualizer.h CodebaseVisualizer.cpp
+    tools/VisualizeCodebaseTool.h
     tools/ReplaceTool.h
     tools/SearchReplaceTool.h
     tools/MathLogicTool.h tools/MathLogicTool.cpp

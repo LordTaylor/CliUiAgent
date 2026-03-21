@@ -69,8 +69,8 @@ This document outlines 60 proposed technical and user experience improvements, a
 3. [x] **Local RAG Agent** (Dedykowana rola do pytań o cały codebase - nie tylko 3 snippety). the *entire* codebase (not just 3 snippets).
 4.  **Web Search Tool**: Allow the agent to search documentation on the internet (via DuckDuckGo/Tavily).
 5.  **Multi-Agent Collaborative Mode**: Two agents (e.g., Architect and Coder) debating the best approach.
-6.  **Codebase Visualizer**: Generate a Mermaid diagram of the project structure automatically.
-7.  **Auto-Walkthrough**: Automatically generate a `walkthrough.md` for any pull request the agent makes.
+6. [x] **Codebase Visualizer** (Generowanie diagramu Mermaid struktury projektu).
+7. [x] **Auto-Walkthrough** (Automatyczne generowanie walkthrough.md po zakończeniu zadania).ull request the agent makes.
 8.  **Automated Dependency Management**: Agent detects outdated libraries and proposes updates.
 10. **Refactoring Assistant**: Specialized role for simplifying complex functions.
 11. **Smart File Explorer**: Files sorted by "Hotness" (most frequently modified/relevant).

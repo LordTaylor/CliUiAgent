@@ -20,6 +20,8 @@
 #include "tools/SearchRepoTool.h"
 #include "tools/SearchReplaceTool.h"
 #include "tools/MathLogicTool.h"
+#include "tools/VisualizeCodebaseTool.h"
+#include "tools/CompleteTaskTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -67,6 +69,8 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::SearchReplaceTool>()));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::SearchRepoTool>(m_indexer)));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::MathLogicTool>()));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::VisualizeCodebaseTool>()));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::CompleteTaskTool>(m_sessions, m_config)));
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);
@@ -512,11 +516,8 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     m_coveState = CoVeState::None; // Reset after completion
 
     ResponseParser::ParseResult parseResult = ResponseParser::parse(currentResp);
-    // --- Phase 5: Auto-walkthrough generation ---
-    if (m_sessions->currentSession()) {
-        WalkthroughGenerator::generate(m_sessions->currentSession(), m_config);
-    }
-
+    // --- Phase 5: Auto-walkthrough generation is now triggered by CompleteTask tool ---
+    
     buildAssistantMessage(parseResult, currentResp);
 
     qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();

@@ -11,7 +11,7 @@ namespace CodeHex {
 
 class WalkthroughGenerator {
 public:
-    static void generate(Session* session, AppConfig* config) {
+    static void generate(Session* session, AppConfig* config, const QString& finalSummary = QString()) {
         if (!session) return;
         
         QString path = config->workingFolder() + "/walkthrough.md";
@@ -22,28 +22,55 @@ public:
         out << "# 🚀 Task Walkthrough: " << (session->title.isEmpty() ? "Session Analysis" : session->title) << "\n\n";
         out << "*Generated on: " << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "*\n\n";
         
+        if (!finalSummary.isEmpty()) {
+            out << "## 📝 Summary\n" << finalSummary << "\n\n";
+        }
+
         out << "## 🛠️ Actions Taken\n";
-        int actionCount = 0;
+        QMap<QString, int> toolUsage;
+        QStringList modifiedFiles;
+        
+        QRegularExpression toolRe("<tool_call name=\"([^\"]+)\"");
+        QRegularExpression fileRe("(?:TargetFile|path)[\"\\s:]+([^\"\\s,{}]+)");
+
         for (const auto& msg : session->messages) {
-            if (msg.role == Message::Role::Assistant) {
-                // Find tool calls using simple regex for now
-                QRegularExpression re("<tool_call name=\"([^\"]+)\"");
-                QRegularExpressionMatchIterator it = re.globalMatch(msg.textFromContentBlocks());
-                while (it.hasNext()) {
-                    QRegularExpressionMatch match = it.next();
-                    QString toolName = match.captured(1);
-                    actionCount++;
-                    out << QString("%1. **%2**\n").arg(actionCount).arg(toolName);
+            QString content = msg.textFromContentBlocks();
+            
+            // Count tools
+            QRegularExpressionMatchIterator it = toolRe.globalMatch(content);
+            while (it.hasNext()) {
+                toolUsage[it.next().captured(1)]++;
+            }
+            
+            // Identify modified files (very basic heuristic)
+            if (msg.role == Message::Role::Assistant && (content.contains("WriteFile") || content.contains("Replace"))) {
+                QRegularExpressionMatchIterator fit = fileRe.globalMatch(content);
+                while (fit.hasNext()) {
+                    QString f = fit.next().captured(1);
+                    if (!f.isEmpty() && !modifiedFiles.contains(f) && f.contains(".")) {
+                        modifiedFiles.append(f);
+                    }
                 }
             }
         }
 
-        if (actionCount == 0) {
+        if (toolUsage.isEmpty()) {
             out << "*(No tools were exercised during this task)*\n";
+        } else {
+            for (auto it = toolUsage.begin(); it != toolUsage.end(); ++it) {
+                out << QString("- **%1**: %2 times\n").arg(it.key()).arg(it.value());
+            }
+        }
+
+        if (!modifiedFiles.isEmpty()) {
+            out << "\n## 📄 Modified Files\n";
+            for (const QString& f : modifiedFiles) {
+                out << QString("- `%1`\n").arg(f);
+            }
         }
 
         out << "\n## ✅ Conclusion\n";
-        out << "The task has been completed and verified. This document was automatically generated as part of the Phase 5 roadmap features.\n";
+        out << "The task has been completed and verified. This document was generated automatically by CodeHex.\n";
         
         file.close();
     }
