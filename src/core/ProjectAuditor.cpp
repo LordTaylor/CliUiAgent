@@ -45,15 +45,19 @@ void ProjectAuditor::checkLargeFiles() {
 }
 
 void ProjectAuditor::checkDocumentation() {
+    if (m_docsWarned) return; // Emit only once per session
     QDir docsDir(m_workDir + "/docs");
     if (!docsDir.exists()) {
+        m_docsWarned = true;
         emit auditSuggestion("No 'docs/' directory found. Good projects deserve good docs!");
     }
 }
 
 void ProjectAuditor::checkRulesAdherence() {
+    if (m_rulesWarned) return; // Emit only once per session
     QFile rules(m_workDir + "/.agent/rules.md");
     if (!rules.exists()) {
+        m_rulesWarned = true;
         emit auditSuggestion("'.agent/rules.md' is missing. Defining rules helps the agent follow your standards.");
     }
 }

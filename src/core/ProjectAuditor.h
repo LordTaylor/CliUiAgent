@@ -33,6 +33,9 @@ private:
 
     QString m_workDir;
     QTimer* m_timer;
+    // Throttle flags — each one-off suggestion fires at most once per session
+    bool m_rulesWarned = false;
+    bool m_docsWarned  = false;
 };
 
 } // namespace CodeHex

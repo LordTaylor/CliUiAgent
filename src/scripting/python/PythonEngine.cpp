@@ -7,6 +7,8 @@
 #include <pybind11/pybind11.h>
 #pragma pop_macro("slots")
 #include <QDebug>
+#include <QRegularExpression>
+#include <QSet>
 
 namespace py = pybind11;
 
@@ -53,7 +55,23 @@ bool PythonEngine::loadScript(const QString& path) {
         py::gil_scoped_acquire acquire;
         py::eval_file(path.toStdString());
     } catch (const py::error_already_set& e) {
-        emit scriptError(path, QString::fromStdString(e.what()));
+        const QString errorMsg = QString::fromStdString(e.what());
+        // ModuleNotFoundError is a configuration issue, not a crash — emit a single
+        // readable warning instead of flooding the log via scriptError signal.
+        if (errorMsg.contains("ModuleNotFoundError") || errorMsg.contains("No module named")) {
+            // Extract the missing module name for a concise message
+            static QSet<QString> s_reportedModules;
+            QRegularExpression re("No module named '([^']+)'");
+            QRegularExpressionMatch m = re.match(errorMsg);
+            QString moduleName = m.hasMatch() ? m.captured(1) : "unknown";
+            if (!s_reportedModules.contains(moduleName)) {
+                s_reportedModules.insert(moduleName);
+                qWarning() << "[Python] Missing module:" << moduleName
+                           << "— install it or remove the script that imports it. (Reported once.)";
+            }
+            return false;
+        }
+        emit scriptError(path, errorMsg);
         return false;
     } catch (const std::exception& e) {
         emit scriptError(path, QString::fromStdString(e.what()));

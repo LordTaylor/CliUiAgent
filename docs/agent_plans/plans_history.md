@@ -1,5 +1,46 @@
 # Historia Rozwoju CodeHex (Plany i Realizacja)
 
+---
+
+## Faza 36: Stabilizacja Agenta & 10 Ulepszeń (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Naprawienie problemów wykrytych w logach (30 530 linii) + implementacja krytycznych ulepszeń bezpieczeństwa pętli i UI.
+
+### Naprawione problemy z logów:
+- [x] **#6 CSS rgba**: Naprawiono błędny format `rgba X, Y, Z, N/255.0` w `ChatControlBanner.cpp` (tysiące ostrzeżeń QCssParser wyeliminowanych)
+- [x] **#9 rules.md alarm**: `ProjectAuditor` emitował ostrzeżenie co 5 minut — dodano flagi `m_rulesWarned`/`m_docsWarned`, każde ostrzeżenie pojawia się tylko raz na sesję
+- [x] **#4 rag_backend.py**: `PythonEngine::loadScript` teraz deduplikuje `ModuleNotFoundError` — jeden czytelny WARN zamiast 30 wpisów na start
+
+### Bezpieczeństwo pętli agenta (krytyczne):
+- [x] **#1 Circuit Breaker**: Limit 25 iteracji (`MAX_LOOP_ITERATIONS`) — po przekroczeniu: stop + jasny komunikat błędu
+- [x] **#2 LLM Timeout**: `QTimer` 120s — jeśli LLM nie odpowiada, `runner->stop()` + `errorOccurred` sygnał
+- [x] **#3 Semantic Loop Detection**: Nowe śledzenie fingerprintów `toolName:keyParam` obok istniejącego śledzenia outputów — wykrywa pętle semantyczne (ten sam tool + te same parametry)
+- [x] **#18 JSON Validation**: `ResponseParser` ustawia `ToolCall::valid = false` przy błędzie parsowania; `AgentEngine` zwraca czytelny błąd zamiast wykonywać tool z pustymi parametrami
+
+### UI:
+- [x] **#14 Confidence Badge**: `Message::confidenceScore` z parsera wyświetlany jako badge `◆ N/10` w `MessageDelegate` (zielony ≥7, bursztynowy 4-6, czerwony ≤3)
+- [x] **#19 Token Indicator**: `onTokenStatsUpdated()` (był pusty) teraz wywołuje `updateTokenLabel()` — live streaming stats w status barze
+
+### Jakość kodu:
+- [x] **#7 Retry z backoff**: `ToolCall::retryCount` + retry dla nieudanych narzędzi (maks 2 × z 500ms/1000ms backoff) zanim wyśle błąd do LLM
+
+### Pliki zmienione:
+- `src/ui/chat/ChatControlBanner.cpp`
+- `src/core/ProjectAuditor.h`, `ProjectAuditor.cpp`
+- `src/scripting/python/PythonEngine.cpp`
+- `src/core/AgentEngine.h`, `AgentEngine.cpp`
+- `src/core/ResponseParser.cpp`
+- `src/data/ToolCall.h`, `Message.h`
+- `src/ui/chat/MessageDelegate.cpp`
+- `src/ui/MainWindow.cpp`
+
+### Weryfikacja:
+- Build: ✅ Brak błędów kompilacji
+- Stabilność: ✅ Aplikacja startuje i działa (exit SIGTERM po 6s, kod 143)
+
+---
+
 Ten plik zawiera szczegółową historię wszystkich faz i kroków milowych w rozwoju projektu CodeHex, od fundamentów CLI po zaawansowaną autonomię agenta.
 
 ---
@@ -223,3 +264,14 @@ Pełna optymalizacja systemu promptów i sub-agentów w celu zwiększenia precyz
 - [x] **Weryfikacja**: Pełna przebudowa systemowa przy użyciu `run.sh --rebuild` (100% sukces).
 
 ---
+ 
+## Phase 36: Advanced Agentic Orchestration (ZAKOŃCZONA)
+ 
+### Cel:
+Wdrożenie zaawansowanych strategii agentycznych: Dynamic Technik Library, Confidence Scoring oraz Integrated Synthesis & Validation (ISV).
+ 
+#### Zrealizowane zadania:
+- [x] **Dynamic Technik Library**: Dodanie promptów technik (`tdd`, `clean_code`, `performance`) i ról (`architect`, `debugger`, `security_auditor`) do zasobów.
+- [x] **Verification Anchor**: Implementacja parsowania `<confidence>` i mechanizmu nudgingu przy niskiej pewności (< 5).
+- [x] **ISV (Integrated Synthesis & Validation)**: Automatyczne wymuszanie weryfikacji po każdej edycji pliku.
+- [x] **Weryfikacja**: Pełna przebudowa systemowa oraz testy jednostkowe (`test_response_parser.cpp`) potwierdzające poprawność logiki.

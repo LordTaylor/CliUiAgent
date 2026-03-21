@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QJsonObject>
 #include <QQueue>
+#include <QTimer>
 #include "Message.h"
 #include "ToolCall.h"
 #include "Attachment.h"
@@ -130,6 +131,13 @@ public slots:
     void onRunnerFinished(int exitCode);
     void onAuditSuggestion(const QString& suggestion);
 
+    // Techniques & Blackboard
+    void activateTechnique(const QString& name) { m_activeTechniques.append(name); m_activeTechniques.removeDuplicates(); }
+    void deactivateTechnique(const QString& name) { m_activeTechniques.removeAll(name); }
+    void postNote(const QString& key, const QString& value) { m_blackboard[key] = value; }
+    QString getNote(const QString& key) const { return m_blackboard.value(key); }
+    QMap<QString, QString> blackboard() const { return m_blackboard; }
+
 private:
     void runLoop(const QString& prompt, const QStringList& imagePaths);
     void buildAssistantMessage(const ResponseParser::ParseResult& result, const QString& rawText);
@@ -185,6 +193,25 @@ private:
     // --- Loop Detection (Item #13) ---
     QStringList m_lastToolResults;
     const int MAX_LOOP_RESULTS = 3;
+
+    // --- Retry (#7): last executed call kept for transient-error retry ---
+    ToolCall m_lastExecutedCall;
+    /** Semantic fingerprint: "toolName:keyParam" pairs for each recent call. */
+    QStringList m_lastToolCallFingerprints;
+
+    // --- Circuit Breaker (#1) ---
+    /** Iteration counter reset at the start of each user request. */
+    int m_loopIterations = 0;
+    static constexpr int MAX_LOOP_ITERATIONS = 25;
+
+    // --- LLM Timeout (#2) ---
+    /** Single-shot timer that aborts the runner if no tokens arrive within the deadline. */
+    QTimer* m_llmTimeoutTimer = nullptr;
+    static constexpr int LLM_TIMEOUT_MS = 120'000; // 2 minutes
+
+    // --- Phase 2: Advanced Strategies ---
+    QStringList m_activeTechniques;
+    QMap<QString, QString> m_blackboard;
 };
 
 }  // namespace CodeHex

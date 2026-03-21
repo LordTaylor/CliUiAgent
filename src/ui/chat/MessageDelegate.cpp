@@ -202,6 +202,35 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         currentY += bl.height + 12; // Spacing
     }
 
+    // Confidence badge — shown for assistant messages when model emitted a score
+    if (!isUser && msg.confidenceScore >= 0) {
+        const QString badgeText = QString("◆ %1/10").arg(msg.confidenceScore);
+        QFont badgeFont = opt.font;
+        badgeFont.setPointSizeF(badgeFont.pointSizeF() * 0.78);
+        p->setFont(badgeFont);
+        const QFontMetrics fm(badgeFont);
+        const int textW   = fm.horizontalAdvance(badgeText) + 16;
+        const int badgeX  = kAvatarSize + 12;
+        const int badgeY  = currentY;
+
+        // Color: green >=7, amber 4-6, red <=3
+        QColor bgColor = (msg.confidenceScore >= 7) ? QColor(0x065F46)
+                       : (msg.confidenceScore >= 4) ? QColor(0x78350F)
+                       :                              QColor(0x7F1D1D);
+        QColor textColor = (msg.confidenceScore >= 7) ? QColor(0x34D399)
+                         : (msg.confidenceScore >= 4) ? QColor(0xFBBF24)
+                         :                              QColor(0xFCA5A5);
+
+        p->setPen(Qt::NoPen);
+        p->setBrush(bgColor);
+        p->drawRoundedRect(badgeX, badgeY, textW, kBadgeHeight, 6, 6);
+        p->setPen(textColor);
+        p->drawText(QRect(badgeX + 8, badgeY, textW - 8, kBadgeHeight),
+                    Qt::AlignVCenter | Qt::AlignLeft, badgeText);
+        p->setFont(opt.font);
+        currentY += kBadgeHeight + 4;
+    }
+
     // Attachment badge - only for user messages with files
     // Assuming attachments are now handled directly from msg.attachments
     if (!msg.attachments.isEmpty() && isUser) {
@@ -253,15 +282,14 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
         }
         if (hasThinking) {
             const int viewWidth = option.rect.width();
-            int btnX = viewWidth - 24 - 12;
-            int btnY = option.rect.top() + 10;
-            QRect btnRect(btnX, btnY, 24, 24);
+            int btnX = viewWidth - 32 - 12; // Increased hit area
+            int btnY = option.rect.top() + 8;
+            QRect btnRect(btnX, btnY, 32, 32); // 32x32 hit area instead of 24x24
             
-            painter->setPen(QColor(156, 163, 175)); // Gray-400
+            painter->setPen(QColor(156, 163, 175));
             QFont iconFont = painter->font();
-            iconFont.setPointSize(14);
+            iconFont.setPointSize(16); // Slightly larger icon
             painter->setFont(iconFont);
-            // Draw either open eye or closed eye depending on state
             painter->drawText(btnRect, Qt::AlignCenter, msg.showThinking ? "👁" : "👁‍🗨");
         }
     }

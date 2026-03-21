@@ -38,18 +38,24 @@ ResponseParser::ParseResult ResponseParser::parse(const QString& response) {
         QString cleanExpl = cleanText(rawExplanation).trimmed();
         lastPos = match.capturedEnd();
 
+        ToolCall call;
+        call.id = QUuid::createUuid().toString();
+        call.name = tname;
+        call.explanation = cleanExpl;
+
         QJsonParseError err;
         QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
         if (!doc.isNull() && doc.isObject()) {
-            ToolCall call;
-            call.id = QUuid::createUuid().toString();
-            call.name = tname;
             call.input = doc.object();
-            call.explanation = cleanExpl; // Store captured explanation
-            result.toolCalls << call;
+            call.valid = true;
         } else {
-            qWarning() << "[ResponseParser] FAILED to parse JSON for tool" << tname << ":" << err.errorString();
+            // Mark as invalid so AgentEngine can return a clear error instead of
+            // executing the tool with empty parameters.
+            call.valid = false;
+            qWarning() << "[ResponseParser] Invalid JSON for tool" << tname
+                       << "—" << err.errorString() << ". Marking call as invalid.";
         }
+        result.toolCalls << call;
     }
 
     // 3. Fallback: Bash Markdown Blocks
@@ -70,7 +76,14 @@ ResponseParser::ParseResult ResponseParser::parse(const QString& response) {
         }
     }
 
-    // 4. Clean Text for Display
+    // 4. Extract Confidence Score
+    QRegularExpression confidenceRe("<confidence>\\s*(\\d+)\\s*</confidence>");
+    QRegularExpressionMatch confidenceMatch = confidenceRe.match(response);
+    if (confidenceMatch.hasMatch()) {
+        result.confidenceScore = confidenceMatch.captured(1).toInt();
+    }
+
+    // 5. Clean Text for Display
     result.cleanText = cleanText(response);
 
     return result;
@@ -85,6 +98,7 @@ QString ResponseParser::cleanText(const QString& rawResponse) {
     // Remove tool-related tags
     clean.remove(QRegularExpression("<name>.*?</name>", QRegularExpression::DotMatchesEverythingOption));
     clean.remove(QRegularExpression("<input>.*?</input>", QRegularExpression::DotMatchesEverythingOption));
+    clean.remove(QRegularExpression("<confidence>.*?</confidence>", QRegularExpression::DotMatchesEverythingOption));
     clean.remove("<tool_call>");
     clean.remove("</tool_call>");
     

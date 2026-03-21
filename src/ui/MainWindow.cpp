@@ -321,7 +321,7 @@ void MainWindow::setupUi() {
     m_roleCombo->addItem("Executor", (int)AgentRole::Executor);
     m_roleCombo->addItem("Reviewer", (int)AgentRole::Reviewer);
     m_roleCombo->addItem("Local RAG", (int)AgentRole::RAG);
-    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::REFACTOR);
+    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::Refactor);
     m_roleCombo->setMinimumWidth(100);
     
     roleLayout->addWidget(roleLbl);
@@ -974,9 +974,8 @@ void MainWindow::updateButtonIcons() {
 }
 
 void MainWindow::onTokenStatsUpdated(int input, int output) {
-    // Optional: update a separate label or tooltip with total session tokens
-    Q_UNUSED(input);
-    Q_UNUSED(output);
+    // Update the token label in the status bar with live streaming stats (#19)
+    updateTokenLabel(input, output);
 }
 
 // End of MainWindow.cpp

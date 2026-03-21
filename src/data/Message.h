@@ -28,6 +28,8 @@ struct Message {
     QList<ToolResult> toolResults;
     QString rawContent;
     bool showThinking = true; // Roadmap Item 7
+    /** Confidence score emitted by the model (1–10). -1 = not provided. */
+    int  confidenceScore = -1;
 
     // UI Cache (not serialized)
     mutable std::shared_ptr<PrecomputedLayout> layoutCache;

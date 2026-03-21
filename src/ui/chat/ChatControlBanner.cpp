@@ -79,7 +79,9 @@ void ChatControlBanner::onPulse() {
         m_pulseAlpha += 15;
         if (m_pulseAlpha >= 255) m_pulseDir = true;
     }
-    m_modelLabel->setStyleSheet(QString("color: rgba(16, 185, 129, %1/255.0); font-weight: 700; font-size: 11px;").arg(m_pulseAlpha/255.0));
+    // Fix: alpha must be a float 0.0-1.0, not an expression like "X/255.0"
+    m_modelLabel->setStyleSheet(QString("color: rgba(16, 185, 129, %1); font-weight: 700; font-size: 11px;")
+                                .arg(QString::number(m_pulseAlpha / 255.0, 'f', 3)));
 }
 
 void ChatControlBanner::setAutoApprove(bool enabled) {
