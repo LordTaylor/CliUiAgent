@@ -57,7 +57,6 @@ Poniżej przedstawiam szczegółową analizę obecnego systemu promptów oraz 30
 
 ---
 
-## Plan Wdrożenia
-1.  **Krok 1**: Przetłumaczenie wszystkich bazowych plików `.txt` na wysokiej jakości angielski.
-2.  **Krok 2**: Aktualizacja `PromptManager::roleStrategy` o bardziej precyzyjne wytyczne.
-3.  **Krok 3**: Integracja mechanizmu "Self-Correction" w pętli myślenia agenta.
+## Plan Wdrożenia (Updated)
+1.  **Phase 1 (Completed)**: Specialized roles, XML schemas, English prompts, Logic/Safety enforcement.
+2.  **Phase 2 (Proposed)**: Multi-agent orchestration, behavior injection, and session-level short-term memory (details in `docs/advanced_agentic_strategies.md`).
