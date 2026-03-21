@@ -91,16 +91,18 @@ AgentEngine::AgentEngine(AppConfig* config,
 }
 
 void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) {
-    if (!m_isRunning) return;
+    m_isRunning = true; // Ensure we are in running state
 
     // Switch model/profile based on current role BEFORE sending
     QString profileId = m_router->getProfileIdForRole(m_currentRole);
     LlmProvider provider = m_config->activeProvider(); // Default
     
     // Find provider by profileId
+    bool found = false;
     for (const auto& p : m_config->providers()) {
         if (p.id == profileId) {
             provider = p;
+            found = true;
             break;
         }
     }
@@ -114,13 +116,10 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
 
     emit statusChanged(QString("Thinking (%1)...").arg(prompt.left(20)));
     auto session = m_sessions->currentSession();
-    if (!session) return;
-
-    // Prepare message (Already done in process() usually, but runLoop is direct)
-    // Actually, process() calls runLoop(). So we don't need to append here if already done.
-    // However, tool loops calls runLoop() directly.
-    
-    // Select and configure LLM profile from active provider (ALREADY DONE ABOVE with Router)
+    if (!session) {
+        m_isRunning = false;
+        return;
+    }
 
     // Determine if we use the new Structured JSON Schema
     bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);

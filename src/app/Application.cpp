@@ -114,6 +114,19 @@ void Application::setupCliRunner() {
     const auto provider = m_config->activeProvider();
     if (!provider.id.isEmpty()) {
         m_runner->setProfile(ConfigurableProfile::fromProvider(provider));
+        
+        // --- macOS Path Fix for Ollama.app ---
+#ifdef Q_OS_MAC
+        {
+            QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+            QString path = env.value("PATH");
+            QString ollamaRes = "/Applications/Ollama.app/Contents/Resources";
+            if (!path.contains(ollamaRes)) {
+                path = ollamaRes + ":" + path;
+                env.insert("PATH", path);
+            }
+        }
+#endif
         return;
     }
 
