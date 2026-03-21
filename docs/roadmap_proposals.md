@@ -26,10 +26,10 @@ This document outlines 60 proposed technical and user experience improvements, a
 
 ### UI & UX
 21. [x] **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
-22. **Animations**: Add subtle transition effects when switching between thinking/responding states.
+22. **Animations**: Add subtle transition effects when switching between switching/responding states.
 24. **Search**: Add a global search bar for finding content within previous sessions.
 25. **Attachments**: Allow drag-and-drop of images directly into the chat for Vision analysis.
-26. **Shortcuts**: Customizable hotkeys for "Stop Generation" and "Clear Chat".
+26. [x] **Shortcuts**: Customizable hotkeys for "Stop Generation" and "Clear Chat".
 28. **Feedback**: Add "Thumbs Up/Down" for agent responses to fine-tune future prompts.
 29. **Progress**: Show a radial progress indicator for long-running indexing tasks.
 30. **Typography**: Support for custom developer fonts (e.g., Fira Code, JetBrains Mono).

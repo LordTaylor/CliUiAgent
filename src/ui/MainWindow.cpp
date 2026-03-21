@@ -384,6 +384,11 @@ void MainWindow::setupUi() {
     // Input panel
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
     rightLayout->addWidget(m_inputPanel);
+    
+    // Connect input panel interactions to MainWindow slots
+    connect(m_inputPanel, &InputPanel::sendRequested, this, &MainWindow::onSendRequested);
+    connect(m_inputPanel, &InputPanel::commandRequested, this, &MainWindow::onCommandRequested);
+    connect(m_inputPanel, &InputPanel::stopRequested, this, &MainWindow::onStopRequested);
 
     // Console
     m_terminalPanel = new TerminalPanel(rightWidget);
@@ -426,6 +431,14 @@ void MainWindow::setupMenuBar() {
     QAction* newSession = fileMenu->addAction("&New Session");
     newSession->setShortcut(QKeySequence("Ctrl+N"));
     connect(newSession, &QAction::triggered, this, &MainWindow::onNewSessionRequested);
+
+    QAction* clearChat = fileMenu->addAction("&Clear Chat");
+    clearChat->setShortcut(QKeySequence("Ctrl+Shift+L"));
+    connect(clearChat, &QAction::triggered, this, &MainWindow::onClearChatRequested);
+
+    QAction* stopGeneration = fileMenu->addAction("Stop &Generation");
+    stopGeneration->setShortcut(QKeySequence(Qt::Key_Escape));
+    connect(stopGeneration, &QAction::triggered, this, &MainWindow::onStopRequested);
 
     fileMenu->addSeparator();
 
@@ -504,7 +517,7 @@ void MainWindow::onAbout() {
 }
 
 void MainWindow::onDebugLogRequested() {
-    QString logDir = QDir::current().filePath("Debug_Logs");
+    QString logDir = QDir(m_config->workingFolder()).filePath("Debug_Logs");
     QDir dir(logDir);
     
     // 1. Clear existing files
@@ -617,8 +630,22 @@ void MainWindow::onResponseComplete(const Message& msg) {
         onTokenBufferTimeout();
     }
 
-    if (m_hasStreamingMsg && !msg.textFromContentBlocks().isEmpty())
+    if (m_hasStreamingMsg && !msg.textFromContentBlocks().isEmpty()) {
         m_messageModel->updateLastMessage(msg.textFromContentBlocks());
+    } else if (!m_hasStreamingMsg) {
+        // If it never streamed (e.g. short response, error, or JSON parsed at end)
+        Message finalMsg = msg;
+        if (msg.contentBlocks.isEmpty() && !msg.rawContent.isEmpty()) {
+            CodeBlock textBlock;
+            textBlock.type = BlockType::Text;
+            textBlock.content = msg.rawContent;
+            finalMsg.contentBlocks.append(textBlock);
+        }
+        if (!finalMsg.contentBlocks.isEmpty()) {
+            m_messageModel->appendMessage(finalMsg);
+        }
+    }
+
     m_hasStreamingMsg = false;
     m_streamingText.clear();
     m_chatView->scrollToBottom();
