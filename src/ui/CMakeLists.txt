@@ -13,6 +13,7 @@ add_library(codehex_ui STATIC
     widgets/ThemeManager.h   widgets/ThemeManager.cpp
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
     workfolder/WorkFolderPanel.h    workfolder/WorkFolderPanel.cpp
+    workfolder/SmartFileSortProxyModel.h
     settings/SettingsDialog.h       settings/SettingsDialog.cpp
     settings/ProviderSettingsDialog.h settings/ProviderSettingsDialog.cpp
     skills/SkillsDialog.h           skills/SkillsDialog.cpp

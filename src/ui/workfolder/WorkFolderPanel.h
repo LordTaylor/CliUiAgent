@@ -7,6 +7,9 @@
 
 class QLabel;
 class QTreeView;
+class QPushButton;
+class QFileSystemModel;
+class QSortFilterProxyModel;
 
 namespace CodeHex {
 
@@ -26,12 +29,19 @@ private slots:
     void onBrowse();
     void onRefresh();
     void onCustomContextMenuRequested(const QPoint& pos);
+    void onToggleHotness();
 
 private:
-    QTreeView* m_treeView;
-    QFileSystemModel* m_model;
-    QLabel* m_pathLabel;
+    void setupUi();
+
     QString m_currentPath;
+    QLabel* m_pathLabel = nullptr;
+    QTreeView* m_treeView = nullptr;
+    QFileSystemModel* m_model = nullptr;
+    class SmartFileSortProxyModel* m_proxy = nullptr;
+    class FileHotnessProvider* m_hotness = nullptr;
+    QPushButton* m_hotnessBtn = nullptr;
+    
     QSet<QString> m_forcedContextFiles;
 };
 

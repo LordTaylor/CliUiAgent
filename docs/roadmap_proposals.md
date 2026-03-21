@@ -73,10 +73,8 @@ This document outlines 60 proposed technical and user experience improvements, a
 7. [x] **Auto-Walkthrough** (Automatyczne generowanie walkthrough.md po zakończeniu zadania).ull request the agent makes.
 8.  **Automated Dependency Management**: Agent detects outdated libraries and proposes updates.
 10. [x] **Refactoring Assistant** (Specjalna rola do upraszczania i optymalizacji kodu).
-11. **Smart File Explorer**: Files sorted by "Hotness" (most frequently modified/relevant).
-12. **Interactive Scratchpad**: A multi-tab editor for the agent's internal scripts.
-14. **Time-Travel Debug**: Record execution and let the agent "step back" to find why state changed.
-15. **Context Snapshots**: Bookmark specific working sets of files to restore context later.
+- [x] #11. **Smart File Explorer**: Sort files by "hotness" (most recently/frequently modified based on Git history).
+- [ ] #12. **Context-Aware Diff Viewer**: Enhanced diff panel that shows changes with AI explanations of the impact.ontext later.
 16. **Performance Profiler Integration**: Agent analyzes flamegraphs to find bottlenecks.
 17. **Knowledge Graph**: A persistent graph of how functions and classes relate across the project.
 18. **Custom Skill Builder**: User can "teach" the agent a repeat task by recording a series of actions.
