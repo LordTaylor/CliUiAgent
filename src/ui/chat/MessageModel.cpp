@@ -147,6 +147,10 @@ void MessageModel::precomputeLayout(Message& msg) const {
         bool isMarkdown = (msg.role == Message::Role::Assistant && block.type == BlockType::Text) ||
                           (block.type != BlockType::Text);
 
+        if (block.type == BlockType::Thinking && !msg.showThinking) {
+            continue; // Skip thinking if visibility is toggled off for this message
+        }
+
         if (isMarkdown) {
             bl.doc->setMarkdown(block.content);
         } else {
@@ -280,6 +284,27 @@ QHash<int, QByteArray> MessageModel::roleNames() const {
         {ContentTypesRole, "contentTypes"},   // New
         {RawMessageRole,  "rawMessage"},     // New
     };
+}
+
+void MessageModel::toggleThinkingVisibility(int row) {
+    if (row < 0 || row >= m_visible.size()) return;
+    Message& msg = m_visible[row];
+    msg.showThinking = !msg.showThinking;
+    msg.layoutCache.reset(); // Recompute layout
+    
+    // Also save to session if it exists
+    if (m_session) {
+        const int total = m_session->messages.size();
+        const int offset = m_loadedOffset;
+        const int absIdx = total - offset + row;
+        if (absIdx >= 0 && absIdx < total) {
+            m_session->messages[absIdx].showThinking = msg.showThinking;
+            m_session->save();
+        }
+    }
+    
+    QModelIndex idx = index(row);
+    emit dataChanged(idx, idx);
 }
 
 }  // namespace CodeHex

@@ -81,6 +81,20 @@ void ChatView::contextMenuEvent(QContextMenuEvent* event) {
         }
     } else {
         const QString text = msg.textFromContentBlocks();
+        
+        if (msg.role == Message::Role::Assistant) {
+            bool hasThinking = false;
+            for (const auto& b : msg.contentBlocks) if (b.type == BlockType::Thinking) { hasThinking = true; break; }
+            
+            if (hasThinking) {
+                QAction* toggleThinking = menu.addAction(msg.showThinking ? "Hide Reasoning" : "Show Reasoning");
+                if (menu.exec(event->globalPos()) == toggleThinking) {
+                    m_msgModel->toggleThinkingVisibility(idx.row());
+                    return;
+                }
+            }
+        }
+
         QAction* copyAct = menu.addAction("Copy entire message");
         if (menu.exec(event->globalPos()) == copyAct) {
             QApplication::clipboard()->setText(text);

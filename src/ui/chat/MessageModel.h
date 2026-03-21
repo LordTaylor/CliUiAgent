@@ -32,6 +32,7 @@ public:
     bool canLoadMore() const;
     void clear();
     void toggleBlock(int row, int blockIndex);
+    void toggleThinkingVisibility(int row);
 
     // Optimization: Pre-calculate layouts
     void setViewWidth(int width);
