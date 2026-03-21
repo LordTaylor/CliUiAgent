@@ -247,6 +247,7 @@ void AgentEngine::reset() {
     stop();
     m_pendingCalls.clear();
     resetStreamState();
+    cleanupScratchpad();
 }
 
 bool AgentEngine::isRunning() const {
@@ -498,7 +499,7 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         WalkthroughGenerator::generate(m_sessions->currentSession(), m_config);
     }
 
-    buildAssistantMessage(parseResult);
+    buildAssistantMessage(parseResult, currentResp);
 
     qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();
     if (!parseResult.toolCalls.isEmpty()) {
@@ -507,12 +508,17 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     } else {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
+        
+        if (m_requestQueue.isEmpty()) {
+            cleanupScratchpad();
+        }
+        
         processNextQueueItem(); 
     }
 }
 
 
-void AgentEngine::buildAssistantMessage(const ResponseParser::ParseResult& result) {
+void AgentEngine::buildAssistantMessage(const ResponseParser::ParseResult& result, const QString& rawText) {
     auto* session = m_sessions->currentSession();
     if (!session) return;
 
@@ -520,6 +526,7 @@ void AgentEngine::buildAssistantMessage(const ResponseParser::ParseResult& resul
     msg.id = QUuid::createUuid();
     msg.role = Message::Role::Assistant;
     msg.timestamp = QDateTime::currentDateTime();
+    msg.rawContent = rawText;
 
     // 1. Add Thoughts
     for (const auto& thought : result.thoughts) {
@@ -590,6 +597,12 @@ void AgentEngine::saveDebugLog(const QString& targetDir) {
 
     saveFile("request_raw.txt", m_lastRawRequest);
     saveFile("response_raw.txt", m_lastRawResponse);
+    
+    // Copy the global application log
+    QString logPath = QDir::homePath() + "/.codehex/application.log";
+    if (QFile::exists(logPath)) {
+        QFile::copy(logPath, dir.filePath("application.log"));
+    }
     
     if (auto* session = m_sessions->currentSession()) {
         QJsonArray messages;
