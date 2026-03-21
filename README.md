@@ -99,8 +99,8 @@ cd CodeHex
 2. **Select an AI profile** — dropdown top-right: `Claude CLI`, `Ollama`, or `OpenAI (sgpt)`
 3. **Type a message** — press `Ctrl+Enter` to send
 4. **Stop generation** — click **Stop** or press `Ctrl+.`
-5. **Attach files** — click **📎** (`Ctrl+Shift+A`) to attach images or code files
-6. **Record voice** — hold **🎤** (`Ctrl+Shift+V`) to record
+5. **Attach files** — click **📎** (`Ctrl+Shift+A`) or **drag-and-drop** files directly into the window.
+6. **Record voice** — hold **🎤** (`Ctrl+Shift+V`) to record.
 7. **Autonomous Agent** — many profiles (like Claude) can now browse your files and execute commands.
 8. **Codebase Awareness** — the agent uses RAG (Retrieval-Augmented Generation) to "know" your whole project. It automatically indexes your code in the background. Look for the ⚙️ icon for tool calls like `SearchRepo`.
 9. **Manual Approval** — toggle "Manual Approval" in settings to require a click before the agent modifies files or runs commands.
