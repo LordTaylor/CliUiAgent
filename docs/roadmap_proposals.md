@@ -17,11 +17,11 @@ This document outlines 60 proposed technical and user experience improvements, a
 10. **Vector DB**: Migrate from in-memory search to an optimized local vector database (e.g., Faiss C++).
 
 ### Tooling & Execution
-15. **Git**: Detect existing merge conflicts and urge the user to resolve them before agent work.
+15. [x] **Git**: Detect existing merge conflicts and urge the user to resolve them before agent work.
 16. [x] **Environment**: Automatically detect and report Python/Node.js/Qt versions in the system prompt.
 17. **Debugger**: Provide the agent with a `ReadStacktrace` tool for analyzing crashes.
 18. **Build**: Stream build logs directly to the agent so it can fix compilation errors autonomously.
-19. **Scratchpad**: Automatically clean up the `.agent/scratchpad/` directory after task completion.
+19. [x] **Scratchpad**: Automatically clean up the `.agent/scratchpad/` directory after task completion.
 20. **Search**: [x] Optimize `GrepSearch` to exclude `node_modules` and `build/` by default.
 
 ### UI & UX
