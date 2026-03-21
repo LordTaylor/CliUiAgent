@@ -205,3 +205,21 @@ Wdrożenie estetyki "Advanced Agentic Coding" z wykorzystaniem palety bursztynow
 - [x] **Sidebar Refinement**: Usunięcie zbędnych ikon (fox icon) dla maksymalnej przejrzystości.
 - [x] **UI Polish**: Pełna stylizacja `InputPanel` i `ChatControlBanner`.
 - [x] **Weryfikacja**: Build i testy stabilności zakończone sukcesem.
+
+---
+
+## Phase 35: Comprehensive Prompt System Overhaul (ZAKOŃCZONA)
+
+### Cel:
+Pełna optymalizacja systemu promptów i sub-agentów w celu zwiększenia precyzji, bezpieczeństwa i inteligencji pracy z kodem.
+
+#### Zrealizowane zadania:
+- [x] **Specjalistyczne Role**: Wprowadzenie ról `Architect`, `Debugger` i `SecurityAuditor`.
+- [x] **Unifikacja Językowa**: Przejście na język angielski dla wewnętrznych instrukcji systemowych (lepsze rozumowanie LLM).
+- [x] **Logic Enforcement**: Wymuszenie formatu XML dla narzędzi oraz obowiązkowego Chain-of-Thought (`<thought>`).
+- [x] **Safety & Controls**: Implementacja białej listy komend Bash, instrukcji dla scratchpada oraz kotwic zapobiegających pętlom.
+- [x] **Coding Intelligence**: Dodanie checklist SOLID/DRY/KISS oraz wytycznych dot. zależności (CMake).
+- [x] **UX Excellence**: Wdrożenie proaktywnych sugestii auditowych oraz standardów odpowiedzi (Summarization Mantra).
+- [x] **Weryfikacja**: Pełna przebudowa systemowa przy użyciu `run.sh --rebuild` (100% sukces).
+
+---
