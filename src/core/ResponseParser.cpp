@@ -80,6 +80,10 @@ QString ResponseParser::cleanText(const QString& rawResponse) {
     clean.remove("<tool_call>");
     clean.remove("</tool_call>");
     
+    // Remove tool-related markdown blocks (Legacy/Fallback Bash)
+    clean.remove(QRegularExpression("```bash\\n.*?```", QRegularExpression::DotMatchesEverythingOption));
+    clean.remove(QRegularExpression("```xml\\n.*?```", QRegularExpression::DotMatchesEverythingOption));
+    
     // Remove stray completion markers often hallucinations in local models
     clean.remove(QRegularExpression("\\*\\*Task Completed:\\*\\*.*", QRegularExpression::CaseInsensitiveOption));
     clean.remove(QRegularExpression("\\*\\*Task Finalized:\\*\\*.*", QRegularExpression::CaseInsensitiveOption));
