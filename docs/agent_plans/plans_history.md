@@ -2,6 +2,32 @@
 
 ---
 
+## Faza 37: Podział plików + Internal Message Chips (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Podział monolitycznych plików (>1000 linii) na moduły ≤320 linii + kolapsowanie wewnętrznej komunikacji agenta do 1-liniowych chipów.
+
+### Podział plików:
+- [x] `AgentEngine.cpp` (1005 linii) → 5 plików: Core(307) + Loop(200) + Runner(163) + Tools(207) + Collab(103)
+- [x] `MainWindow.cpp` (981 linii) → 4 pliki: Core(285) + SetupUi(306) + Generation(168) + Slots(151)
+
+### UI — Internal Message Chips:
+- [x] **Message.h**: pola `isInternal`, `isExpanded`, `subAgentRole`
+- [x] **ToolCall.h**: pole `subAgentRole` w ToolResult (propagacja z AskAgentTool)
+- [x] **AgentEngine.h**: getter `isCoVeActive()` — `m_coveState != CoVeState::None`
+- [x] **AgentEngine_Tools.cpp**: `callMsg.isInternal = true`, `toolMsg.isInternal = true`, propagacja subAgentRole
+- [x] **MainWindow_Generation.cpp**: nowy streaming bubble oznaczany `isInternal` gdy CoVe aktywny
+- [x] **MessageDelegate**: `paintInternalChip()` — chip 28px, bg `#0D1117`, accent (szary / fioletowy dla sub-agentów), ikony ról, strzałka ▶/▼
+- [x] **MessageModel**: `toggleInternalExpand(row)` — kliknięcie rozwija chip
+- [x] **ChatView**: `mousePressEvent` routuje kliknięcia chipów do toggle
+- [x] **InputPanel**: naprawa krytycznego błędu — przyciski Send/Stop były usunięte, przywrócone
+
+### Weryfikacja:
+- Build: ✅ Brak błędów kompilacji
+- Push: ✅ `a53b1c7` na main
+
+---
+
 ## Faza 36: Stabilizacja Agenta & 10 Ulepszeń (2026-03-21) — ZAKOŃCZONA
 
 **Data**: 2026-03-21
