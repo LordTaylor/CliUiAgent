@@ -26,6 +26,7 @@
 ## 4. UI/UX Excellence
 -   Follow premium design patterns: glassmorphism, responsive splitters, and high-fidelity iconography.
 -   Zawsze dbaj o czytelność "Thinking blocks" i przejrzystość logów narzędziowych.
+-   **Idea Storage**: Wszystkie nowe pomysły, sugestie i mapy drogowe (Roadmaps) zapisuj w folderze `ideas/`. Pliki te są wykluczone z kontroli wersji git.
 
 ---
 *Failure to follow these rules is considered a regression. Always self-audit against this document.*
