@@ -25,7 +25,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 20. **Search**: [x] Optimize `GrepSearch` to exclude `node_modules` and `build/` by default.
 
 ### UI & UX
-21. **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
+21. [x] **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
 22. **Animations**: Add subtle transition effects when switching between thinking/responding states.
 24. **Search**: Add a global search bar for finding content within previous sessions.
 25. **Attachments**: Allow drag-and-drop of images directly into the chat for Vision analysis.
@@ -56,7 +56,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
 51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
 52. **Performance**: Use `mmap` for reading large files in `ViewFile`.
-56. **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
+56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
 57. **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).
 59. **Keyboard**: Full navigation of the app using only the keyboard.

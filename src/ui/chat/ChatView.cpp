@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QScrollBar>
 #include <QResizeEvent>
+#include <QAbstractListModel>
 #include "MessageDelegate.h"
 #include "MessageModel.h"
 #include <QMouseEvent>
@@ -25,10 +26,20 @@ ChatView::ChatView(QWidget* parent) : QListView(parent) {
 }
 
 void ChatView::setMessageModel(MessageModel* model) {
+    if (m_msgModel) {
+        disconnect(m_msgModel, nullptr, this, nullptr);
+    }
     m_msgModel = model;
     setModel(model);
     if (m_msgModel) {
         m_msgModel->setViewWidth(viewport()->width());
+        
+        connect(m_msgModel, &QAbstractListModel::rowsInserted, this, [this]() {
+            if (m_autoScroll) scrollToBottomSmooth();
+        });
+        connect(m_msgModel, &QAbstractListModel::dataChanged, this, [this](const QModelIndex&, const QModelIndex&, const QVector<int>&) {
+            if (m_autoScroll) scrollToBottomSmooth();
+        });
     }
 }
 
@@ -43,10 +54,10 @@ void ChatView::scrollToBottomSmooth() {
     if (!model() || model()->rowCount() == 0) return;
     
     QScrollBar* bar = verticalScrollBar();
-    // If we are near the bottom (within 50px), stay at the bottom
-    bool atBottom = (bar->value() >= bar->maximum() - 50);
+    // If we are near the bottom (within 100px), stay at the bottom
+    bool atBottom = (bar->value() >= bar->maximum() - 100);
     
-    if (atBottom || m_autoScroll) {
+    if (atBottom || bar->maximum() == 0) { // also scroll if it's a completely new chat with no scrollbar yet
         bar->setValue(bar->maximum());
     }
 }
@@ -111,6 +122,12 @@ void ChatView::mousePressEvent(QMouseEvent* event) {
             if (delegate) {
                 if (delegate->isEyeButtonClicked(event->pos(), visualRect(idx), msg)) {
                     m_msgModel->toggleThinkingVisibility(idx.row());
+                    event->accept();
+                    return;
+                }
+                int copyIdx = delegate->copyBlockIndexAt(event->pos(), visualRect(idx), msg);
+                if (copyIdx != -1) {
+                    QApplication::clipboard()->setText(msg.contentBlocks[copyIdx].content);
                     event->accept();
                     return;
                 }

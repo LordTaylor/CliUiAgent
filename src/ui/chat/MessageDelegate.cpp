@@ -162,6 +162,21 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             ctx.palette.setColor(QPalette::Text, textColor);
             bl.doc->documentLayout()->draw(p, ctx);
             p->restore();
+
+            // Draw Copy button for code blocks
+            if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua) {
+                p->save();
+                int copyBtnX = x + bl.width + kBubblePadding * 2 - 28;
+                int copyBtnY = currentY + 8;
+                QRect copyRect(copyBtnX, copyBtnY, 20, 20);
+                
+                p->setPen(QColor(156, 163, 175)); // Gray-400
+                QFont iconFont = p->font();
+                iconFont.setPointSize(12);
+                p->setFont(iconFont);
+                p->drawText(copyRect, Qt::AlignCenter, "📋"); // Clipboard icon
+                p->restore();
+            }
         }
 
         currentY += bl.height + 12; // Spacing
@@ -269,6 +284,34 @@ int MessageDelegate::blockIndexAt(const QPoint& pos, const QRect& rect, const Me
         QRect bubbleRect(x, currentY, bl.width + 12 * 2, bl.height);
         if (bubbleRect.contains(pos)) {
             if (block.type == BlockType::Thinking || block.type == BlockType::ToolCall) {
+                return idx;
+            }
+        }
+        currentY += bl.height + 12;
+        idx++;
+    }
+    return -1;
+}
+
+int MessageDelegate::copyBlockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (!msg.layoutCache) return -1;
+    
+    const bool isUser = (msg.role == Message::Role::User);
+    int currentY = rect.top() + 10;
+
+    int idx = 0;
+    for (const auto& block : msg.contentBlocks) {
+        if (idx >= msg.layoutCache->blocks.size()) break;
+        const auto& bl = msg.layoutCache->blocks[idx];
+
+        int x = isUser ? rect.width() - bl.width - 32 - 12 : 32 + 12;
+        if (block.type != BlockType::Text) x = 32 + 12;
+
+        if (!block.isCollapsed && (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua)) {
+            int copyBtnX = x + bl.width + kBubblePadding * 2 - 28;
+            int copyBtnY = currentY + 8;
+            QRect copyRect(copyBtnX, copyBtnY, 20, 20);
+            if (copyRect.contains(pos)) {
                 return idx;
             }
         }

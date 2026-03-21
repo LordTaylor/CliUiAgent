@@ -17,6 +17,7 @@ public:
     QSize sizeHint(const QStyleOptionViewItem& opt, const QModelIndex& index) const override;
 
     int blockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
+    int copyBlockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
     bool isEyeButtonClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
 
 private:
