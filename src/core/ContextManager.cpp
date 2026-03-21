@@ -1,13 +1,17 @@
 #include "ContextManager.h"
 #include "TokenCounter.h"
 #include <QDebug>
+#include <QSet>
+#include <QList>
+#include <QtGlobal>
+#include <algorithm>
+#include <vector>
 
 namespace CodeHex {
 
 QList<Message> ContextManager::prune(const QList<Message>& history, const PruningOptions& options) {
     if (history.isEmpty()) return {};
 
-    // 1. Calculate current total tokens
     int currentTokens = TokenCounter::countMessages(history);
     if (currentTokens <= options.maxTokens) {
         return history;
@@ -15,76 +19,73 @@ QList<Message> ContextManager::prune(const QList<Message>& history, const Prunin
 
     qDebug() << "ContextManager: Pruning history. Current tokens:" << currentTokens << "Limit:" << options.maxTokens;
 
-    // 2. Identify messages to keep (System prompt and Pinned)
-    QList<Message> result;
-    QList<int> dynamicIndices;
+    struct ScoredMessage {
+        int originalIndex;
+        int tokens;
+        int importance;
+    };
+
+    std::vector<ScoredMessage> scored;
+    scored.reserve(history.size());
 
     for (int i = 0; i < history.size(); ++i) {
         const auto& msg = history.at(i);
-        if (i == 0 && msg.role == Message::Role::System) {
-            result.append(msg);
-        } else if (isPinned(msg)) {
-            result.append(msg);
-        } else {
-            dynamicIndices.append(i);
-        }
-    }
-
-    // 3. Keep newest messages from dynamicIndices until we hit the threshold
-    // Threshold is (maxTokens * keepRatio) - (tokens already in result)
-    int resultTokens = TokenCounter::countMessages(result);
-    int remainingBudget = static_cast<int>(options.maxTokens * options.keepRatio) - resultTokens;
-    
-    QList<Message> dynamicPool;
-    for (int i = dynamicIndices.size() - 1; i >= 0; --i) {
-        const auto& msg = history.at(dynamicIndices[i]);
-        int msgTokens = TokenCounter::count(msg.textFromContentBlocks()) + 4;
+        QString text = msg.textFromContentBlocks();
+        int importance = 0;
         
-        if (remainingBudget - msgTokens >= 0) {
-            dynamicPool.prepend(msg);
-            remainingBudget -= msgTokens;
-        } else {
-            break; // Hit budget for dynamic messages
+        // A. Mandatory
+        if (i == 0 && msg.role == Message::Role::System) importance = 1000;
+        else if (i == history.size() - 1) importance = 1000;
+        
+        // B. Short-term Memory (Last 8 messages)
+        else if (i >= history.size() - 8) importance = 500;
+        
+        // C. High Information Content (Tools)
+        else if (text.contains("<tool_call", Qt::CaseInsensitive) || 
+                 text.contains("<tool_result", Qt::CaseInsensitive)) {
+            importance = 700;
+        }
+        
+        // D. Pinned
+        else if (isPinned(msg)) importance = 800;
+        
+        // E. Fillers
+        else importance = 100 + (i * 10 / history.size());
+
+        scored.push_back({i, TokenCounter::count(text) + 4, importance});
+    }
+
+    std::sort(scored.begin(), scored.end(), [](const ScoredMessage& a, const ScoredMessage& b) {
+        if (a.importance != b.importance) return a.importance > b.importance;
+        return a.originalIndex < b.originalIndex;
+    });
+
+    QSet<int> selectedIndices;
+    int budget = options.maxTokens;
+    
+    for (const auto& sm : scored) {
+        if (sm.importance >= 1000) {
+            selectedIndices.insert(sm.originalIndex);
+            budget -= sm.tokens;
         }
     }
 
-    // Combine result (pinned) with dynamicPool (newest)
-    // We want to maintain original chronological order.
-    // result currently has system prompt [0] and pinned messages.
-    // dynamicPool has the newest messages.
-    
-    // Final assembly: Filter original history and keep if in result or dynamicPool
+    for (const auto& sm : scored) {
+        if (selectedIndices.contains(sm.originalIndex)) continue;
+        if (budget - sm.tokens >= 0) {
+            selectedIndices.insert(sm.originalIndex);
+            budget -= sm.tokens;
+        }
+    }
+
     QList<Message> finalized;
-    for (const auto& msg : history) {
-        bool inResult = false;
-        for (const auto& r : result) { if (&r == &msg) { inResult = true; break; } } // Pointer comparison hacky
-        // Better: use unique IDs if messages had them. Since they don't, 
-        // let's just use the logic of appending them in order.
-    }
-
-    // REFINED ASSEMBLY:
-    finalized.clear();
-    // Re-iterate to ensure order
     for (int i = 0; i < history.size(); ++i) {
-        const auto& msg = history.at(i);
-        bool shouldKeep = false;
-        
-        if (i == 0 && msg.role == Message::Role::System) shouldKeep = true;
-        else if (isPinned(msg)) shouldKeep = true;
-        else {
-            // Check if this message was selected in dynamicPool
-            for (const auto& d : dynamicPool) {
-                if (d.role == msg.role && d.textFromContentBlocks() == msg.textFromContentBlocks()) {
-                    shouldKeep = true;
-                    break;
-                }
-            }
+        if (selectedIndices.contains(i)) {
+            finalized.append(history.at(i));
         }
-        
-        if (shouldKeep) finalized.append(msg);
     }
 
-    qDebug() << "ContextManager: Pruned to" << TokenCounter::countMessages(finalized) << "tokens.";
+    qDebug() << "ContextManager: Pruned to" << TokenCounter::countMessages(finalized) << "tokens (" << finalized.size() << "messages).";
     return finalized;
 }
 

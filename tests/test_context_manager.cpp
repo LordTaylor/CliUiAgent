@@ -46,6 +46,31 @@ TEST_CASE("ContextManager prunes history correctly", "[ContextManager]") {
         QList<Message> pruned = ContextManager::prune(history, options);
         REQUIRE(pruned.size() == history.size());
     }
+
+    SECTION("Prioritizes Tool Results over older filler") {
+        QList<Message> complexHistory;
+        complexHistory.append(createMsg(Message::Role::System, "System Content")); // Imp: 1000
+        complexHistory.append(createMsg(Message::Role::User, "Old filler 1")); // Imp: 100
+        complexHistory.append(createMsg(Message::Role::Assistant, "Old filler 2")); // Imp: 100
+        complexHistory.append(createMsg(Message::Role::Assistant, "<tool_call name=\"test\"></tool_call>")); // Imp: 300
+        complexHistory.append(createMsg(Message::Role::User, "<tool_result>Success</tool_result>")); // Imp: 300
+        for (int i = 0; i < 10; ++i) {
+            complexHistory.append(createMsg(Message::Role::User, QString("Filler %1").arg(i))); // Imp: 500 (recent) or 100
+        }
+        complexHistory.append(createMsg(Message::Role::User, "Latest Query")); // Imp: 1000
+        
+        options.maxTokens = 60; // Very tight budget
+        QList<Message> pruned = ContextManager::prune(complexHistory, options);
+        
+        // Verify tool messages are kept if budget allows, or at least they are prioritized over old fillers
+        bool foundTool = false;
+        for (const auto& m : pruned) {
+            if (m.textFromContentBlocks().contains("tool")) foundTool = true;
+        }
+        REQUIRE(foundTool);
+        REQUIRE(pruned.first().role == Message::Role::System);
+        REQUIRE(pruned.last().textFromContentBlocks() == "Latest Query");
+    }
 }
 
 TEST_CASE("TokenCounter precision test", "[TokenCounter]") {
