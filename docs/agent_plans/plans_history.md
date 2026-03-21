@@ -2,6 +2,45 @@
 
 ---
 
+## Faza 38: Naprawa UI — Toolbar + Sidebar + Context Bar (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Naprawienie widocznych błędów UI zgłoszonych przez użytkownika: bursztynowe obramowanie toolbara, chaotyczny layout, niefunkcjonalny licznik kontekstu, zduplikowane elementy sidebara.
+
+### Toolbar:
+- [x] Usunięto bursztynowe zaokrąglone obramowanie (regułka glassmorphism z linii 15 nadpisywała `border-radius` — dodano `border-radius: 0; border: none` w specyficznej regule `#toolbar`)
+- [x] Nowy layout z jednym centralnym stretchem: `[◀] | [⚙][💼][🔌] | [search] — stretch — [🚀 Provider] | [Role] | [🌓][🐛]`
+- [x] Cieńsze separatory VLine między grupami
+- [x] Przyciski 30px, spacing 6px (zamiast poprzednich 32px i 12px)
+- [x] Dodano tooltips do przycisków ikon (wymagane przez `updateButtonIcons()`)
+- [x] Naprawiono `connect(searchEdit → chatView)` — był podłączany zanim `m_chatView` istniał
+
+### Licznik kontekstu (CTX%):
+- [x] `contextStatsUpdated` był emitowany tylko dla Claude (JSON schema path)
+- [x] Dla providerów non-Claude (LM Studio, Ollama) dodano ręczne obliczenie stats przez `ContextManager::prune()` w obu gałęziach `else` (`runLoop` i `sendContinueRequest`)
+
+### Sidebar:
+- [x] Usunięto zduplikowane przyciski: "New Task", drugi "New Chat"
+- [x] Usunięto placeholder labels: `<I current directory contents to unde...>` i `<thought>`
+- [x] Jeden przycisk `+ New Chat` podłączony do `onNewSessionRequested`
+- [x] SessionPanel z `stretch(1)`, WorkFolderPanel z `stretch(2)`
+- [x] Przycisk toggle `◀/▶` w toolbarze (skrajnie lewy) — chowa/pokazuje cały `m_sidebarSplitter`, zapisuje i przywraca rozmiary
+- [x] `Ctrl+B` z menu zsynchronizowany z przyciskiem toggle
+- [x] Styl `#sidebarToggleBtn`: transparent, hover z delikatnym podświetleniem
+
+### Pliki zmienione:
+- `resources/stylesheets/dark.qss`
+- `src/ui/MainWindow.h` (+`m_sidebarToggleBtn`, +`m_sidebarSizes`)
+- `src/ui/MainWindow.cpp` (Ctrl+B → button.click())
+- `src/ui/MainWindow_SetupUi.cpp`
+- `src/core/AgentEngine_Loop.cpp`
+
+### Weryfikacja:
+- Build: ✅ Brak błędów kompilacji
+- Push: ✅ `7ed36e8` na main
+
+---
+
 ## Faza 37: Podział plików + Internal Message Chips (2026-03-21) — ZAKOŃCZONA
 
 **Data**: 2026-03-21
