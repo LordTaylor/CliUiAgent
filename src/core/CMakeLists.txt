@@ -11,6 +11,7 @@ add_library(codehex_core STATIC
     ResponseParser.h ResponseParser.cpp
     ContextManager.h ContextManager.cpp
     LlmDiscoveryService.h LlmDiscoveryService.cpp
+    ThemeManager.h   ThemeManager.cpp
     Tool.h
     tools/ToolUtils.h
     tools/ReadFileTool.h

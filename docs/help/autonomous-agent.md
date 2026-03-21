@@ -31,6 +31,9 @@ Współczesne modele (szczególnie przez `Claude CLI`) mają dostęp do:
 | **Replace** | Wykonuje operację znajdź-i-zamień w plikach. |
 | **Bash** | Uruchamia dowolną komendę w terminalu (np. `npm test`, `cmake --build`). |
 | **MathLogic** | Zaawansowane obliczenia symboliczne (pochodne, całki, uproszczenia) przez SymPy. |
+| **Profile** | Analiza wydajności systemu (CPU, pamięć, procesy). |
+| **Skill** | Tworzenie i zapisywanie nowych umiejętności przez agenta. |
+| **Design** | Modyfikacja interfejsu (QSS, czcionki) przez polecenia tekstowe. |
 
 ---
 

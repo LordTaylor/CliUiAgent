@@ -15,7 +15,13 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 - **🔍 Global Search** — Przeszukiwanie treści wszystkich sesji (również archiwalnych).
 - **🎨 Custom Experience** — Tryb ciemny/jasny oraz wsparcie dla niestandardowych czcionek programistycznych.
 - **🛡 Bezpieczeństwo** — Każda operacja zapisu lub komenda może wymagać Twojej ręcznej akceptacji (Manual Approval).
+- **⚡ Performance Profiler** — Analiza wydajności systemu (CPU, pamięć) bezpośrednio przez agenta (Item #16).
+- **🛠 Custom Skill Builder** — Możliwość tworzenia i zapisywania nowych umiejętności (workflowów) przez agenta (Item #18).
+- **🎨 Natural Language UI Builder** — Modyfikacja wyglądu aplikacji (QSS) przez agenta (Item #28).
 - **🎨 Modern UI** — Interfejs zbudowany w Qt6 z obsługą motywów i animacji.
+- **⚡ Performance Profiler** — Analiza wydajności systemu (CPU, pamięć) bezpośrednio przez agenta (Item #16).
+- **🛠 Custom Skill Builder** — Możliwość tworzenia i zapisywania nowych umiejętności (workflowów) przez agenta (Item #18).
+- **🎨 Natural Language UI Builder** — Modyfikacja wyglądu aplikacji (QSS) przez agenta (Item #28).
 
 ---
 

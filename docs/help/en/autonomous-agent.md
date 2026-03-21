@@ -28,6 +28,9 @@ CodeHex provides a robust toolset for local models:
 | **Replace** | Performs find-and-replace in files. |
 | **RunCommand** | Runs any command in the terminal (e.g., `make`, `npm test`). |
 | **MathLogic** | Performs symbolic mathematical computations (calculus, algebra) using SymPy. |
+| **Profile** | Analyze system performance (CPU, memory, processes). |
+| **Skill** | Create and save new skills/workflows for the agent. |
+| **Design** | Modify the interface (QSS, fonts) via natural language. |
 
 ---
 

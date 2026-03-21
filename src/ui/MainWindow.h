@@ -23,7 +23,7 @@
 #include "../data/Message.h"
 #include "../data/Session.h"
 #include "widgets/TerminalPanel.h"
-#include "widgets/ThemeManager.h"
+#include "../core/ThemeManager.h"
 #include "help/HelpDialog.h"
 #include "chat/ToolApprovalDialog.h"
 #include "../core/ContextManager.h"

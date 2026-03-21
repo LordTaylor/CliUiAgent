@@ -28,6 +28,9 @@
 #include "tools/ReadStacktraceTool.h"
 #include "tools/BuildTool.h"
 #include "tools/ExportKnowledgeGraphTool.h"
+#include "tools/AnalyzePerformanceTool.h"
+#include "tools/CreateWorkflowTool.h"
+#include "tools/ModifyUiTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -86,13 +89,22 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolExecutor->registerAlias("Consult", "ConsultCollaborator");
 
     // Batch Roadmap: New Tools
-    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::AnalyzeVisionTool>(this)));
-    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ReadStacktraceTool>()));
-    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::BuildTool>(m_config)));
-    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ExportKnowledgeGraphTool>(m_config)));
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::AnalyzeVisionTool>(this));
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::ReadStacktraceTool>());
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::BuildTool>(m_config));
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::ExportKnowledgeGraphTool>(m_config));
     
     m_toolExecutor->registerAlias("Vision", "AnalyzeVision");
     m_toolExecutor->registerAlias("BuildPrj", "Build");
+
+    // Final Roadmap Batch
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::AnalyzePerformanceTool>());
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::CreateWorkflowTool>());
+    m_toolExecutor->registerTool(std::make_shared<CodeHex::ModifyUiTool>());
+    
+    m_toolExecutor->registerAlias("Profile", "AnalyzePerformance");
+    m_toolExecutor->registerAlias("Skill", "CreateWorkflow");
+    m_toolExecutor->registerAlias("Design", "ModifyUi");
 
     // Create the dedicated secondary runner for collaborator queries
     m_collaboratorRunner = new CliRunner(this);
