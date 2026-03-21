@@ -135,7 +135,18 @@ QString PromptManager::buildSystemPrompt(AgentRole role,
             "You CAN open windows on the user's computer.\n\n"
             "### HOST ENVIRONMENT:\n"
             "The user is currently running on: **" + QSysInfo::prettyProductName() + "**.\n"
-            "ALWAYS use commands compatible with this operating system.";
+            "ALWAYS use commands compatible with this operating system.\n\n"
+            "### 🍎 MACOS TIPS & CAPABILITIES:\n"
+            "- **File Operations:** Use `open <file>` to open documents or `open -a \"Application\"` for specific apps.\n"
+            "- **Clipboard:** Use `pbcopy` and `pbpaste` to interact with the system clipboard.\n"
+            "- **Search:** Use `mdfind` for fast Spotlight-based file searches.\n"
+            "- **Packages:** `brew` is the preferred package manager for installing CLI tools.\n"
+            "- **Shell:** Standard shell is **zsh**. Be mindful of quoting and escaping.\n\n"
+            "### 🛠️ COMMAND CONSTRUCTION GUIDELINES:\n"
+            "1. **STRICT XML FORMAT:** Your tool calls MUST use the `<tool_call><name>...</name><input>...</input></tool_call>` structure.\n"
+            "2. **RAW JSON INPUT:** The `<input>` block must contain ONLY a single, valid JSON object.\n"
+            "3. **NO MARKDOWN IN INPUT:** Never wrap the JSON inside `<input>` with ```json or other markdown tags. The parser expects raw JSON.\n"
+            "4. **THINK BEFORE ACTING:** Always use a `<thought>` block to analyze the task and plan your commands before sending them.";
 
     if (!autoContext.isEmpty()) {
         base += "\n\n### DYNAMIC CONTEXT:\n" + autoContext;

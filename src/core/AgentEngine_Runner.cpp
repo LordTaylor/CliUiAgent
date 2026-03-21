@@ -18,7 +18,7 @@ namespace CodeHex {
 void AgentEngine::onOutputChunk(const QString& chunk) {
     // Reset LLM timeout on every token — runner is still alive (#2)
     if (m_llmTimeoutTimer->isActive()) {
-        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_llmTimeoutTimer->start(adaptiveLlmTimeout());
     }
     m_lastRawResponse += chunk;
     QString filtered = m_filter->processChunk(chunk);
@@ -37,6 +37,15 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     Q_UNUSED(exitCode);
     m_llmTimeoutTimer->stop();
     m_isRunning = false;
+
+    // Record response time for adaptive timeout (P-10)
+    if (m_llmRequestTimer.isValid()) {
+        int elapsed = static_cast<int>(m_llmRequestTimer.elapsed());
+        m_llmResponseTimesMs.append(elapsed);
+        if (m_llmResponseTimesMs.size() > MAX_RESPONSE_HISTORY)
+            m_llmResponseTimesMs.removeFirst();
+        m_llmRequestTimer.invalidate();
+    }
 
     // Exact-output loop detection
     auto* session = m_sessions->currentSession();
@@ -112,7 +121,10 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     buildAssistantMessage(parseResult, currentResp);
 
     qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();
-    if (!parseResult.toolCalls.isEmpty()) {
+    if (parseResult.toolCalls.size() > 1) {
+        qDebug() << "[AgentEngine] Dispatching tool batch:" << parseResult.toolCalls.size() << "calls";
+        dispatchToolBatch(parseResult.toolCalls);
+    } else if (parseResult.toolCalls.size() == 1) {
         qDebug() << "[AgentEngine] Dispatching tool:" << parseResult.toolCalls.first().name;
         onToolCallReady(parseResult.toolCalls.first());
     } else {

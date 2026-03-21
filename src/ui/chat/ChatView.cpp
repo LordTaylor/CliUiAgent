@@ -149,6 +149,21 @@ void ChatView::mousePressEvent(QMouseEvent* event) {
                     event->accept();
                     return;
                 }
+                
+                int copyOutIdx = delegate->copyOutputClicked(event->pos(), visualRect(idx), msg);
+                if (copyOutIdx != -1) {
+                    QApplication::clipboard()->setText(msg.contentBlocks[copyOutIdx].content);
+                    event->accept();
+                    return;
+                }
+                
+                int rerunIdx = delegate->rerunClicked(event->pos(), visualRect(idx), msg);
+                if (rerunIdx != -1) {
+                    emit rerunRequested(msg.contentBlocks[rerunIdx].content);
+                    event->accept();
+                    return;
+                }
+                
                 int copyIdx = delegate->copyBlockIndexAt(event->pos(), visualRect(idx), msg);
                 if (copyIdx != -1) {
                     QApplication::clipboard()->setText(msg.contentBlocks[copyIdx].content);

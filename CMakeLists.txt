@@ -66,6 +66,12 @@ qt_add_resources(CodeHex "resources"
         resources/prompts/reviewer.txt
         resources/prompts/rag.txt
         resources/prompts/refactor.txt
+        resources/prompts/architect.txt
+        resources/prompts/debugger.txt
+        resources/prompts/security_auditor.txt
+        resources/prompts/techniques/tdd.txt
+        resources/prompts/techniques/clean_code.txt
+        resources/prompts/techniques/performance.txt
 )
 
 qt_add_resources(CodeHex "help"

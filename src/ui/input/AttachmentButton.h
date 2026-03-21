@@ -13,6 +13,7 @@ public:
     QList<Attachment> pendingAttachments() const;
     void clearAttachments();
     void addAttachments(const QList<Attachment>& attachments);
+    void removeAttachment(int index); // New
 
 signals:
     void attachmentsChanged(const QList<Attachment>& attachments);

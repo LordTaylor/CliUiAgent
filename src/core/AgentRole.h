@@ -11,7 +11,7 @@ enum class AgentRole {
     Executor,  // Code implementation, tool usage
     Reviewer,  // Verification, auditing, logic checking
     RAG,             ///< Knowledge retrieval from codebase
-    REFACTOR,        ///< Code simplification & optimization
+    Refactor,        ///< Code simplification & optimization
     Architect,       ///< High-level design and architectural planning
     Debugger,        ///< Root cause analysis and bug fixing
     SecurityAuditor  ///< Security auditing and risk assessment

@@ -1,0 +1,13 @@
+## Technique: High-Performance C++ Optimization
+
+When this technique is active, you MUST focus on efficiency and resource management:
+
+1. **Memory Management**:
+   - Use `std::move` where appropriate.
+   - Avoid unnecessary allocations and copies (pass by `const &`).
+   - Prefer stack allocation over heap when possible.
+2. **Cache Locality**: Design data structures for efficient CPU cache usage (contiguous memory).
+3. **Smart Pointers**: Use `std::unique_ptr` by default; `std::shared_ptr` only when ownership is truly shared.
+4. **Profiling First**: Before optimizing, use `AnalyzePerformanceTool` to identify bottlenecks.
+5. **No Premature Optimization**: Optimize only code that is part of a hot path.
+6. **Modern C++**: Leverage C++20 features for better performance and safety.

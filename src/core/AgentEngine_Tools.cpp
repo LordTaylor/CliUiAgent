@@ -124,6 +124,13 @@ void AgentEngine::approveToolCall(const ToolCall& call) {
 void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::ToolResult& result) {
     Q_UNUSED(toolName);
 
+    // P-3: Skip pending results — the real result will arrive later via async callback
+    if (result.isPending) {
+        emit terminalOutput(QString("[%1] ⏳ PEND  %2  (awaiting async response)")
+            .arg(QDateTime::currentDateTime().toString("HH:mm:ss"), toolName));
+        return;
+    }
+
     auto* session = m_sessions->currentSession();
     if (!session) return;
 
@@ -212,9 +219,11 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
                                     "Please ANALYZE this output and decide on the NEXT STEP "
                                     "or FINALIZE the task if no more actions are needed.")
                             .arg(toolName, result.content);
-            if (potentialLoop)
+            if (potentialLoop) {
                 nudge += "\n⚠️ WARNING: I detected that you are repeating the same output multiple times. "
                          "Please check if you are stuck in a logic loop and try a DIFFERENT approach.";
+                emit potentialLoopDetected("Agent seems to be repeating actions.");
+            }
             sendContinueRequest(nudge);
         } else {
             // Retry with backoff (#7)
@@ -239,6 +248,147 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
                                     .arg(result.content));
             }
         }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Multi-Tool Batch Execution (P-1)
+// ──────────────────────────────────────────────────────────────────────
+
+void AgentEngine::dispatchToolBatch(const QList<ToolCall>& calls) {
+    auto* session = m_sessions->currentSession();
+    if (!session) return;
+
+    // Pre-validate ALL calls: sandbox + permissions
+    QList<ToolCall> allowed;
+    for (const auto& call : calls) {
+        if (!call.valid) {
+            emit terminalError(termLine("✗ SKIP", call.name, "malformed JSON"));
+            continue;
+        }
+        if (call.input.contains("path") && !isPathAllowed(call.input.value("path").toString())) {
+            emit terminalError(termLine("✗ SKIP", call.name, "sandbox violation"));
+            continue;
+        }
+        Permission p = toolPermission(call.name);
+        if (p == Permission::Deny) continue;
+        if (p == Permission::Ask) {
+            // Fallback to sequential: can't batch if any call needs approval
+            qDebug() << "[AgentEngine] Batch fallback: tool" << call.name << "needs approval";
+            onToolCallReady(calls.first());
+            return;
+        }
+        allowed.append(call);
+    }
+
+    if (allowed.isEmpty()) {
+        sendContinueRequest("All tool calls were rejected (invalid JSON, sandbox, or denied). Try a different approach.");
+        return;
+    }
+
+    // Log batch start
+    emit terminalOutput(QString("[%1] ⚡ BATCH  %2 tools in parallel")
+        .arg(QDateTime::currentDateTime().toString("HH:mm:ss"))
+        .arg(allowed.size()));
+
+    // Session log
+    Message batchMsg;
+    batchMsg.id = QUuid::createUuid();
+    batchMsg.role = Message::Role::Assistant;
+    CodeBlock batchBlock;
+    batchBlock.type = BlockType::LogStep;
+    batchBlock.content = QString("⚡ BATCH: %1 tools").arg(allowed.size());
+    batchMsg.contentBlocks << batchBlock;
+    batchMsg.isInternal = true;
+    batchMsg.timestamp = QDateTime::currentDateTime();
+    session->appendMessage(batchMsg);
+
+    // Setup batch state
+    {
+        QMutexLocker lock(&m_batchMutex);
+        m_batchCalls = allowed;
+        m_batchResults.clear();
+    }
+    m_batchPending.store(allowed.size());
+    m_isRunning = true;
+
+    // Dispatch all tools in parallel
+    for (const auto& call : allowed) {
+        // Terminal log per call
+        QString detail;
+        if (call.input.contains("path"))    detail = call.input.value("path").toString();
+        else if (call.input.contains("command")) detail = call.input.value("command").toString().left(60);
+        else if (call.input.contains("query"))   detail = call.input.value("query").toString().left(60);
+        emit terminalOutput(termLine("→ CALL", call.name, detail));
+
+        emit toolCallStarted(call.name, call.input);
+        m_toolExecutor->execute(call, m_config->workingFolder());
+    }
+}
+
+void AgentEngine::onBatchToolFinished(const QString& toolName, const ToolResult& result) {
+    auto* session = m_sessions->currentSession();
+
+    // Terminal log
+    {
+        QString preview = result.content.trimmed().left(80).replace('\n', ' ');
+        if (result.isError)
+            emit terminalError(termLine("✗ FAIL", toolName, preview));
+        else
+            emit terminalOutput(termLine("← DONE", toolName, preview));
+    }
+
+    // Session log
+    if (session) {
+        Message toolMsg;
+        toolMsg.id = QUuid::createUuid();
+        toolMsg.role = Message::Role::User;
+        toolMsg.timestamp = QDateTime::currentDateTime();
+        toolMsg.toolResults << result;
+        toolMsg.isInternal = true;
+        if (!result.subAgentRole.isEmpty())
+            toolMsg.subAgentRole = result.subAgentRole;
+        CodeBlock block;
+        block.type = BlockType::LogStep;
+        block.content = (result.isError ? "❌ FAILED: " : "✅ DONE: ") + toolName;
+        toolMsg.contentBlocks << block;
+        toolMsg.addText(result.content);
+        session->appendMessage(toolMsg);
+    }
+
+    // Collect result
+    {
+        QMutexLocker lock(&m_batchMutex);
+        m_batchResults.append(result);
+    }
+
+    int remaining = m_batchPending.fetch_sub(1) - 1;
+    qDebug() << "[AgentEngine] Batch tool finished:" << toolName << "remaining:" << remaining;
+
+    if (remaining <= 0) {
+        // All batch tools done — send combined nudge to LLM
+        if (session) session->save();
+
+        QString combined;
+        QMutexLocker lock(&m_batchMutex);
+        for (int i = 0; i < m_batchCalls.size() && i < m_batchResults.size(); ++i) {
+            const auto& call = m_batchCalls[i];
+            const auto& res  = m_batchResults[i];
+            combined += QString("### Tool: %1\n%2: %3\n\n")
+                .arg(call.name,
+                     res.isError ? "ERROR" : "Output",
+                     res.content.left(2000));
+        }
+        lock.unlock();
+
+        emit terminalOutput(QString("[%1] ⚡ BATCH  complete — %2 results")
+            .arg(QDateTime::currentDateTime().toString("HH:mm:ss"))
+            .arg(m_batchResults.size()));
+
+        sendContinueRequest(
+            QString("All %1 tools executed in parallel. Results:\n\n%2\n"
+                    "Analyze the outputs and decide on the NEXT STEP or FINALIZE.")
+            .arg(m_batchCalls.size()).arg(combined));
     }
 }
 

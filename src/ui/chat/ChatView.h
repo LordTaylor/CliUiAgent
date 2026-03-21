@@ -21,6 +21,7 @@ public:
 
 signals:
     void loadMoreRequested();
+    void rerunRequested(const QString& text);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;

@@ -104,6 +104,12 @@ MainWindow::MainWindow(AppConfig* config,
             });
     connect(m_controller, &ChatController::toolApprovalRequested,
             this, &MainWindow::onToolApprovalRequested);
+    connect(m_controller, &ChatController::potentialLoopDetected, this, [this](const QString& msg){
+        if (m_loopWarningBanner) {
+            m_loopWarningBanner->setVisible(true);
+            m_loopWarningBanner->raise();
+        }
+    });
     connect(m_controller, &ChatController::sessionRenamed,
             this, [this](const QString& /*id*/, const QString& title) {
                 m_sessionPanel->refresh();
@@ -129,6 +135,9 @@ MainWindow::MainWindow(AppConfig* config,
 
     connect(m_sessionPanel, &SessionPanel::newSessionRequested, this, &MainWindow::onNewSessionRequested);
     connect(m_sessionPanel, &SessionPanel::sessionSelected,     this, &MainWindow::onSessionSelected);
+    connect(m_chatView,     &ChatView::rerunRequested,           this, [this](const QString& text){
+        onSendRequested("Re-run tool command: " + text, {});
+    });
 }
 
 void MainWindow::setupMenuBar() {

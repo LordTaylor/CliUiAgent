@@ -3,13 +3,16 @@
 #include <QString>
 #include <QList>
 #include <QMap>
+#include <QMutex>
 #include <QJsonObject>
 #include <QQueue>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <atomic>
 #include "Message.h"
 #include "ToolCall.h"
 #include "Attachment.h"
-#include "AgentRole.h" // Added
+#include "AgentRole.h"
 
 #include "ContextManager.h"
 #include "ResponseParser.h"
@@ -27,6 +30,7 @@ class ResponseFilter;
 class PromptManager;
 class EnsembleManager;
 class ModelRouter;
+class AgentPipeline;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -77,6 +81,8 @@ public:
     void setSelectedModel(const QString& model) { m_selectedModel = model; }
     QString selectedModel() const { return m_selectedModel; }
 
+    AgentPipeline* pipeline() const { return m_pipeline; }
+
     /**
      * @brief Saves the last raw request, response, and session state to a directory.
      */
@@ -91,22 +97,21 @@ public:
     void savePersistence();
 
     /**
-     * @brief Consults an independent LLM collaborator synchronously.
-     *
-     * Roadmap Item #5: Multi-Agent Collaborative Mode.
-     * Sends 'prompt' to a fresh LLM context (no conversation history), prefixed with
-     * a system prompt embodying the given 'role'. Blocks using a QEventLoop until
-     * the response is received or a 60-second timeout elapses.
-     *
-     * IMPORTANT: This method MUST be called from a background thread (e.g., from within
-     * a Tool::execute() running via QtConcurrent). Calling it from the main GUI thread
-     * would deadlock because the main event loop would no longer process signals.
-     *
-     * @param prompt   The question or context to send to the collaborator.
-     * @param role     Role description (e.g. "Code Reviewer", "Security Architect").
-     * @return         The collaborator's text response, or an error string.
+     * @brief Consults an independent LLM collaborator synchronously (legacy).
+     * @deprecated Use consultCollaboratorAsync() for non-blocking operation.
      */
     QString consultCollaborator(const QString& prompt, const QString& role = "Collaborator");
+
+    /**
+     * @brief Starts an async collaborator query. When finished, emits toolFinished
+     * with a synthetic ToolResult containing the collaborator's response.
+     * Does NOT block the calling thread.
+     *
+     * @param call  The original AskAgent tool call (used for result routing).
+     * @param prompt   The question to send.
+     * @param role     Role description (e.g. "Architect", "Security Auditor").
+     */
+    void consultCollaboratorAsync(const ToolCall& call, const QString& prompt, const QString& role = "Collaborator");
     
     // CoVe State Machine
     enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
@@ -124,6 +129,7 @@ signals:
     void toolApprovalRequested(const CodeHex::ToolCall& call);
     void responseComplete(const Message& msg);
     void errorOccurred(const QString& error);
+    void potentialLoopDetected(const QString& message);
 
 public slots:
     void onOutputChunk(const QString& chunk);
@@ -195,7 +201,7 @@ private:
 
     // --- Loop Detection (Item #13) ---
     QStringList m_lastToolResults;
-    const int MAX_LOOP_RESULTS = 3;
+    const int MAX_LOOP_RESULTS = 10;
 
     // --- Retry (#7): last executed call kept for transient-error retry ---
     ToolCall m_lastExecutedCall;
@@ -207,10 +213,28 @@ private:
     int m_loopIterations = 0;
     static constexpr int MAX_LOOP_ITERATIONS = 25;
 
-    // --- LLM Timeout (#2) ---
-    /** Single-shot timer that aborts the runner if no tokens arrive within the deadline. */
+    // --- LLM Timeout (#2) + Adaptive Timeout (P-10) ---
     QTimer* m_llmTimeoutTimer = nullptr;
-    static constexpr int LLM_TIMEOUT_MS = 120'000; // 2 minutes
+    static constexpr int LLM_TIMEOUT_DEFAULT_MS = 120'000; // 2 minutes
+    int adaptiveLlmTimeout() const;
+    QList<int> m_llmResponseTimesMs;             // rolling last 10 response times
+    static constexpr int MAX_RESPONSE_HISTORY = 10;
+    QElapsedTimer m_llmRequestTimer;             // measures current request duration
+
+    // --- Collaborator Async (P-3) ---
+    QTimer* m_collabTimeoutTimer = nullptr;
+    ToolCall m_pendingCollabCall;                 // the AskAgent call awaiting response
+
+    // --- Multi-Tool Batch Execution (P-1) ---
+    void dispatchToolBatch(const QList<ToolCall>& calls);
+    void onBatchToolFinished(const QString& toolName, const ToolResult& result);
+    QList<ToolCall>   m_batchCalls;
+    QList<ToolResult> m_batchResults;
+    QMutex            m_batchMutex;
+    std::atomic<int>  m_batchPending{0};
+
+    // --- Role Pipeline (P-4) ---
+    AgentPipeline* m_pipeline = nullptr;
 
     // --- Phase 2: Advanced Strategies ---
     QStringList m_activeTechniques;

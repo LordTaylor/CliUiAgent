@@ -32,7 +32,9 @@ public:
         if (command.isEmpty())
             return ToolUtils::errResult("Bash: 'command' parameter is required");
 
-        const int timeout = input.contains("timeout_ms") ? input["timeout_ms"].toInt() : 30000;
+        const int timeout = input.contains("timeout_ms")
+            ? input["timeout_ms"].toInt()
+            : adaptiveTimeout(command);
 
         QProcess* proc = new QProcess();
         m_activeProcess = proc;
@@ -83,6 +85,34 @@ public:
 
 private:
     std::atomic<QProcess*> m_activeProcess{nullptr};
+
+    // P-10: Command-aware adaptive timeout
+    static int adaptiveTimeout(const QString& cmd) {
+        // Long-running build/install commands get generous timeouts
+        static const QStringList longOps = {
+            "npm install", "yarn install", "pip install", "cargo build",
+            "cmake --build", "make", "gradle", "mvn", "dotnet build",
+            "docker build", "apt install", "brew install", "go build"
+        };
+        for (const auto& op : longOps) {
+            if (cmd.contains(op, Qt::CaseInsensitive)) return 300000; // 5 min
+        }
+        // Test suites
+        static const QStringList testOps = {
+            "pytest", "jest", "cargo test", "go test", "ctest", "npm test"
+        };
+        for (const auto& op : testOps) {
+            if (cmd.contains(op, Qt::CaseInsensitive)) return 120000; // 2 min
+        }
+        // Quick commands
+        static const QStringList quickOps = {
+            "ls", "cat", "echo", "pwd", "whoami", "date", "head", "tail", "wc"
+        };
+        for (const auto& op : quickOps) {
+            if (cmd.trimmed().startsWith(op)) return 10000; // 10s
+        }
+        return 30000; // default 30s
+    }
 };
 
 } // namespace CodeHex

@@ -10,12 +10,10 @@ namespace CodeHex {
  * @brief Tool that consults a second, independent LLM context ("Collaborator").
  * Roadmap Item #5: Multi-Agent Collaborative Mode.
  *
- * The tool sends a prompt to a separate LLM session (via AgentEngine::consultCollaborator)
- * and returns its response. This allows the primary agent to debate, review, or
- * cross-check ideas before committing to an action.
- *
- * The call is SYNCHRONOUS from the tool's perspective - it blocks until the
- * collaborator responds (the event loop spins inside consultCollaborator).
+ * P-3 refactor: The tool now uses the ASYNC path (consultCollaboratorAsync).
+ * It returns a synthetic "pending" result immediately, and AgentEngine routes
+ * the real collaborator response through the normal toolFinished pipeline
+ * when it arrives. This avoids blocking the worker thread with QEventLoop.
  */
 class AskAgentTool : public Tool {
 public:
@@ -72,19 +70,27 @@ public:
         QString role = input.value("role").toString("Collaborator").trimmed();
         if (role.isEmpty()) role = "Collaborator";
 
-        // Delegate synchronous LLM call to AgentEngine
-        QString response = m_engine->consultCollaborator(prompt, role);
+        // Build a ToolCall to pass through for result routing
+        ToolCall call;
+        call.name = "AskAgent";
+        call.input = input;
+        // ID will be set by the caller (ToolExecutor sets toolUseId)
 
+        // Launch async — does NOT block this thread
+        QMetaObject::invokeMethod(m_engine, [this, call, prompt, role]() {
+            m_engine->consultCollaboratorAsync(call, prompt, role);
+        }, Qt::QueuedConnection);
+
+        // Return a pending marker — the real result arrives via toolFinished signal
         ToolResult res;
         res.isError = false;
-        res.content = QString("[%1 Response]\n%2").arg(role, response);
-        res.subAgentRole = role;
+        res.content = QString("[Consulting %1... response will arrive asynchronously]").arg(role);
+        res.isPending = true;  // Signal that this is not the final result
         return res;
     }
 
     void abort() override {
-        // consultCollaborator uses a QEventLoop; aborting from outside is not
-        // trivially supported. The timeout in consultCollaborator handles runaway calls.
+        // The collaborator runner can be stopped via AgentEngine::stop()
     }
 
 private:

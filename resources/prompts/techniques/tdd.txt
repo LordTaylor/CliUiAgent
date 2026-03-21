@@ -1,0 +1,12 @@
+## Technique: Test-Driven Development (TDD)
+
+When this technique is active, you MUST follow these rules:
+
+1. **Test First**: Before implementing any new logic or fixing a bug, you MUST create or update a test case in `tests/`.
+2. **Red-Green-Refactor**:
+   - **Red**: Run the test and verify it fails.
+   - **Green**: Write the minimum amount of code to make the test pass.
+   - **Refactor**: Clean up the implementation while keeping the test passing.
+3. **Catch2 Standards**: Use Catch2 v3 macros (`TEST_CASE`, `SECTION`, `REQUIRE`, `CHECK`).
+4. **Tool Usage**: Use `BuildTool` frequently to verify test results.
+5. **Validation**: A task is NOT complete until all relevant tests pass.

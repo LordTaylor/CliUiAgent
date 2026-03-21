@@ -20,6 +20,8 @@ public:
     int copyBlockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
     bool isEyeButtonClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
     bool isInternalChipClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
+    int copyOutputClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
+    int rerunClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
     void setSearchTerm(const QString& term) { m_searchTerm = term; }
 
 private:

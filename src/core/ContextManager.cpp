@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QSet>
 #include <QList>
+#include <QUuid>
+#include <QDateTime>
 #include <QtGlobal>
 #include <algorithm>
 #include <vector>
@@ -120,6 +122,63 @@ QList<Message> ContextManager::prune(const QList<Message>& history, const Prunin
 
     qDebug() << "ContextManager: Pruned to" << finalTokens << "tokens (" << finalized.size() << "messages).";
     return finalized;
+}
+
+QList<Message> ContextManager::rollingSummarize(const QList<Message>& history, int keepRecent) {
+    if (history.size() <= keepRecent) return history;
+
+    int splitAt = history.size() - keepRecent;
+
+    // Build summary of older messages
+    QString summaryText = "### CONVERSATION SUMMARY (compressed from " +
+                         QString::number(splitAt) + " messages):\n\n";
+
+    for (int i = 0; i < splitAt; ++i) {
+        const auto& msg = history[i];
+        QString roleStr;
+        switch (msg.role) {
+            case Message::Role::User:      roleStr = "User"; break;
+            case Message::Role::Assistant:  roleStr = "Assistant"; break;
+            case Message::Role::System:     roleStr = "System"; break;
+        }
+
+        QString text = msg.textFromContentBlocks().trimmed();
+        if (text.isEmpty()) continue;
+
+        // For tool results, extract just the tool name and status
+        if (!msg.toolResults.isEmpty()) {
+            for (const auto& tr : msg.toolResults) {
+                QString preview = tr.content.trimmed().left(100);
+                summaryText += QString("- [Tool %1]: %2\n")
+                    .arg(tr.isError ? "FAILED" : "OK", preview);
+            }
+            continue;
+        }
+
+        // Truncate long messages in summary
+        if (text.length() > 300) {
+            text = text.left(200) + "... [truncated]";
+        }
+        summaryText += QString("- **%1**: %2\n").arg(roleStr, text);
+    }
+
+    // Create summary message
+    Message summaryMsg;
+    summaryMsg.id = QUuid::createUuid();
+    summaryMsg.role = Message::Role::System;
+    summaryMsg.timestamp = QDateTime::currentDateTime();
+    summaryMsg.isInternal = true;
+    summaryMsg.addText(summaryText);
+
+    QList<Message> result;
+    result.append(summaryMsg);
+    for (int i = splitAt; i < history.size(); ++i) {
+        result.append(history[i]);
+    }
+
+    qDebug() << "ContextManager: Rolling summary compressed" << splitAt
+             << "messages into 1 summary +" << keepRecent << "recent messages";
+    return result;
 }
 
 bool ContextManager::isPinned(const Message& msg) {

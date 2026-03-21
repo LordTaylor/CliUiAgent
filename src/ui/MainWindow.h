@@ -122,6 +122,7 @@ private:
     QPushButton*        m_themeBtn;      // Dark/Light toggle
     QPushButton*        m_debugBtn;      // Save debug logs
     QLabel*             m_statusLabel;   // "Agent is thinking..."
+    QWidget*            m_loopWarningBanner = nullptr;
     QLabel*             m_tokenLabel   = nullptr;
     QPushButton*        m_sidebarToggleBtn = nullptr;
     QList<int>          m_sidebarSizes;   // saved splitter sizes for restore

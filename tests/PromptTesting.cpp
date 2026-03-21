@@ -18,7 +18,7 @@ private slots:
     }
 
     void testSystemPromptConstruction() {
-        QString prompt = m_promptManager->buildSystemPrompt(AgentRole::Executor, "Test Context");
+        QString prompt = m_promptManager->buildSystemPrompt(AgentRole::Executor, "Test Context", {}, {});
         QVERIFY(prompt.contains("EXECUTOR"));
         QVERIFY(prompt.contains("Test Context"));
         QVERIFY(prompt.contains("Working Directory"));
@@ -39,7 +39,9 @@ private slots:
             "Do something",
             history,
             tools,
-            0,
+            {},
+            {},
+            16000,
             false,
             "",
             &stats
@@ -76,7 +78,9 @@ private slots:
             "Latest query",
             history,
             {},
-            0,
+            {},
+            {},
+            16000,
             false,
             "",
             &stats

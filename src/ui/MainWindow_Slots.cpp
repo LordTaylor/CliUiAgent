@@ -26,6 +26,7 @@
 using namespace CodeHex;
 
 void MainWindow::onSendRequested(const QString& text, const QList<Attachment>& attachments) {
+    if (m_loopWarningBanner) m_loopWarningBanner->setVisible(false);
     m_controller->sendMessage(text, attachments);
 }
 

@@ -40,6 +40,7 @@ ChatController::ChatController(AppConfig* config,
         emit generationStopped();
     }, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::errorOccurred,           this, &ChatController::errorOccurred, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::potentialLoopDetected,   this, &ChatController::potentialLoopDetected, Qt::QueuedConnection);
     
     // Sessions rename signaling (newly added to SessionManager)
     connect(m_sessions, &SessionManager::sessionRenamed, this, &ChatController::sessionRenamed, Qt::QueuedConnection);

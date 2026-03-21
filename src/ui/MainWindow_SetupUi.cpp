@@ -276,6 +276,28 @@ void MainWindow::setupUi() {
         "border-radius: 14px; border: 1px solid #4B5563; font-weight: bold; font-size: 13px;");
     chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
     m_statusLabel->raise();
+ 
+    // Loop Warning Banner (Phase 40)
+    m_loopWarningBanner = new QWidget(chatContainer);
+    m_loopWarningBanner->setObjectName("loopWarningBanner");
+    m_loopWarningBanner->setVisible(false);
+    auto* loopLayout = new QHBoxLayout(m_loopWarningBanner);
+    loopLayout->setContentsMargins(15, 8, 15, 8);
+    
+    QLabel* loopText = new QLabel("⚠️ Potential logic loop detected. The agent is repeating actions.", m_loopWarningBanner);
+    loopText->setStyleSheet("color: #FCA5A5; font-weight: bold;");
+    
+    QPushButton* stopLoopBtn = new QPushButton("Stop Agent", m_loopWarningBanner);
+    stopLoopBtn->setFixedSize(100, 24);
+    stopLoopBtn->setStyleSheet("background: #991B1B; color: white; border-radius: 4px; font-size: 11px;");
+    connect(stopLoopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
+
+    loopLayout->addWidget(loopText, 1);
+    loopLayout->addWidget(stopLoopBtn);
+    
+    m_loopWarningBanner->setStyleSheet("background: rgba(153, 27, 27, 0.9); border: 1px solid #EF4444; border-radius: 8px;");
+    chatGrid->addWidget(m_loopWarningBanner, 0, 0, 3, 3, Qt::AlignTop | Qt::AlignHCenter);
+    m_loopWarningBanner->raise();
 
     rightLayout->addWidget(chatContainer, 1);
 

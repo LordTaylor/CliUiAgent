@@ -32,6 +32,18 @@ ResponseParser::ParseResult ResponseParser::parse(const QString& response) {
         QString tname = match.captured(1).trimmed();
         QString jsonStr = match.captured(2).trimmed();
         
+        // --- Robustness Tip: Strip markdown blocks if the agent hallucinated them inside <input> ---
+        if (jsonStr.startsWith("```")) {
+            // Remove starting block (e.g., ```json or just ```)
+            QRegularExpression startBlockRe("^```(?:json|xml|bash)?\\s*");
+            jsonStr.remove(startBlockRe);
+            // Remove ending block (e.g., ```)
+            if (jsonStr.endsWith("```")) {
+                jsonStr.chop(3);
+            }
+            jsonStr = jsonStr.trimmed();
+        }
+        
         // Capture explanation (text between previous tool and this one)
         QString rawExplanation = response.mid(lastPos, match.capturedStart() - lastPos).trimmed();
         // Clean the explanation (remove thoughts and XML tags)

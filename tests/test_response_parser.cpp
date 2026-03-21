@@ -76,7 +76,28 @@ TEST_CASE("ResponseParser: Malformed JSON in Tool Call", "[ResponseParser]") {
 
     ResponseParser::ParseResult result = ResponseParser::parse(response);
     
-    REQUIRE(result.toolCalls.isEmpty()); // Should fail gracefully
+    REQUIRE(result.toolCalls.size() == 1);
+    REQUIRE_FALSE(result.toolCalls.first().valid);
+}
+
+TEST_CASE("ResponseParser: Robustness: Markdown in Input", "[ResponseParser]") {
+    QString response = R"(
+<name>ReadFile</name>
+<input>
+```json
+{
+    "path": "robust.txt"
+}
+```
+</input>
+)";
+
+    ResponseParser::ParseResult result = ResponseParser::parse(response);
+    
+    REQUIRE(result.toolCalls.size() == 1);
+    REQUIRE(result.toolCalls.first().valid);
+    REQUIRE(result.toolCalls.first().name == "ReadFile");
+    REQUIRE(result.toolCalls.first().input["path"].toString() == "robust.txt");
 }
 
 TEST_CASE("ResponseParser: Cleaning Output", "[ResponseParser]") {
@@ -90,4 +111,17 @@ Hello User!
     ResponseParser::ParseResult result = ResponseParser::parse(response);
     
     REQUIRE(result.cleanText == "Hello User!");
+}
+
+TEST_CASE("ResponseParser: Confidence Scoring", "[ResponseParser]") {
+    QString response = R"(
+<thought>I am not sure about this.</thought>
+<confidence>3</confidence>
+Hello User! This might be wrong.
+)";
+
+    ResponseParser::ParseResult result = ResponseParser::parse(response);
+    
+    REQUIRE(result.confidenceScore == 3);
+    REQUIRE(result.cleanText == "Hello User! This might be wrong.");
 }

@@ -13,7 +13,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <QJsonObject>
 #include "../src/core/AgentEngine.h"
-#include "../src/core/tools/ConsultCollaboratorTool.h"
+#include "../src/core/tools/AskAgentTool.h"
 
 using namespace CodeHex;
 
@@ -35,12 +35,12 @@ public:
 // path by directly inspecting parameters() and the error path via manual checks.
 // ---------------------------------------------------------------------------
 
-TEST_CASE("ConsultCollaboratorTool: parameters schema is well-formed", "[ConsultCollaborator]") {
+TEST_CASE("AskAgentTool: parameters schema is well-formed", "[AskAgent]") {
     // We need a real AgentEngine* for construction, but we can pass nullptr
     // for the purpose of inspecting metadata only (no execute() call).
-    ConsultCollaboratorTool tool(nullptr);
+    AskAgentTool tool(nullptr);
 
-    CHECK(tool.name() == "ConsultCollaborator");
+    CHECK(tool.name() == "AskAgent");
     CHECK(!tool.description().isEmpty());
 
     QJsonObject schema = tool.parameters();
@@ -62,10 +62,10 @@ TEST_CASE("ConsultCollaboratorTool: parameters schema is well-formed", "[Consult
     REQUIRE(foundPrompt);
 }
 
-TEST_CASE("ConsultCollaboratorTool: returns error if prompt is missing", "[ConsultCollaborator]") {
+TEST_CASE("AskAgentTool: returns error if prompt is missing", "[AskAgent]") {
     // Passing nullptr as engine is safe here because the execute() will
     // return early with an error before touching m_engine.
-    ConsultCollaboratorTool tool(nullptr);
+    AskAgentTool tool(nullptr);
 
     QJsonObject emptyInput;
     ToolResult result = tool.execute(emptyInput, "");
@@ -74,8 +74,8 @@ TEST_CASE("ConsultCollaboratorTool: returns error if prompt is missing", "[Consu
     REQUIRE(result.content.contains("prompt"));
 }
 
-TEST_CASE("ConsultCollaboratorTool: returns error if prompt is whitespace-only", "[ConsultCollaborator]") {
-    ConsultCollaboratorTool tool(nullptr);
+TEST_CASE("AskAgentTool: returns error if prompt is whitespace-only", "[AskAgent]") {
+    AskAgentTool tool(nullptr);
 
     QJsonObject input;
     input["prompt"] = "   ";

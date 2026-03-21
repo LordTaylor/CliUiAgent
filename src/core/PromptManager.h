@@ -25,7 +25,9 @@ public:
     /**
      * @brief Builds the full system prompt for the current role and state.
      */
-    QString buildSystemPrompt(AgentRole role, const QString& autoContext) const;
+    QString buildSystemPrompt(AgentRole role, const QString& autoContext, 
+                             const QStringList& activeTechniques = {},
+                             const QMap<QString, QString>& blackboard = {}) const;
 
     /**
      * @brief Builds a structured JSON request for Claude Code API.
@@ -34,6 +36,8 @@ public:
                                const QString& userInput, 
                                const QList<Message>& history, 
                                const QJsonArray& tools,
+                               const QStringList& activeTechniques = {},
+                               const QMap<QString, QString>& blackboard = {},
                                int thinkingBudget = 0,
                                bool useCache = false,
                                const QString& ragContext = QString(),
@@ -53,6 +57,11 @@ public:
      * @brief Loads the base role prompt from resources.
      */
     QString loadRolePrompt(AgentRole role) const;
+
+    /**
+     * @brief Loads the technique specialized prompt from resources.
+     */
+    QString loadTechniquePrompt(const QString& name) const;
 
 private:
     AppConfig* m_config;

@@ -462,7 +462,24 @@ void MessageDelegate::paintInternalChip(QPainter* p, const QStyleOptionViewItem&
     p->setPen(QColor(accent).lighter(140));
     p->drawText(QRect(textX, ry, arrowW, rh), Qt::AlignVCenter, arrow);
     p->setPen(QColor(0x9CA3AF));
-    p->drawText(QRect(textX + arrowW + 4, ry, rw - arrowW - 20, rh), Qt::AlignVCenter | Qt::AlignLeft, summary);
+    p->drawText(QRect(textX + arrowW + 4, ry, rw - arrowW - 100, rh), Qt::AlignVCenter | Qt::AlignLeft, summary);
+
+    // Copy & Rerun Buttons
+    if (msg.subAgentRole.isEmpty()) {
+        int btnW = 22;
+        int btnH = 22;
+        int btnY = ry + (rh - btnH) / 2;
+        int btnX = rx + rw - 30;
+        
+        // Copy Output
+        p->setPen(QColor(0x6B7280));
+        p->drawText(QRect(btnX, btnY, btnW, btnH), Qt::AlignCenter, "📋");
+        
+        // Re-run (if it's a call)
+        if (summary.contains("CALL:", Qt::CaseInsensitive)) {
+            p->drawText(QRect(btnX - 25, btnY, btnW, btnH), Qt::AlignCenter, "🔄");
+        }
+    }
 
     p->setFont(opt.font); // restore
 
@@ -497,7 +514,41 @@ bool MessageDelegate::isInternalChipClicked(const QPoint& pos, const QRect& rect
     const int rx = kAvatarSize + 8;
     const int ry = rect.top() + 3;
     const int rw = rect.width() - rx - 8;
+    
+    // Check if buttons were clicked instead
+    if (copyOutputClicked(pos, rect, msg) != -1 || rerunClicked(pos, rect, msg) != -1)
+        return false;
+
     return QRect(rx, ry, rw, kChipHeight).contains(pos);
+}
+
+int MessageDelegate::copyOutputClicked(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (!msg.isInternal) return -1;
+    const int rx = kAvatarSize + 8;
+    const int ry = rect.top() + 3;
+    const int rw = rect.width() - rx - 8;
+    
+    int btnX = rx + rw - 30;
+    int btnY = ry + (kChipHeight - 22) / 2;
+    if (QRect(btnX, btnY, 22, 22).contains(pos)) return 0; // return first block which contains the content
+    return -1;
+}
+
+int MessageDelegate::rerunClicked(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (!msg.isInternal) return -1;
+    const int rx = kAvatarSize + 8;
+    const int ry = rect.top() + 3;
+    const int rw = rect.width() - rx - 8;
+    
+    int btnX = rx + rw - 55;
+    int btnY = ry + (kChipHeight - 22) / 2;
+    if (QRect(btnX, btnY, 22, 22).contains(pos)) {
+        // Only return if it's a CALL
+        for (const auto& b : msg.contentBlocks) {
+            if (b.content.contains("CALL:", Qt::CaseInsensitive)) return 0;
+        }
+    }
+    return -1;
 }
 
 }  // namespace CodeHex

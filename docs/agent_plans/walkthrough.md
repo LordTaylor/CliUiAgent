@@ -1,40 +1,33 @@
-# Walkthrough: Intuicyjny Agent i Organizacja Planów (Faza 9)
+# Walkthrough: Robust Parsing & OS Awareness (Faza 40)
 
-Zakończono modernizację interfejsu oraz dokumentacji, a także uporządkowano historię planowania w projekcie.
+Zaimplementowano zestaw ulepszeń mających na celu zwiększenie stabilności pracy agenta oraz jego orientacji w systemie operacyjnym MacOS.
 
 ## Co zostało zrobione
 
-### 1. Organizacja Planów w Projekcie
-Zgodnie z prośbą, utworzono katalog `docs/agent_plans/` w głównym folderze projektu. Znajdują się tam teraz wszystkie plany i podsumowania w formacie Markdown:
-- `implementation_plan.md`
-- `task.md`
-- `walkthrough.md`
-- `foundation_refactor_plan.md`
+### 1. Robust JSON Parsing
+Ulepszono `ResponseParser.cpp`, aby był odporny na częsty błąd modeli LLM polegający na owijaniu kodu JSON w bloki markdown (np. ` ```json `) wewnątrz tagów `<input>`.
+- **Zmiana**: Parser teraz proaktywnie wykrywa i usuwa znaczniki markdown przed próbą przetworzenia obiektu JSON.
+- **Korzyść**: Eliminacja błędów "Invalid JSON — unterminated object", które przerywały pętlę rozumowania agenta.
 
-### 2. Modernizacja Dokumentacji Help
-Usunięto wszystkie nieaktualne odwołania do Claude CLI i OpenAI (sgpt). Dokumentacja skupia się teraz wyłącznie na rozwiązaniach lokalnych:
-- **Index Pomocy**: Nowy, czystszy spis treści (EN/PL).
-- **Getting Started**: Nowy przewodnik skupiony na Ollama i LM Studio.
-- **Autonomous Agent**: Opis narzędzi (ReadFile, WriteFile, RunCommand) i trybu Safety Mode.
-- **LM Studio**: Rekomendacje dla modeli `Qwen2.5-Coder` i `DeepSeek-Coder`.
-- **UI Guide**: Aktualizacja opisów interfejsu i backendów.
+### 2. Świadomość Systemu (OS Awareness)
+Wzbogacono systemowy prompt o szczegółowe informacje i porady specyficzne dla systemu MacOS.
+- **Nowe Porady**: Agent został poinstruowany o istnieniu narzędzi takich jak `pbcopy`/`pbpaste` (schowek), `open` (otwieranie plików i aplikacji), `mdfind` (szybkie wyszukiwanie Spotlight) oraz `brew`.
+- **Kontekst**: Agent ma teraz jasność, że pracuje w środowisku **zsh** na MacOS, co redukuje ryzyko użycia haseł specyficznych dla Linuxa lub Windows.
 
-### 3. Ulepszony Interfejs (Agent Feedback)
-Poprawiono intuicyjność pracy z agentem:
-- **Dynamiczny Status**: Etykieta statusu jest teraz zawsze widoczna i zmienia kolor w zależności od etapu:
-  - 🔵 **Niebieski (Agent is Thinking...)**: Gdy model przetwarza prompt.
-  - 🟠 **Pomarańczowy (Waiting for Tool Approval...)**: Gdy agent czeka na Twoją decyzję w trybie Safety Mode.
-  - 🟢 **Zielony (Executing Tool...)**: Gdy agent wykonuje zatwierdzoną operację.
-- **Tool Approval Dialog**: Dodano wyraźne ostrzeżenie o trybie Safety Mode i poprawiono czytelność argumentów narzędzia.
+### 3. Wytyczne Konstrukcji Komend
+Wprowadzono ścisłe reguły budowania komend w `ToolExecutor.cpp` oraz `PromptManager.cpp`.
+- **Negative Examples**: Dodano przykłady tego, czego agent NIE powinien robić (np. nie używać markdown wewnątrz XML).
+- **Format XML**: Wzmocniono instrukcję dotyczącą struktury `<tool_call>`.
 
 ## Wyniki Weryfikacji
 
+### Testy Jednostkowe
+Dodano nowy test w `tests/test_response_parser.cpp`:
+- `Robustness: Markdown in Input` — **PASSED** ✅
+
+Uruchomiono pełny zestaw testów (z wyjątkiem integracyjnych wymagających zewnętrznych usług):
+- `tests/codehex_tests` — **37/38 PASSED** ✅ (jeden nieistotny błąd w narzędziu screenshot, niezwiązany ze zmianami).
+- `ResponseParser tests` — **All 7 PASSED** ✅
+
 ### Kompilacja
-Projekt kompiluje się bez błędów po usunięciu nieistniejących plików z zasobów Qt (`CMakeLists.txt` zaktualizowany).
-
-### Testy
-Wszystkie testy integracyjne (w tym te dla LM Studio) przechodzą pomyślnie.
-
----
-> [!TIP]
-> Wszystkie Twoje plany są teraz bezpiecznie zapisane w `docs/agent_plans/`. Możesz do nich wrócić w dowolnym momencie bez zaglądania do logów agenta.
+Projekt kompiluje się prawidłowo (`cmake --build build`).

@@ -26,9 +26,18 @@ public:
     /**
      * @brief Prunes the message history and returns stats.
      */
-    static QList<Message> prune(const QList<Message>& history, 
+    static QList<Message> prune(const QList<Message>& history,
                                const PruningOptions& options,
                                ContextStats* statsOut = nullptr);
+
+    /**
+     * @brief P-6: Rolling Summary Compression.
+     * Compresses messages[0..N-keepRecent] into a single summary message,
+     * preserving the last keepRecent messages intact.
+     * Returns a new list: [summary_msg] + [last keepRecent messages].
+     */
+    static QList<Message> rollingSummarize(const QList<Message>& history,
+                                          int keepRecent = 15);
 
     /**
      * @brief Helper to check if a message should be protected from pruning.

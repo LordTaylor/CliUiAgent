@@ -39,6 +39,7 @@ add_library(codehex_core STATIC
     EnsembleManager.h EnsembleManager.cpp
     AgentRole.h
     ModelRouter.h    ModelRouter.cpp
+    AgentPipeline.h  AgentPipeline.cpp
     tools/GitTool.h
     tools/SearchRepoTool.h
     rag/EmbeddingManager.h rag/EmbeddingManager.cpp

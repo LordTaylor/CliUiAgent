@@ -23,6 +23,7 @@ struct ToolResult {
     QString toolUseId;          // matches ToolCall::id
     QString content;            // output text (stdout / file content / error msg)
     bool    isError = false;    // true when the tool execution failed
+    bool    isPending = false;  // true for async tools (P-3): real result arrives later via signal
     QString subAgentRole;       // set for AskAgent responses (e.g. "Reviewer")
 };
 

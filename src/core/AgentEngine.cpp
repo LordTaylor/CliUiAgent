@@ -29,6 +29,7 @@
 #include "SessionManager.h"
 #include "ThinkingCache.h"
 #include "ToolExecutor.h"
+#include "AgentPipeline.h"
 #include "WalkthroughGenerator.h"
 #include "rag/CodebaseIndexer.h"
 #include "rag/EmbeddingManager.h"
@@ -114,16 +115,37 @@ AgentEngine::AgentEngine(AppConfig* config,
     // Dedicated secondary runner for collaborator queries (roadmap #5)
     m_collaboratorRunner = new CliRunner(this);
 
-    // LLM Timeout (#2): abort runner if no token arrives within LLM_TIMEOUT_MS
+    // Role Pipeline (P-4)
+    m_pipeline = new AgentPipeline(this, this);
+    connect(m_pipeline, &AgentPipeline::stageStarted, this,
+        [this](int index, AgentRole role, const QString&) {
+            static const QMap<AgentRole, QString> roleNames = {
+                {AgentRole::Base, "Base"}, {AgentRole::Explorer, "Explorer"},
+                {AgentRole::Executor, "Executor"}, {AgentRole::Reviewer, "Reviewer"},
+                {AgentRole::Debugger, "Debugger"}, {AgentRole::Refactor, "Refactor"},
+                {AgentRole::Architect, "Architect"}, {AgentRole::SecurityAuditor, "Security"},
+                {AgentRole::RAG, "RAG"},
+            };
+            emit statusChanged(QString("🔄 Pipeline [%1/%2]: %3")
+                .arg(index + 1).arg(m_pipeline->totalStages())
+                .arg(roleNames.value(role, "Base")));
+        });
+    connect(m_pipeline, &AgentPipeline::pipelineComplete, this,
+        [this](const QString&) {
+            emit statusChanged("✅ Pipeline complete");
+            m_currentRole = AgentRole::Base; // reset role after pipeline
+        });
+
+    // LLM Timeout (#2): abort runner if no token arrives within LLM_TIMEOUT_DEFAULT_MS
     m_llmTimeoutTimer = new QTimer(this);
     m_llmTimeoutTimer->setSingleShot(true);
     connect(m_llmTimeoutTimer, &QTimer::timeout, this, [this]() {
-        qWarning() << "[AgentEngine] LLM timeout — no response after" << LLM_TIMEOUT_MS / 1000 << "s. Aborting.";
+        qWarning() << "[AgentEngine] LLM timeout — no response after" << LLM_TIMEOUT_DEFAULT_MS / 1000 << "s. Aborting.";
         m_runner->stop();
         m_isRunning = false;
         emit errorOccurred(QString("LLM did not respond within %1 seconds. "
                                    "Please check your provider or try again.")
-                           .arg(LLM_TIMEOUT_MS / 1000));
+                           .arg(LLM_TIMEOUT_DEFAULT_MS / 1000));
     });
 
     // Connect runner signals
@@ -145,7 +167,14 @@ AgentEngine::AgentEngine(AppConfig* config,
     connect(m_auditor, &ProjectAuditor::auditSuggestion, this, &AgentEngine::onAuditSuggestion);
     m_auditor->start(300000);
 
-    connect(m_toolExecutor, &ToolExecutor::toolFinished, this, &AgentEngine::onToolResultReceived);
+    // Route tool results: batch mode → onBatchToolFinished, single → onToolResultReceived
+    connect(m_toolExecutor, &ToolExecutor::toolFinished, this,
+        [this](const QString& toolName, const CodeHex::ToolResult& result) {
+            if (m_batchPending.load() > 0)
+                onBatchToolFinished(toolName, result);
+            else
+                onToolResultReceived(toolName, result);
+        });
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +331,23 @@ void AgentEngine::saveDebugLog(const QString& targetDir) {
              .arg(m_config->workingFolder()));
 
     qInfo() << "Debug logs saved to" << targetDir;
+}
+
+// ---------------------------------------------------------------------------
+// Adaptive LLM Timeout (P-10)
+// ---------------------------------------------------------------------------
+
+int AgentEngine::adaptiveLlmTimeout() const {
+    if (m_llmResponseTimesMs.size() < 3) return LLM_TIMEOUT_DEFAULT_MS;
+
+    // Calculate average of recent response times
+    qint64 sum = 0;
+    for (int t : m_llmResponseTimesMs) sum += t;
+    int avg = static_cast<int>(sum / m_llmResponseTimesMs.size());
+
+    // Timeout = 3× average, clamped between 30s and 300s
+    int timeout = qBound(30'000, avg * 3, 300'000);
+    return timeout;
 }
 
 } // namespace CodeHex

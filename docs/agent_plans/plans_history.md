@@ -2,6 +2,41 @@
 
 ---
 
+## Faza 39: Agent Parallelism & Optimization (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Implementacja 4 usprawnień wydajności agenta: równoległa egzekucja narzędzi, cache odczytów, dedykowany thread pool, auto-detekcja ról.
+
+### P-1: Multi-Tool Parallelism
+- [x] `AgentEngine.h` — dodano `m_batchCalls`, `m_batchResults`, `m_batchPending` (atomic), `m_batchMutex`
+- [x] `AgentEngine_Runner.cpp` — `onRunnerFinished()` rozróżnia batch (>1 calls) vs single
+- [x] `AgentEngine_Tools.cpp` — `dispatchToolBatch()`: walidacja sandbox+permissions, fallback do sekwencyjnego przy Ask, dispatch parallel
+- [x] `AgentEngine_Tools.cpp` — `onBatchToolFinished()`: zbiera wyniki mutex-em, przy `remaining==0` wysyła combined nudge
+- [x] `AgentEngine.cpp` — `toolFinished` connection router (batch vs single via `m_batchPending`)
+- [x] `ToolExecutor.cpp` — prompt rules zmienione na "Wiele narzędzi naraz — RÓWNOLEGLE"
+
+### P-2: In-Session Read Cache
+- [x] `ToolExecutor.h` — `CacheEntry{fileModified, content}`, `m_readCache`, `m_cacheMutex`, `MAX_CACHE_ENTRIES=50`
+- [x] `ToolExecutor.cpp` — `executeSync()`: cache check przed ReadFile (walidacja `lastModified()`), cache store po sukcesie, invalidation na WriteFile/Replace/SearchReplace
+- [x] `ToolExecutor.cpp` — `clearCacheFor()` publiczna metoda do ręcznej inwalidacji
+
+### P-5: Dedicated Tool ThreadPool
+- [x] `ToolExecutor.h` — `QThreadPool m_toolPool`
+- [x] `ToolExecutor.cpp` — `m_toolPool.setMaxThreadCount(min(4, idealThreadCount))` w konstruktorze
+- [x] `ToolExecutor.cpp` — `execute()` używa `QtConcurrent::run(&m_toolPool, ...)` zamiast globalnego poola
+
+### P-8: Role Auto-Detect
+- [x] `ModelRouter.h` — `AgentRole detectRoleFromPrompt(const QString&) const`
+- [x] `ModelRouter.cpp` — keyword scoring (PL+EN) dla 8 ról: Explorer, Executor, Reviewer, Debugger, Refactor, Architect, SecurityAuditor, RAG
+- [x] `AgentEngine_Loop.cpp` — `process()`: auto-detect gdy `m_currentRole == Base`, emit do terminala
+
+### Terminal Output
+- [x] `AgentEngine.h` — sygnały `terminalOutput()` / `terminalError()`
+- [x] `AgentEngine_Tools.cpp` — `termLine()` helper: `[HH:MM:SS] → CALL ToolName detail`
+- [x] `ChatController.cpp` — routing sygnałów terminala do UI
+
+---
+
 ## Faza 38: Naprawa UI — Toolbar + Sidebar + Context Bar (2026-03-21) — ZAKOŃCZONA
 
 **Data**: 2026-03-21

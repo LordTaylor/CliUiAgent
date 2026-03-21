@@ -28,4 +28,5 @@ Ten plik służy jako pamięć długotrwała agenta. Tutaj zapisujemy:
 - **Prompt Specialization**: Użycie wyspecjalizowanych promptów dla ról (Architect/Debugger) znacząco poprawia jakość odpowiedzi w konkretnych domenach technicznych w porównaniu do jednego, ogólnego promptu "Asystent".
 - **XML vs JSON**: Formaty XML w promptach są lepiej rozumiane przez modele typu Claude/Llama przy wywoływaniu narzędzi, jeśli dostarczy się im ścisłe schematy "One-Shot" w instrukcji systemowej.
 - **Negative Constraints**: Wyraźne zakazy (np. "NIE używaj Bash do edycji plików") są kluczowe dla zachowania integralności codebase, gdy agent ma dostęp do wielu nakładających się funkcjonalnie narzędzi.
+- **Markdown in XML Input**: Niektóre modele uporczywie owijają JSON wewnątrz plików `<input>` w bloki markdown (```json). Parser musi proaktywnie usuwać te znaczniki przed dekodowaniem JSON, aby uniknąć błędów `unterminated object`.
 - **Script Verification**: Skrypt `run.sh --rebuild` jest najbardziej niezawodnym sposobem na weryfikację stanu projektu po dużych zmianach w systemach zasobów (prompty) i logice backendu.

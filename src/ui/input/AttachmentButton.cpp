@@ -25,6 +25,13 @@ void AttachmentButton::addAttachments(const QList<Attachment>& attachments) {
     emit attachmentsChanged(m_attachments);
 }
 
+void AttachmentButton::removeAttachment(int index) {
+    if (index >= 0 && index < m_attachments.size()) {
+        m_attachments.removeAt(index);
+        emit attachmentsChanged(m_attachments);
+    }
+}
+
 void AttachmentButton::onClicked() {
     const QStringList files = QFileDialog::getOpenFileNames(
         this, "Select Attachments", QDir::homePath(),

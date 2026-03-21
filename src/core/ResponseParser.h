@@ -24,6 +24,7 @@ public:
         QList<ToolCall> toolCalls;
         QList<ThoughtBlock> thoughts;
         QString cleanText;
+        int confidenceScore = 10; // Default to 10 (fully confident)
     };
 
     /**

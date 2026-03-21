@@ -75,7 +75,7 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
         emit contextStatsUpdated(stats);
         m_lastRawRequest = QJsonDocument(request).toJson();
         m_lastRawResponse.clear();
-        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_llmRequestTimer.start(); m_llmTimeoutTimer->start(adaptiveLlmTimeout());
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
         emit statusChanged("🧠 Thinking...");
@@ -97,7 +97,7 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
         m_lastRawRequest = "--- System Prompt ---\n" + systemPrompt +
                            "\n\n--- Prompt ---\n" + enrichedPrompt;
         m_lastRawResponse.clear();
-        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_llmRequestTimer.start(); m_llmTimeoutTimer->start(adaptiveLlmTimeout());
         m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, systemPrompt);
     }
 }
@@ -128,22 +128,39 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
         return;
     }
 
-    // Context compression if session too long
-    if (session->messages.size() > 15) {
-        qDebug() << "[AgentEngine] Session too long. Triggering compression...";
+    // P-6: Rolling Summary Compression (replaces old LLM-based compaction)
+    if (session->messages.size() > 20) {
+        qDebug() << "[AgentEngine] Session too long. Applying rolling summary...";
         emit statusChanged("📦 Compressing conversation history...");
-        QString compactionPrompt = "### INTERNAL COMPACTION REQUEST ###\n"
-                                   "The conversation is too long. Please provide a CONCISE SUMMARY...";
-        m_isRunning = true;
-        m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
-        return;
+        session->messages = ContextManager::rollingSummarize(session->messages, 15);
+        session->save();
+        emit terminalOutput(QString("[%1] 📦 COMPRESS  %2 messages → rolling summary + 15 recent")
+            .arg(QDateTime::currentDateTime().toString("HH:mm:ss"))
+            .arg(session->messages.size()));
     }
 
     m_requestQueue.clear();
     resetStreamState();
     m_isRunning = true;
     m_loopIterations = 0;
-    m_lastToolCallFingerprints.clear();
+    // m_lastToolCallFingerprints.clear(); // P-13: Persist across turns to detect inter-turn loops
+
+    // Role Auto-Detect (P-8): if user hasn't manually set a role, detect from prompt
+    if (m_currentRole == AgentRole::Base) {
+        AgentRole detected = m_router->detectRoleFromPrompt(userInput);
+        if (detected != AgentRole::Base) {
+            m_currentRole = detected;
+            static const QMap<AgentRole, QString> roleNames = {
+                {AgentRole::Explorer, "Explorer"}, {AgentRole::Executor, "Executor"},
+                {AgentRole::Reviewer, "Reviewer"}, {AgentRole::Debugger, "Debugger"},
+                {AgentRole::Refactor, "Refactor"}, {AgentRole::Architect, "Architect"},
+                {AgentRole::SecurityAuditor, "Security"}, {AgentRole::RAG, "RAG"},
+            };
+            emit terminalOutput(QString("[%1] 🎭 Auto-detected role: %2")
+                .arg(QDateTime::currentDateTime().toString("HH:mm:ss"),
+                     roleNames.value(detected, "Base")));
+        }
+    }
 
     (void)QtConcurrent::run(&CodebaseIndexer::indexDirectory, m_indexer, m_config->workingFolder());
 
@@ -182,7 +199,7 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
         emit contextStatsUpdated(stats);
         m_lastRawRequest = QJsonDocument(request).toJson();
         m_lastRawResponse.clear();
-        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_llmRequestTimer.start(); m_llmTimeoutTimer->start(adaptiveLlmTimeout());
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
         // Emit context stats for non-JSON providers too
@@ -197,7 +214,7 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
         m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() +
                            "\n\n--- Nudge ---\n" + nudge;
         m_lastRawResponse.clear();
-        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_llmRequestTimer.start(); m_llmTimeoutTimer->start(adaptiveLlmTimeout());
         m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
     }
 }

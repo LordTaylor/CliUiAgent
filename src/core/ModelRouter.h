@@ -26,6 +26,12 @@ public:
      */
     void setProfileIdForRole(AgentRole role, const QString& profileId);
 
+    /**
+     * @brief Detects the most appropriate agent role based on keyword heuristics.
+     * Returns AgentRole::Base if no clear match.
+     */
+    AgentRole detectRoleFromPrompt(const QString& userInput) const;
+
 private:
     AppConfig* m_config;
     QMap<AgentRole, QString> m_roleMap;

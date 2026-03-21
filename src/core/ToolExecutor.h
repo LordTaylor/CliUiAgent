@@ -1,8 +1,12 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QHash>
+#include <QDateTime>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QThreadPool>
+#include <QMutex>
 #include <memory>
 #include <atomic>
 
@@ -41,14 +45,32 @@ public:
      */
     void stop();
 
+    /** @brief Removes cached content for the given file path. */
+    void clearCacheFor(const QString& path);
+
 signals:
     void toolStarted(const QString& toolName, const QJsonObject& input);
     void toolFinished(const QString& toolName, const CodeHex::ToolResult& result);
+
+    /** @brief Invalidates read cache for the given path (call after writes). */
+    void invalidateCache(const QString& path);
 
 private:
     QMap<QString, std::shared_ptr<Tool>> m_tools;
     QMap<QString, QString> m_aliases;
     std::atomic<Tool*> m_activeTool{nullptr};
+
+    // --- Dedicated Tool ThreadPool (P-5) ---
+    QThreadPool m_toolPool;
+
+    // --- In-Session Read Cache (P-2) ---
+    struct CacheEntry {
+        QDateTime fileModified;
+        QString   content;
+    };
+    QHash<QString, CacheEntry> m_readCache;
+    QMutex m_cacheMutex;
+    static constexpr int MAX_CACHE_ENTRIES = 50;
 };
 
 }  // namespace CodeHex

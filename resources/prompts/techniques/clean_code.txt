@@ -1,0 +1,12 @@
+## Technique: Clean Code & SOLID Enforcement
+
+When this technique is active, you MUST prioritize code quality over speed:
+
+1. **SOLID Principles**:
+   - Single Responsibility: Each class/function does ONE thing.
+   - Open/Closed: Software entities should be open for extension but closed for modification.
+2. **DRY (Don't Repeat Yourself)**: Eliminate code duplication immediately.
+3. **KISS (Keep It Simple, Stupid)**: Avoid over-engineering. Prefer simple, readable solutions.
+4. **Naming**: Use descriptive, intention-revealing names for variables, functions, and classes.
+5. **Small Functions**: Keep functions short (ideally < 20 lines).
+6. **Documentation**: Ensure all new public methods have Doxygen comments.

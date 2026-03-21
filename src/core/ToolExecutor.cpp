@@ -14,12 +14,18 @@
 #include <QMetaType>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QFileInfo>
+#include <QMutexLocker>
+#include <QThread>
 
 namespace CodeHex {
 
 ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     qRegisterMetaType<CodeHex::ToolResult>();
-    
+
+    // Dedicated Tool ThreadPool (P-5)
+    m_toolPool.setMaxThreadCount(qMin(4, QThread::idealThreadCount()));
+
     // Register Core Tools
     registerTool(std::make_shared<ReadFileTool>());
     registerTool(std::make_shared<WriteFileTool>());
@@ -61,23 +67,41 @@ void ToolExecutor::registerAlias(const QString& alias, const QString& originalNa
 void ToolExecutor::execute(const ToolCall& call, const QString& workDir) {
     emit toolStarted(call.name, call.input);
 
-    // Capture everything needed by value to ensure thread safety
-    QtConcurrent::run([this, call, workDir]() {
+    // Run on dedicated tool thread pool (P-5)
+    QtConcurrent::run(&m_toolPool, [this, call, workDir]() {
         executeSync(call, workDir);
     });
 }
 
 ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDir) {
-    // Note: toolStarted is emitted ONLY in the async version to avoid double emission
-    // if called from execute(). But for tests, maybe we want it?
-    // Let's stick to the rule: execute() handles signals for the UI loop.
-
     ToolResult result;
     QString toolName = call.name;
     QString resolvedName = toolName;
 
     if (m_aliases.contains(resolvedName)) {
         resolvedName = m_aliases[resolvedName];
+    }
+
+    // --- In-Session Read Cache (P-2) ---
+    bool isReadFile = (resolvedName == "ReadFile");
+    bool isWriteTool = (resolvedName == "WriteFile" || resolvedName == "Replace"
+                        || resolvedName == "SearchReplace");
+
+    if (isReadFile && call.input.contains("path")) {
+        QString filePath = call.input.value("path").toString();
+        QFileInfo fi(QDir(workDir), filePath);
+        QString absPath = fi.absoluteFilePath();
+        QDateTime currentMod = QFileInfo(absPath).lastModified();
+
+        QMutexLocker lock(&m_cacheMutex);
+        if (m_readCache.contains(absPath) && m_readCache[absPath].fileModified == currentMod) {
+            result.content = m_readCache[absPath].content;
+            result.isError = false;
+            result.toolUseId = call.id;
+            lock.unlock();
+            emit toolFinished(toolName, result);
+            return result;
+        }
     }
 
     if (m_tools.contains(resolvedName)) {
@@ -89,12 +113,27 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
         result = ToolResult{ {}, QString("Unknown tool: '%1'").arg(toolName), true };
     }
 
+    // Cache successful ReadFile results
+    if (isReadFile && !result.isError && call.input.contains("path")) {
+        QString filePath = call.input.value("path").toString();
+        QFileInfo fi(QDir(workDir), filePath);
+        QString absPath = fi.absoluteFilePath();
+        QMutexLocker lock(&m_cacheMutex);
+        if (m_readCache.size() >= MAX_CACHE_ENTRIES) {
+            m_readCache.erase(m_readCache.begin()); // evict oldest
+        }
+        m_readCache[absPath] = { QFileInfo(absPath).lastModified(), result.content };
+    }
+
+    // Invalidate cache on write operations
+    if (isWriteTool && call.input.contains("path")) {
+        QString filePath = call.input.value("path").toString();
+        QFileInfo fi(QDir(workDir), filePath);
+        clearCacheFor(fi.absoluteFilePath());
+    }
+
     result.toolUseId = call.id;
-    
-    // If called from a background thread (via execute()), we emit toolFinished here.
-    // If called from a test (main thread), it still works.
     emit toolFinished(toolName, result);
-    
     return result;
 }
 
@@ -111,9 +150,12 @@ QString ToolExecutor::getToolDefinitions() const {
     defs += "```\n\n";
     
     defs += "### ZASADY:\n";
-    defs += "1. **Tylko jeden `<tool_call>` na raz.** Nie wysyłaj wielu narzędzi w jednej odpowiedzi.\n";
+    defs += "1. **Wiele narzędzi naraz.** Możesz wysłać kilka `<tool_call>` w jednej odpowiedzi — "
+            "zostaną wykonane RÓWNOLEGLE. Używaj tego dla niezależnych operacji (np. odczyt wielu plików).\n";
     defs += "2. **Poprawny JSON.** Zawartość `<input>` MUSI być poprawnym obiektem JSON.\n";
-    defs += "3. **Brak Markdown wewnątrz.** Nie używaj ` ```json ` wewnątrz tagu `<input>`.\n";
+    defs += "3. **Brak Markdown wewnątrz.** Nie używaj ` ```json ` ani ` ``` ` wewnątrz tagu `<input>`. To częsty błąd, którego NALEŻY UNIKAĆ.\n";
+    defs += "   *Negative Example (WRONG):* `<input> ```json {\"path\": \"file.txt\"} ``` </input>`\n";
+    defs += "   *Positive Example (CORRECT):* `<input>{\"path\": \"file.txt\"}</input>`\n";
     defs += "4. **Myśl przed działaniem.** Używaj `<thought>` do zaplanowania kroku przed wysłaniem XML.\n\n";
     
     defs += "Lista dostępnych narzędzi:\n\n";
@@ -146,6 +188,11 @@ void ToolExecutor::stop() {
     if (active) {
         active->abort();
     }
+}
+
+void ToolExecutor::clearCacheFor(const QString& path) {
+    QMutexLocker lock(&m_cacheMutex);
+    m_readCache.remove(path);
 }
 
 }  // namespace CodeHex
