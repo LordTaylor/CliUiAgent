@@ -9,6 +9,13 @@
 #include <QTimer>
 #include <QRegularExpression>
 #include <algorithm>
+
+// Helper: formatted terminal log line  [HH:MM:SS] → TOOL      detail
+static QString termLine(const QString& arrow, const QString& tool, const QString& detail) {
+    const QString ts  = QDateTime::currentDateTime().toString("HH:mm:ss");
+    const QString pad = tool.leftJustified(12);
+    return QString("[%1] %2 %3  %4").arg(ts, arrow, pad, detail);
+}
 #include "ToolExecutor.h"
 #include "SessionManager.h"
 #include "AppConfig.h"
@@ -75,6 +82,16 @@ void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
     session->appendMessage(callMsg);
     session->save();
 
+    // Terminal log: show what tool is being called and key params
+    {
+        QString detail;
+        if (call.input.contains("path"))    detail = call.input.value("path").toString();
+        else if (call.input.contains("command")) detail = call.input.value("command").toString().left(60);
+        else if (call.input.contains("query"))   detail = call.input.value("query").toString().left(60);
+        else if (call.input.contains("content")) detail = QString("(%1 chars)").arg(call.input.value("content").toString().size());
+        emit terminalOutput(termLine("→ CALL", call.name, detail));
+    }
+
     emit toolCallStarted(call.name, call.input);
     m_isRunning = true;
     if (m_syncTools) {
@@ -127,6 +144,21 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     toolMsg.addText(result.content);
     session->appendMessage(toolMsg);
     session->save();
+
+    // Terminal log: show tool result
+    {
+        QString preview = result.content.trimmed().left(120).replace('\n', ' ');
+        if (result.content.trimmed().size() > 120) preview += "…";
+        if (result.isError) {
+            emit terminalError(termLine("✗ FAIL", toolName, preview));
+        } else {
+            const int lines = result.content.count('\n') + 1;
+            QString detail  = lines > 1
+                ? QString("(%1 lines)  %2").arg(lines).arg(preview)
+                : preview;
+            emit terminalOutput(termLine("← DONE", toolName, detail));
+        }
+    }
 
     // --- Loop Detection (#3 semantic + output) ---
     m_lastToolResults.append(result.content.trimmed());

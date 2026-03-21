@@ -118,6 +118,8 @@ signals:
     void tokenStatsUpdated(int input, int output);
     void contextStatsUpdated(const CodeHex::ContextManager::ContextStats& stats);
     void consoleOutput(const QString& raw);
+    void terminalOutput(const QString& line);   // formatted log line for TerminalPanel
+    void terminalError(const QString& line);    // error line for TerminalPanel
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
     void toolApprovalRequested(const CodeHex::ToolCall& call);
     void responseComplete(const Message& msg);

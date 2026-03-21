@@ -44,8 +44,16 @@ ChatController::ChatController(AppConfig* config,
     // Sessions rename signaling (newly added to SessionManager)
     connect(m_sessions, &SessionManager::sessionRenamed, this, &ChatController::sessionRenamed, Qt::QueuedConnection);
 
-    // Terminal connections
-    connect(m_runner, &CliRunner::rawOutput, this, &ChatController::cliOutputReceived, Qt::QueuedConnection);
+    // Terminal connections — tool execution log (primary source)
+    connect(m_agent, &AgentEngine::terminalOutput, this, &ChatController::cliOutputReceived, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::terminalError,  this, &ChatController::cliErrorReceived,  Qt::QueuedConnection);
+    // Status messages → terminal (only meaningful ones, prefixed with →)
+    connect(m_agent, &AgentEngine::statusChanged, this, [this](const QString& s) {
+        if (s.startsWith("🧠") || s.startsWith("🔍") || s.startsWith("📦") ||
+            s.startsWith("⏳") || s.startsWith("⚠️"))
+            emit cliOutputReceived(s);
+    }, Qt::QueuedConnection);
+    // Raw LLM error stream (runner errors)
     connect(m_runner, &CliRunner::errorChunk, this, &ChatController::cliErrorReceived, Qt::QueuedConnection);
 }
 
