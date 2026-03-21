@@ -72,7 +72,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 6. [x] **Codebase Visualizer** (Generowanie diagramu Mermaid struktury projektu).
 7. [x] **Auto-Walkthrough** (Automatyczne generowanie walkthrough.md po zakończeniu zadania).ull request the agent makes.
 8.  **Automated Dependency Management**: Agent detects outdated libraries and proposes updates.
-10. **Refactoring Assistant**: Specialized role for simplifying complex functions.
+10. [x] **Refactoring Assistant** (Specjalna rola do upraszczania i optymalizacji kodu).
 11. **Smart File Explorer**: Files sorted by "Hotness" (most frequently modified/relevant).
 12. **Interactive Scratchpad**: A multi-tab editor for the agent's internal scripts.
 14. **Time-Travel Debug**: Record execution and let the agent "step back" to find why state changed.

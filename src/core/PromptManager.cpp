@@ -152,6 +152,7 @@ QString PromptManager::loadRolePrompt(AgentRole role) const {
         case AgentRole::Executor: fileName = "executor.txt"; break;
         case AgentRole::Reviewer: fileName = "reviewer.txt"; break;
         case AgentRole::RAG:      fileName = "rag.txt"; break;
+        case AgentRole::REFACTOR: fileName = "refactor.txt"; break;
     }
     
     QFile file(":/resources/prompts/" + fileName);

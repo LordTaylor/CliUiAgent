@@ -65,6 +65,7 @@ qt_add_resources(CodeHex "resources"
         resources/prompts/executor.txt
         resources/prompts/reviewer.txt
         resources/prompts/rag.txt
+        resources/prompts/refactor.txt
 )
 
 qt_add_resources(CodeHex "help"

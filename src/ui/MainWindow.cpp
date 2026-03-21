@@ -261,6 +261,7 @@ void MainWindow::setupUi() {
     m_roleCombo->addItem("Executor", (int)AgentRole::Executor);
     m_roleCombo->addItem("Reviewer", (int)AgentRole::Reviewer);
     m_roleCombo->addItem("Local RAG", (int)AgentRole::RAG);
+    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::REFACTOR);
     m_roleCombo->setMinimumWidth(100);
     
     roleLayout->addWidget(roleLbl);
