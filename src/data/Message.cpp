@@ -84,6 +84,7 @@ QJsonObject Message::toJson() const {
         {"tokenCount", tokenCount},
         {"attachments", attArr},
         {"toolResults", toolResultsArr},
+        {"rawContent", rawContent},
         {"showThinking", showThinking}
     };
 }
@@ -121,6 +122,7 @@ Message Message::fromJson(const QJsonObject& obj) {
             resObj["isError"].toBool()
         });
     }
+    m.rawContent = obj["rawContent"].toString();
     m.showThinking = obj["showThinking"].toVariant().toBool();
     if (obj.find("showThinking") == obj.end()) m.showThinking = true;
 

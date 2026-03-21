@@ -124,10 +124,28 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
     // Determine if we use the new Structured JSON Schema
     bool useJsonSchema = m_runner->profile() && m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
 
+    QString ragContext;
+    if (m_currentRole == AgentRole::RAG) {
+        emit statusChanged("🔍 Searching Codebase...");
+        auto results = m_indexer->search(prompt, 5);
+        if (!results.isEmpty()) {
+            ragContext = "\n### RELEVANT CODE CONTEXT (Local RAG):\n";
+            for (const auto& chunk : results) {
+                ragContext += QString("File: %1 (Lines %2-%3)\n```\n%4\n```\n\n")
+                    .arg(chunk.filePath)
+                    .arg(chunk.startLine)
+                    .arg(chunk.endLine)
+                    .arg(chunk.content);
+            }
+        }
+    }
+
+    QString systemPrompt = m_prompts->buildSystemPrompt(m_currentRole, ragContext);
+
     if (useJsonSchema) {
         emit statusChanged("🧠 Reasoning (JSON Schema)...");
         QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
-        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, prompt, session->messages, tools, 31999, true);
+        QJsonObject request = m_prompts->buildRequestJson(m_currentRole, prompt, session->messages, tools, 31999, true, ragContext);
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
         emit statusChanged("🧠 Thinking...");
@@ -138,10 +156,10 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
         const int inputTokens = TokenCounter::estimate(enrichedPrompt);
         session->updateTokens(inputTokens, 0);
 
-        m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() + "\n\n--- Prompt ---\n" + enrichedPrompt;
+        m_lastRawRequest = "--- System Prompt ---\n" + systemPrompt + "\n\n--- Prompt ---\n" + enrichedPrompt;
         m_lastRawResponse.clear();
 
-        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, systemPrompt);
     }
 }
 

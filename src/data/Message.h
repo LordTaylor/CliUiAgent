@@ -26,6 +26,7 @@ struct Message {
     int tokenCount = 0;
     QList<Attachment> attachments;
     QList<ToolResult> toolResults;
+    QString rawContent;
     bool showThinking = true; // Roadmap Item 7
 
     // UI Cache (not serialized)

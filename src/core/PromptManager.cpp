@@ -45,7 +45,8 @@ QString PromptManager::buildSystemPrompt(AgentRole role, const QString& autoCont
                    "- **Working Directory**: " + QDir(m_config->workingFolder()).absolutePath() + "\n"
                    "- **Current Role**: " + (role == AgentRole::Executor ? "Executor" : 
                                             (role == AgentRole::Reviewer ? "Reviewer" : 
-                                            (role == AgentRole::Explorer ? "Explorer" : "Base"))) + "\n\n";
+                                            (role == AgentRole::Explorer ? "Explorer" : 
+                                             (role == AgentRole::RAG ? "RAG" : "Base")))) + "\n\n";
 
     base += m_envVersionCache + "\n\n";
     base += roleStrategy(role) + "\n\n";
@@ -97,15 +98,19 @@ QString PromptManager::roleStrategy(AgentRole role) const {
         case AgentRole::Executor:
             return "### ROLE STRATEGY: EXECUTOR (Implementer)\n"
                    "You are in EXECUTION mode. Your goal is to implement the approved plan.\n"
-                   "- **Preferred Tools**: `WriteFile`, `ReplaceFileContent`, `Bash` (for building/running).\n"
-                   "- **Guidelines**: Follow the user's implementation plan strictly. Verify every change with a build or test. "
-                   "If you hit unexpected complexity, stop and ask for a plan update.";
+                    "- **Preferred Tools**: `WriteFile`, `ReplaceFileContent`, `Bash` (for building/running).\n"
+                    "- **Guidelines**: Focus on safety and code quality. Do NOT break existing features.";
         case AgentRole::Reviewer:
             return "### ROLE STRATEGY: REVIEWER (Quality Assurance)\n"
                    "You are in REVIEW mode. Your goal is to validate the work done.\n"
                    "- **Preferred Tools**: `ViewFile`, `GrepSearch`, `Bash` (for running tests).\n"
                    "- **Guidelines**: Look for edge cases, performance issues, and security flaws. Audit the diffs carefully. "
                    "Suggest improvements but do NOT modify the codebase yourself unless explicitly permitted.";
+        case AgentRole::RAG:
+            return "### ROLE STRATEGY: RAG (Knowledge Retrieval)\n"
+                   "You are in KNOWLEDGE RETRIEVAL mode. Use the provided context to answer questions about the entire project.\n"
+                   "- **Preferred Tools**: None required (Context is automatically provided), but use `ViewFile` for extra detail if needed.\n"
+                   "- **Guidelines**: Be precise. Cite specific files and line numbers from the provided context.";
         default:
             return "### ROLE STRATEGY: ASSISTANT\n"
                    "Provide general assistance, answer questions, and help with small tasks.";
@@ -146,6 +151,7 @@ QString PromptManager::loadRolePrompt(AgentRole role) const {
         case AgentRole::Explorer: fileName = "explorer.txt"; break;
         case AgentRole::Executor: fileName = "executor.txt"; break;
         case AgentRole::Reviewer: fileName = "reviewer.txt"; break;
+        case AgentRole::RAG:      fileName = "rag.txt"; break;
     }
     
     QFile file(":/resources/prompts/" + fileName);
@@ -160,14 +166,15 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
                                           const QList<Message>& history, 
                                           const QJsonArray& tools,
                                           int thinkingBudget,
-                                          bool useCache) const {
+                                          bool useCache,
+                                          const QString& ragContext) const {
     QJsonObject request;
 
     // 1. System Prompt (Array of blocks)
     QJsonArray system;
     QJsonObject systemBlock;
     systemBlock["type"] = "text";
-    systemBlock["text"] = buildSystemPrompt(role, QString());
+    systemBlock["text"] = buildSystemPrompt(role, ragContext);
     
     if (useCache) {
         QJsonObject cacheControl;
@@ -202,7 +209,17 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
         QJsonArray content;
         QJsonObject textBlock;
         textBlock["type"] = "text";
-        textBlock["text"] = msg.textFromContentBlocks();
+        
+        QString textContent = msg.rawContent;
+        if (textContent.isEmpty()) {
+            textContent = msg.textFromContentBlocks();
+        }
+        
+        // Anthropic refuses completely empty text blocks. 
+        // If an assistant message contains absolutely no text/meaningful raw content, specify a fallback or skip.
+        // But for CodeHex, tool results are in User role (msg.textFromContentBlocks) and tool calls are Assistant role (msg.rawContent).
+        textBlock["text"] = textContent.isEmpty() ? "..." : textContent;
+        
         content.append(textBlock);
         
         msgObj["content"] = content;

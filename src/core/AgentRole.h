@@ -9,7 +9,8 @@ enum class AgentRole {
     Base,      // General-purpose
     Explorer,  // Research, search, information gathering
     Executor,  // Code implementation, tool usage
-    Reviewer   // Verification, auditing, logic checking
+    Reviewer,   // Verification, auditing, logic checking
+    RAG        // Knowledge retrieval from codebase
 };
 
 } // namespace CodeHex

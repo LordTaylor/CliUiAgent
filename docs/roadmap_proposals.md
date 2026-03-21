@@ -65,9 +65,8 @@ This document outlines 60 proposed technical and user experience improvements, a
 
 ## 30 New Functionalities (Nowe Funkcjonalności)
 
-1.  **Voice-to-Command**: "Git commit and push" via voice recognition without typing.
 2.  **Autonomous Vision**: Use a screenshot of the user's screen to "see" UI bugs.
-3.  **Local RAG Agent**: A dedicated role for answering questions about the *entire* codebase (not just 3 snippets).
+3. [x] **Local RAG Agent** (Dedykowana rola do pytań o cały codebase - nie tylko 3 snippety). the *entire* codebase (not just 3 snippets).
 4.  **Web Search Tool**: Allow the agent to search documentation on the internet (via DuckDuckGo/Tavily).
 5.  **Multi-Agent Collaborative Mode**: Two agents (e.g., Architect and Coder) debating the best approach.
 6.  **Codebase Visualizer**: Generate a Mermaid diagram of the project structure automatically.
@@ -76,7 +75,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 10. **Refactoring Assistant**: Specialized role for simplifying complex functions.
 11. **Smart File Explorer**: Files sorted by "Hotness" (most frequently modified/relevant).
 12. **Interactive Scratchpad**: A multi-tab editor for the agent's internal scripts.
-13. **API Design Tool**: Agent creates OpenAPI/Swagger specs from codebase analysis.
 14. **Time-Travel Debug**: Record execution and let the agent "step back" to find why state changed.
 15. **Context Snapshots**: Bookmark specific working sets of files to restore context later.
 16. **Performance Profiler Integration**: Agent analyzes flamegraphs to find bottlenecks.
@@ -87,5 +85,3 @@ This document outlines 60 proposed technical and user experience improvements, a
 25. **Export to PDF/Docs**: Export session history or project analysis to professional reports.
 26. **SQL Query Assistant**: specialized tools for DB schema exploration and query optimization.
 28. **Natural Language UI Builder**: "Add a blue button that saves state" - agent modifies the QML/Qt UI.
-29. **Auto-Documenter**: Automatically update `README.md` and Doxygen comments as code changes.
-30. **Health Check**: One-click "Project Health Check" where the agent audits the entire repo for issues.

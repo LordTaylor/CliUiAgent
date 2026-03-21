@@ -35,7 +35,8 @@ public:
                                const QList<Message>& history, 
                                const QJsonArray& tools,
                                int thinkingBudget = 0,
-                               bool useCache = false) const;
+                               bool useCache = false,
+                               const QString& ragContext = QString()) const;
 
     /**
      * @brief Strategy description for the given role.
