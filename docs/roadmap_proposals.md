@@ -60,7 +60,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 57. **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).
 59. **Keyboard**: Full navigation of the app using only the keyboard.
-60. **Documentation**: Inline help tooltips for all settings and tool permissions.
+60. [x] **Documentation**: Inline help tooltips for all settings and tool permissions.
 
 ---
 

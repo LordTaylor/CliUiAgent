@@ -77,18 +77,26 @@ void ProviderSettingsDialog::setupUi() {
     formLayout->setSpacing(12);
 
     m_nameEdit = new QLineEdit(formGroupBox);
+    m_nameEdit->setToolTip("A friendly display name for this provider (e.g., 'Local Ollama' or 'OpenAI API').");
+    
     m_typeCombo = new QComboBox(formGroupBox);
     m_typeCombo->addItems({"ollama", "lmstudio", "openai", "custom"});
+    m_typeCombo->setToolTip("Select the provider type. This determines how API requests are formatted.");
     connect(m_typeCombo, &QComboBox::currentTextChanged, this, &ProviderSettingsDialog::onTypeChanged);
 
     m_urlEdit = new QLineEdit(formGroupBox);
+    m_urlEdit->setToolTip("The base URL of the LLM provider (e.g., http://localhost:11434).");
+    
     m_keyEdit = new QLineEdit(formGroupBox);
     m_keyEdit->setEchoMode(QLineEdit::Password);
+    m_keyEdit->setToolTip("The API authentication key. Leave blank for local providers like Ollama or LM Studio.");
 
     m_modelCombo = new QComboBox(formGroupBox);
     m_modelCombo->setEditable(true);
+    m_modelCombo->setToolTip("The specific model identifier to be used (e.g., 'llama3' or 'gpt-4o'). You can type it or fetch from the provider.");
 
     auto* fetchBtn = new QPushButton("Fetch Models", formGroupBox);
+    fetchBtn->setToolTip("Query the configured endpoint URL to retrieve a list of available models.");
     connect(fetchBtn, &QPushButton::clicked, this, &ProviderSettingsDialog::onFetchModels);
 
     formLayout->addRow("Name:", m_nameEdit);
