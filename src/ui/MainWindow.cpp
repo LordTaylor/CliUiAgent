@@ -552,10 +552,16 @@ void MainWindow::updateTokenLabel(int in, int out) {
     auto* s = m_sessions->currentSession();
     if (!s || !m_tokenLabel) return;
 
+    int inputTokens = in >= 0 ? in : s->tokens.input;
+    int outputTokens = out >= 0 ? out : s->tokens.output;
+
+    double cost = (inputTokens / 1000000.0 * 5.0) + (outputTokens / 1000000.0 * 15.0);
+    QString costStr = QString::number(cost, 'f', 4);
+
     if (in >= 0 && out >= 0) {
-        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out (streaming...)").arg(in).arg(out));
+        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out (~$%3) (streaming...)").arg(inputTokens).arg(outputTokens).arg(costStr));
     } else {
-        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out").arg(s->tokens.input).arg(s->tokens.output));
+        m_tokenLabel->setText(QString("Tokens: %1 in / %2 out (~$%3)").arg(inputTokens).arg(outputTokens).arg(costStr));
     }
 }
 
