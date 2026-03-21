@@ -1,0 +1,200 @@
+/**
+ * @file AgentEngine_Loop.cpp
+ * @brief Agent main loop: process(), runLoop(), sendContinueRequest(), injectAutoContext()
+ */
+#include "AgentEngine.h"
+#include <QDebug>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QUuid>
+#include <QDateTime>
+#include <QtConcurrent>
+#include "PromptManager.h"
+#include "TokenCounter.h"
+#include "ModelRouter.h"
+#include "SessionManager.h"
+#include "AppConfig.h"
+#include "ToolExecutor.h"
+#include "ContextManager.h"
+#include "rag/CodebaseIndexer.h"
+#include "../cli/CliRunner.h"
+#include "../cli/ConfigurableProfile.h"
+#include "../data/Session.h"
+
+namespace CodeHex {
+
+void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) {
+    Q_UNUSED(imagePaths);
+    m_isRunning = true;
+
+    // Route profile based on current role
+    QString profileId = m_router->getProfileIdForRole(m_currentRole);
+    LlmProvider provider = m_config->activeProvider();
+    for (const auto& p : m_config->providers()) {
+        if (p.id == profileId) { provider = p; break; }
+    }
+
+    qInfo() << "AgentEngine: Using profile" << provider.name << "for role" << (int)m_currentRole;
+    auto profile = ConfigurableProfile::fromProvider(provider);
+    if (!m_selectedModel.isEmpty() && m_currentRole == AgentRole::Base) {
+        profile->setModel(m_selectedModel);
+    }
+    m_runner->setProfile(std::move(profile));
+
+    emit statusChanged(QString("Thinking (%1)...").arg(prompt.left(20)));
+    auto session = m_sessions->currentSession();
+    if (!session) { m_isRunning = false; return; }
+
+    bool useJsonSchema = m_runner->profile() &&
+                         m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
+
+    QString ragContext;
+    if (m_currentRole == AgentRole::RAG) {
+        emit statusChanged("🔍 Searching Codebase...");
+        auto results = m_indexer->search(prompt, 5);
+        if (!results.isEmpty()) {
+            ragContext = "\n### RELEVANT CODE CONTEXT (Local RAG):\n";
+            for (const auto& chunk : results) {
+                ragContext += QString("File: %1 (Lines %2-%3)\n```\n%4\n```\n\n")
+                    .arg(chunk.filePath).arg(chunk.startLine)
+                    .arg(chunk.endLine).arg(chunk.content);
+            }
+        }
+    }
+
+    QString systemPrompt = m_prompts->buildSystemPrompt(
+        m_currentRole, ragContext, m_activeTechniques, m_blackboard);
+
+    if (useJsonSchema) {
+        emit statusChanged("🧠 Reasoning (JSON Schema)...");
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        ContextManager::ContextStats stats;
+        QJsonObject request = m_prompts->buildRequestJson(
+            m_currentRole, prompt, session->messages, tools,
+            m_activeTechniques, m_blackboard, 16000, true, ragContext, &stats);
+        emit contextStatsUpdated(stats);
+        m_lastRawRequest = QJsonDocument(request).toJson();
+        m_lastRawResponse.clear();
+        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_runner->sendJson(request, m_config->workingFolder());
+    } else {
+        emit statusChanged("🧠 Thinking...");
+        QString implicitGoals = m_prompts->detectImplicitGoals(prompt);
+        QString enrichedPrompt = implicitGoals + "\n\n### USER REQUEST:\n" + prompt;
+
+        const int inputTokens = TokenCounter::estimate(enrichedPrompt);
+        session->updateTokens(inputTokens, 0);
+
+        m_lastRawRequest = "--- System Prompt ---\n" + systemPrompt +
+                           "\n\n--- Prompt ---\n" + enrichedPrompt;
+        m_lastRawResponse.clear();
+        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, systemPrompt);
+    }
+}
+
+void AgentEngine::process(const QString& userInput, const QList<Attachment>& attachments) {
+    auto session = m_sessions->currentSession();
+    if (!session) return;
+
+    Message userMsg;
+    userMsg.id = QUuid::createUuid();
+    userMsg.role = Message::Role::User;
+    userMsg.addText(userInput);
+    userMsg.timestamp = QDateTime::currentDateTime();
+
+    QStringList imagePaths;
+    for (const auto& att : attachments) {
+        userMsg.addAttachment(att);
+        if (att.type == Attachment::Type::Image) imagePaths << att.filePath;
+    }
+
+    session->appendMessage(userMsg);
+    session->save();
+
+    if (m_isRunning) {
+        qDebug() << "[AgentEngine] Already running. Enqueuing request.";
+        m_requestQueue.enqueue({userInput, attachments});
+        emit statusChanged(QString("Request queued (%1 in queue)").arg(m_requestQueue.size()));
+        return;
+    }
+
+    // Context compression if session too long
+    if (session->messages.size() > 15) {
+        qDebug() << "[AgentEngine] Session too long. Triggering compression...";
+        emit statusChanged("📦 Compressing conversation history...");
+        QString compactionPrompt = "### INTERNAL COMPACTION REQUEST ###\n"
+                                   "The conversation is too long. Please provide a CONCISE SUMMARY...";
+        m_isRunning = true;
+        m_runner->send(compactionPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+        return;
+    }
+
+    m_requestQueue.clear();
+    resetStreamState();
+    m_isRunning = true;
+    m_loopIterations = 0;
+    m_lastToolCallFingerprints.clear();
+
+    (void)QtConcurrent::run(&CodebaseIndexer::indexDirectory, m_indexer, m_config->workingFolder());
+
+    runLoop(userInput, imagePaths);
+}
+
+void AgentEngine::sendContinueRequest(const QString& nudge) {
+    auto session = m_sessions->currentSession();
+    if (!session) return;
+
+    // Circuit Breaker (#1)
+    ++m_loopIterations;
+    if (m_loopIterations >= MAX_LOOP_ITERATIONS) {
+        qWarning() << "[AgentEngine] Circuit breaker triggered after" << m_loopIterations << "iterations.";
+        m_isRunning = false;
+        emit statusChanged("⚠️ Circuit breaker: too many iterations. Task stopped.");
+        emit errorOccurred(QString("Agent exceeded the maximum of %1 iterations. "
+                                   "The task has been stopped to prevent an infinite loop. "
+                                   "Please rephrase your request or try a simpler task.")
+                           .arg(MAX_LOOP_ITERATIONS));
+        return;
+    }
+
+    m_isRunning = true;
+    resetStreamState();
+
+    bool useJsonSchema = m_runner->profile() &&
+                         m_runner->profile()->name().contains("claude", Qt::CaseInsensitive);
+
+    if (useJsonSchema) {
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        ContextManager::ContextStats stats;
+        QJsonObject request = m_prompts->buildRequestJson(
+            m_currentRole, nudge, session->messages, tools,
+            m_activeTechniques, m_blackboard, 16000, true, QString(), &stats);
+        emit contextStatsUpdated(stats);
+        m_lastRawRequest = QJsonDocument(request).toJson();
+        m_lastRawResponse.clear();
+        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_runner->sendJson(request, m_config->workingFolder());
+    } else {
+        m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() +
+                           "\n\n--- Nudge ---\n" + nudge;
+        m_lastRawResponse.clear();
+        m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
+        m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
+    }
+}
+
+void AgentEngine::injectAutoContext(const QString& query) {
+    m_autoContext.clear();
+    auto chunks = m_indexer->search(query, 3);
+    if (chunks.isEmpty()) return;
+
+    m_autoContext = "\n\n### AUTOMATIC PROJECTS CONTEXT (Based on semantic search):\n";
+    for (const auto& chunk : chunks) {
+        m_autoContext += QString("--- File: %1 (Lines %2-%3) ---\n%4\n")
+                            .arg(chunk.filePath).arg(chunk.startLine)
+                            .arg(chunk.endLine).arg(chunk.content);
+    }
+}
+
+} // namespace CodeHex

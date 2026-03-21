@@ -6,6 +6,10 @@ add_library(codehex_core STATIC
     ChatController.h ChatController.cpp
     ToolExecutor.h   ToolExecutor.cpp
     AgentEngine.h    AgentEngine.cpp
+                     AgentEngine_Loop.cpp
+                     AgentEngine_Runner.cpp
+                     AgentEngine_Tools.cpp
+                     AgentEngine_Collab.cpp
     ResponseFilter.h ResponseFilter.cpp
     PromptManager.h  PromptManager.cpp
     ResponseParser.h ResponseParser.cpp

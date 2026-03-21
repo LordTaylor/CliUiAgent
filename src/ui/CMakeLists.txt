@@ -1,6 +1,9 @@
 add_library(codehex_ui STATIC
     UpdateChecker.h UpdateChecker.cpp
     MainWindow.h MainWindow.cpp
+                 MainWindow_SetupUi.cpp
+                 MainWindow_Generation.cpp
+                 MainWindow_Slots.cpp
     chat/ChatControlBanner.h chat/ChatControlBanner.cpp
     chat/ChatView.h         chat/ChatView.cpp
     chat/MessageModel.h     chat/MessageModel.cpp
