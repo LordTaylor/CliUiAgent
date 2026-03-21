@@ -79,6 +79,11 @@ public:
      * @brief Saves the last raw request, response, and session state to a directory.
      */
     void saveDebugLog(const QString& targetDir);
+
+    /**
+     * @brief Sets the list of files to be injected as mandatory context in the next prompt.
+     */
+    void setForcedContextFiles(const QSet<QString>& files) { m_forcedContextFiles = files; }
     
     // CoVe State Machine
     enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
@@ -104,7 +109,7 @@ public slots:
 
 private:
     void runLoop(const QString& prompt, const QStringList& imagePaths);
-    void buildAssistantMessage(const ResponseParser::ParseResult& result);
+    void buildAssistantMessage(const ResponseParser::ParseResult& result, const QString& rawText);
 
     SessionManager* m_sessions;
     CliRunner*      m_runner;
@@ -133,6 +138,7 @@ private:
     QString m_selectedModel;
 
     QString m_autoContext; 
+    QSet<QString> m_forcedContextFiles;
     bool m_isThinkingStream = false;
     QString m_thoughtBuffer;
     void sendContinueRequest(const QString& nudge);

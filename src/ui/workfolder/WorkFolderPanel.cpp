@@ -1,4 +1,5 @@
 #include "WorkFolderPanel.h"
+#include <QTreeView>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -6,6 +7,8 @@
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QDir>
+#include <QMenu>
+#include <QAction>
 
 namespace CodeHex {
 
@@ -54,6 +57,7 @@ WorkFolderPanel::WorkFolderPanel(QWidget* parent) : QWidget(parent) {
     m_treeView->setIndentation(15);
     m_treeView->setSortingEnabled(true);
     m_treeView->sortByColumn(0, Qt::AscendingOrder);
+    m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
     
     // Hide size, type, date columns
     for (int i = 1; i < 4; ++i) m_treeView->hideColumn(i);
@@ -64,7 +68,28 @@ WorkFolderPanel::WorkFolderPanel(QWidget* parent) : QWidget(parent) {
         }
     });
 
+    connect(m_treeView, &QTreeView::customContextMenuRequested, this, &WorkFolderPanel::onCustomContextMenuRequested);
+
     layout->addWidget(m_treeView, 1);
+}
+
+void WorkFolderPanel::onCustomContextMenuRequested(const QPoint& pos) {
+    QModelIndex index = m_treeView->indexAt(pos);
+    if (!index.isValid() || m_model->isDir(index)) return;
+
+    QString filePath = m_model->filePath(index);
+    bool isIncluded = m_forcedContextFiles.contains(filePath);
+
+    QMenu menu(this);
+    QAction* toggleAct = menu.addAction(isIncluded ? "Remove from Context" : "Add to Context");
+    
+    if (menu.exec(m_treeView->viewport()->mapToGlobal(pos)) == toggleAct) {
+        if (isIncluded) m_forcedContextFiles.remove(filePath);
+        else m_forcedContextFiles.insert(filePath);
+        
+        emit contextFilesChanged(m_forcedContextFiles);
+        onRefresh(); // Refresh to potentially show an indicator (though we haven't added one yet)
+    }
 }
 
 void WorkFolderPanel::onRefresh() {

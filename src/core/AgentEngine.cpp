@@ -636,6 +636,20 @@ void AgentEngine::resetStreamState() {
 
 QString AgentEngine::getSystemPrompt() const {
     QString sp = m_prompts->buildSystemPrompt(m_currentRole, m_autoContext);
+    
+    // Add forced context from manual inclusion (Item 46)
+    if (!m_forcedContextFiles.isEmpty()) {
+        sp += "\n\n### FORCED CONTEXT (ATTACHED FILES):\n";
+        for (const QString& path : m_forcedContextFiles) {
+            QFile f(path);
+            if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                sp += QString("\n-- File: %1 --\n").arg(QDir(m_config->workingFolder()).relativeFilePath(path));
+                sp += f.readAll();
+                sp += "\n---------------------\n";
+            }
+        }
+    }
+
     if (m_toolExecutor) {
         sp += "\n\n" + m_toolExecutor->getToolDefinitions();
     }

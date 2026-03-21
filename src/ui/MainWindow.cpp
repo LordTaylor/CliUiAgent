@@ -154,6 +154,8 @@ void MainWindow::setupUi() {
     m_workFolderPanel->setFolder(m_config->workingFolder());
     connect(m_workFolderPanel, &WorkFolderPanel::folderChanged,
             m_config, &AppConfig::setWorkingFolder);
+    connect(m_workFolderPanel, &WorkFolderPanel::contextFilesChanged,
+            m_controller->agent(), &AgentEngine::setForcedContextFiles);
     
     m_sidebarSplitter->addWidget(m_sessionPanel);
     m_sidebarSplitter->addWidget(m_workFolderPanel);
