@@ -27,25 +27,25 @@ ChatController::ChatController(AppConfig* config,
     m_agent = new AgentEngine(config, sessions, runner, m_toolExecutor, this);
     qDebug() << "[ChatController] AgentEngine created";
 
-    // Tunnel AgentEngine signals to UI
-    connect(m_agent, &AgentEngine::statusChanged,          this, &ChatController::statusChanged);
-    connect(m_agent, &AgentEngine::tokenReceived,           this, &ChatController::tokenReceived);
-    connect(m_agent, &AgentEngine::tokenStatsUpdated,    this, &ChatController::tokenStatsUpdated);
-    connect(m_agent, &AgentEngine::consoleOutput,           this, &ChatController::consoleOutput);
-    connect(m_agent, &AgentEngine::toolCallStarted,        this, &ChatController::toolCallStarted);
-    connect(m_agent, &AgentEngine::toolApprovalRequested,   this, &ChatController::toolApprovalRequested);
+    // Tunnel AgentEngine signals to UI (Item 31: Queued Connections)
+    connect(m_agent, &AgentEngine::statusChanged,          this, &ChatController::statusChanged, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::tokenReceived,           this, &ChatController::tokenReceived, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::tokenStatsUpdated,    this, &ChatController::tokenStatsUpdated, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::consoleOutput,           this, &ChatController::consoleOutput, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::toolCallStarted,        this, &ChatController::toolCallStarted, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::toolApprovalRequested,   this, &ChatController::toolApprovalRequested, Qt::QueuedConnection);
     connect(m_agent, &AgentEngine::responseComplete,        this, [this](const Message& msg){
         emit responseComplete(msg);
         emit generationStopped();
-    });
-    connect(m_agent, &AgentEngine::errorOccurred,           this, &ChatController::errorOccurred);
+    }, Qt::QueuedConnection);
+    connect(m_agent, &AgentEngine::errorOccurred,           this, &ChatController::errorOccurred, Qt::QueuedConnection);
     
     // Sessions rename signaling (newly added to SessionManager)
-    connect(m_sessions, &SessionManager::sessionRenamed, this, &ChatController::sessionRenamed);
+    connect(m_sessions, &SessionManager::sessionRenamed, this, &ChatController::sessionRenamed, Qt::QueuedConnection);
 
     // Terminal connections
-    connect(m_runner, &CliRunner::rawOutput, this, &ChatController::cliOutputReceived);
-    connect(m_runner, &CliRunner::errorChunk, this, &ChatController::cliErrorReceived);
+    connect(m_runner, &CliRunner::rawOutput, this, &ChatController::cliOutputReceived, Qt::QueuedConnection);
+    connect(m_runner, &CliRunner::errorChunk, this, &ChatController::cliErrorReceived, Qt::QueuedConnection);
 }
 
 void ChatController::sendMessage(const QString& text, const QList<Attachment>& attachments) {
