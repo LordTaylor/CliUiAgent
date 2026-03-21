@@ -4,6 +4,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QSizePolicy>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -31,16 +32,16 @@ protected:
         }
 
         if (event->key() == Qt::Key_Up) {
-            // Trigger history-up only if we are at the top of the text
-            if (textCursor().blockNumber() == 0) {
+            // Trigger history-up only if we are at the very beginning of the text
+            if (textCursor().atStart()) {
                 emit historyUp();
                 return;
             }
         }
 
         if (event->key() == Qt::Key_Down) {
-            // Trigger history-down only if we are at the bottom of the text
-            if (textCursor().blockNumber() == document()->blockCount() - 1) {
+            // Trigger history-down only if we are at the very end of the text
+            if (textCursor().atEnd()) {
                 emit historyDown();
                 return;
             }
@@ -65,6 +66,7 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     m_attachBadge->setObjectName("attachBadge");
     m_attachBadge->setWordWrap(true);
     m_attachBadge->setVisible(false);
+    m_attachBadge->setTextFormat(Qt::RichText);
     m_attachBadge->setStyleSheet("color: #FBBF24; background: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 6px; padding: 4px 10px; margin-bottom: 4px; font-size: 11px;");
     outerLayout->addWidget(m_attachBadge);
 
@@ -73,8 +75,16 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     te->setObjectName("inputTextEdit");
     te->setPlaceholderText("Type a message… (Enter to send, Shift+Enter for newline)");
     te->setMinimumHeight(48);
-    te->setMaximumHeight(120);
+    te->setMaximumHeight(300); // Increased from 120
     te->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    te->setStyleSheet(R"(
+        QTextEdit#inputTextEdit {
+            background: #111827; color: #E5E7EB; border: 1px solid #374151; border-radius: 8px; padding: 8px;
+        }
+        QTextEdit#inputTextEdit:focus {
+            border: 1px solid #D97706; background: #0F172A;
+        }
+    )");
     m_textEdit = te;
     outerLayout->addWidget(m_textEdit);
 
@@ -100,9 +110,9 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     m_sendBtn->setFixedWidth(100);
     m_sendBtn->setDefault(true);
     m_sendBtn->setStyleSheet(R"(
-        QPushButton { 
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #D97706, stop:1 #140F0A); 
-            color: #FFFFFF; border: 1px solid #F59E0B; border-radius: 8px; font-weight: 700; 
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #D97706, stop:1 #140F0A);
+            color: #FFFFFF; border: 1px solid #F59E0B; border-radius: 8px; font-weight: 700;
         }
         QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F59E0B, stop:1 #D97706); }
     )");
@@ -122,21 +132,17 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     connect(te, &ExpandingTextEdit::sendTriggered, this, &InputPanel::onSendClicked);
     connect(te, &ExpandingTextEdit::historyUp, this, [this]() {
         if (m_history.isEmpty()) return;
-        
         if (m_historyIndex == -1) {
             m_tempInput = m_textEdit->toPlainText();
             m_historyIndex = m_history.size() - 1;
         } else if (m_historyIndex > 0) {
             m_historyIndex--;
         }
-
         m_textEdit->setPlainText(m_history.at(m_historyIndex));
         m_textEdit->moveCursor(QTextCursor::End);
     });
-
     connect(te, &ExpandingTextEdit::historyDown, this, [this]() {
         if (m_historyIndex == -1) return;
-
         if (m_historyIndex < m_history.size() - 1) {
             m_historyIndex++;
             m_textEdit->setPlainText(m_history.at(m_historyIndex));
@@ -146,6 +152,15 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
         }
         m_textEdit->moveCursor(QTextCursor::End);
     });
+
+    connect(m_attachBadge, &QLabel::linkActivated, this, [this](const QString& link) {
+        if (link.startsWith("remove:")) {
+            bool ok;
+            int idx = link.mid(7).toInt(&ok);
+            if (ok) m_attachBtn->removeAttachment(idx);
+        }
+    });
+
     // Refresh Send button + badge whenever the attachment list changes
     connect(m_attachBtn, &AttachmentButton::attachmentsChanged,
             this, &InputPanel::onAttachmentsChanged);
@@ -221,15 +236,21 @@ void InputPanel::onAttachmentsChanged(const QList<Attachment>& attachments) {
         return;
     }
 
-    // Build a compact list of filenames for the badge
+    // Build a compact list of filenames for the badge with [x] remove links
     QStringList names;
-    for (const Attachment& a : attachments)
-        names << QFileInfo(a.filePath).fileName();
-
-    m_attachBadge->setText("📎 " + names.join("  ·  "));
+    for (int i = 0; i < attachments.size(); ++i) {
+        QString name = QFileInfo(attachments[i].filePath).fileName();
+        names << QString("<span>📎 %1</span> <a href='remove:%2' style='color:#EF4444; text-decoration:none; font-weight:bold;'>&nbsp;[x]</a>")
+                 .arg(name).arg(i);
+    }
+    m_attachBadge->setText(names.join("  &middot;  "));
     m_attachBadge->setVisible(true);
+    
+    // Also build a plain text tooltip
+    QStringList tooltipNames;
+    for (const auto& a : attachments) tooltipNames << QFileInfo(a.filePath).fileName();
     m_attachBtn->setToolTip(
-        QString("%1 file(s) attached:\n  ").arg(attachments.size()) + names.join("\n  "));
+        QString("%1 file(s) attached:\n  ").arg(attachments.size()) + tooltipNames.join("\n  "));
 }
 
 void InputPanel::onVoiceMessageReady(const QString& path) {
