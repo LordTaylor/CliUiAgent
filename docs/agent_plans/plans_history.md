@@ -187,9 +187,21 @@ Rozwiązanie problemu "Just-a-Chat" oraz zapętlania się agenta poprzez poprawn
 187: ### Cel:
 188: Zastąpienie sztywnego wyboru LLM dynamicznym systemem zarządzania dostawcami (Ollama, LM Studio, OpenAI).
 189: 
-190: #### Zrealizowane zadania:
-191: - [x] **Provider Settings Dialog**: Nowy interfejs do dodawania/usuwania dostawców i pobierania listy modeli.
-192: - [x] **Discovery Service**: Automatyczne pobieranie modeli z serwerów LLM.
-193: - [x] **Dynamiczne Profile**: Hot-swap konfiguracji `CliRunner` w `AgentEngine`.
-194: - [x] **MainWindow Refactoring**: Usunięcie suwaka na rzecz przycisku "Manage Providers" i combo-boxa.
-195: - [x] **Fix run.sh**: Automatyczne rozwiązywanie konfliktów generatora CMake (Ninja vs Makefiles).
+#### Zrealizowane zadania:
+- [x] **Provider Settings Dialog**: Nowy interfejs do dodawania/usuwania dostawców i pobierania listy modeli.
+- [x] **Discovery Service**: Automatyczne pobieranie modeli z serwerów LLM.
+- [x] **Dynamiczne Profile**: Hot-swap konfiguracji `CliRunner` w `AgentEngine`.
+- [x] **MainWindow Refactoring**: Usunięcie suwaka na rzecz przycisku "Manage Providers" i combo-boxa.
+- [x] **Fix run.sh**: Automatyczne rozwiązywanie konfliktów generatora CMake (Ninja vs Makefiles).
+
+## Phase 34: Premium Amber UI & Refinement (ZAKOŃCZONA)
+
+### Cel:
+Wdrożenie estetyki "Advanced Agentic Coding" z wykorzystaniem palety bursztynowej i efektów glassmorphism oraz optymalizacja paska bocznego.
+
+#### Zrealizowane zadania:
+- [x] **Premium Amber Theme**: Implementacja tokenów kolorystycznych i efektów glassmorphism w całej aplikacji.
+- [x] **Hollow Bubbles**: Nowy design dymków czatu (obramowania dla akcji agenta, pełne tło dla wyników).
+- [x] **Sidebar Refinement**: Usunięcie zbędnych ikon (fox icon) dla maksymalnej przejrzystości.
+- [x] **UI Polish**: Pełna stylizacja `InputPanel` i `ChatControlBanner`.
+- [x] **Weryfikacja**: Build i testy stabilności zakończone sukcesem.

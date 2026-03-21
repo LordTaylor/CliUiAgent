@@ -83,24 +83,46 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
 
         // --- Bubble background ---
         QColor bubbleColor;
+        QColor borderColor = Qt::transparent;
+        bool isHollow = false;
+
         if (isUser) {
-            bubbleColor = QColor(0x2563EB);
+            bubbleColor = QColor(0x2D241C); // Deep Brown
+            borderColor = QColor(0xD97706); // Amber
         } else {
             switch(block.type) {
-                case BlockType::Text:     bubbleColor = QColor(0x374151); break;
+                case BlockType::Text:     
+                    bubbleColor = QColor(20, 15, 10, 200); // Obsidian semi-transparent
+                    borderColor = QColor(217, 119, 6, 50); 
+                    break;
                 case BlockType::Bash:
                 case BlockType::Python:
-                case BlockType::Lua:      bubbleColor = QColor(0x111827); break; // Darker command-block style
-                case BlockType::Output:    bubbleColor = QColor(0x0F172A); break;
-                case BlockType::Thinking:  bubbleColor = QColor(88, 80, 236, 30); break; // Faint Indigo
-                case BlockType::ToolCall:  bubbleColor = QColor(0x1F2937); break;
-                case BlockType::LogStep:   bubbleColor = QColor(0x1F2937); break;
-                default:                  bubbleColor = QColor(0x374151); break;
+                case BlockType::Lua:      
+                    bubbleColor = QColor(15, 11, 8); 
+                    borderColor = QColor(69, 54, 43);
+                    break;
+                case BlockType::Output:    
+                    bubbleColor = QColor(26, 18, 10); 
+                    borderColor = QColor(34, 197, 94, 100); // Greenish touch for "DONE"
+                    break;
+                case BlockType::Thinking:  
+                    bubbleColor = Qt::transparent; 
+                    borderColor = QColor(217, 119, 6, 120);
+                    isHollow = true;
+                    break;
+                case BlockType::ToolCall:  
+                    bubbleColor = Qt::transparent;
+                    borderColor = QColor(217, 119, 6);
+                    isHollow = true;
+                    break;
+                default:                  
+                    bubbleColor = QColor(0x1F2937); 
+                    break;
             }
         }
 
-        p->setBrush(bubbleColor);
-        p->setPen(Qt::NoPen);
+        p->setBrush(isHollow ? Qt::NoBrush : bubbleColor);
+        p->setPen(borderColor == Qt::transparent ? Qt::NoPen : QPen(borderColor, 1.5));
         p->drawRoundedRect(x, currentY, bl.width + kBubblePadding * 2, bl.height, kBubbleRadius, kBubbleRadius);
 
         int contentOffset = kBubblePadding;
@@ -108,17 +130,14 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
         // --- Header / Collapsed Rendering ---
         if (block.type == BlockType::Thinking || block.type == BlockType::ToolCall || block.type == BlockType::LogStep) {
             QString header;
-            QColor headerColor = QColor(0x9CA3AF); // TEXT_DIM
+            QColor headerColor = QColor(0xD97706); // Amber
             
             if (block.isCollapsed) {
                 header = "▶  ";
-                if (block.type == BlockType::Thinking) header += "Thought";
+                if (block.type == BlockType::Thinking) header += "Thinking...";
                 else {
                     const QString c = block.content.toLower();
-                    if (c.contains("list") || c.contains("read") || c.contains("view")) header += "Analyzed";
-                    else if (c.contains("search") || c.contains("find") || c.contains("grep")) header += "Searched";
-                    else if (c.contains("command") || c.contains("cli")) header += "Ran command";
-                    else header += "Tool call";
+                    header += QString("Call: ") + (c.contains("bash") ? "Bash" : c.contains("python") ? "Python" : "Tool");
                 }
                 p->setPen(headerColor);
                 p->drawText(QRect(x + kBubblePadding, currentY, bl.width, bl.height), Qt::AlignVCenter, header);
@@ -126,23 +145,24 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
                 header = "▼  ";
                 if (block.type == BlockType::Thinking) {
                     header += "Reasoning";
-                    headerColor = QColor(0xA5B4FC); // Soft indigo
                 } else {
                     const QString c = block.content.toLower();
-                    if (c.contains("list") || c.contains("read") || c.contains("view")) header += "📄 Analyzed";
-                    else if (c.contains("search") || c.contains("find") || c.contains("grep")) header += "🔍 Searched";
-                    else if (c.contains("command") || c.contains("cli")) header += "🐚 Ran command";
-                    else header += "⚙  Action";
+                    header += QString("Executing: ") + (c.contains("bash") ? "Bash" : "Agent Action");
                 }
                 
                 p->setPen(headerColor);
-                p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width, 22), Qt::AlignTop, header);
+                p->drawText(QRect(x + kBubblePadding, currentY + 8, bl.width, 22), Qt::AlignTop, header);
                 
                 // Separator line
                 p->setPen(QPen(headerColor.darker(150), 1));
-                p->drawLine(x + kBubblePadding, currentY + 28, x + bl.width + kBubblePadding, currentY + 28);
-                contentOffset = 32;
+                p->drawLine(x + kBubblePadding, currentY + 30, x + bl.width + kBubblePadding, currentY + 30);
+                contentOffset = 36;
             }
+        } else if (block.type == BlockType::Output) {
+            // "DONE" style for output blocks
+            p->setPen(QColor(0x22C55E)); // Green
+            p->drawText(QRect(x + kBubblePadding, currentY + 6, bl.width, 22), Qt::AlignTop, "✓ DONE");
+            contentOffset = 28;
         }
 
         // --- Drawing Document Content (if expanded or not a step block) ---
@@ -150,14 +170,14 @@ void MessageDelegate::paintMessageContent(QPainter* p, const QStyleOptionViewIte
             p->save();
             p->translate(x + kBubblePadding, currentY + contentOffset);
             QAbstractTextDocumentLayout::PaintContext ctx;
-            QColor textColor = isUser ? Qt::white : QColor(0xF8FAFC);
+            QColor textColor = isUser ? QColor(0xE2E2E2) : QColor(0xD9D9D9);
             
             if (block.type == BlockType::Bash || block.type == BlockType::Python || block.type == BlockType::Lua)
-                textColor = QColor(0xCBD5E1);
+                textColor = QColor(0xFBBF24); // Amber/Gold for code
             else if (block.type == BlockType::Output)
-                textColor = QColor(0xD1D5DB);
+                textColor = QColor(0xA1A1AA);
             else if (block.type == BlockType::Thinking)
-                textColor = QColor(0x94A3B8);
+                textColor = QColor(0x71717A);
                 
             ctx.palette.setColor(QPalette::Text, textColor);
             bl.doc->documentLayout()->draw(p, ctx);

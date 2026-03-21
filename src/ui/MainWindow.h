@@ -123,7 +123,6 @@ private:
     QPushButton*        m_debugBtn;      // Save debug logs
     QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
-    QLabel*             m_foxLabel     = nullptr;
 
     // Streaming state
     QString m_streamingText;

@@ -106,6 +106,21 @@ QString PromptManager::roleStrategy(AgentRole role) const {
                    "- **Preferred Tools**: `ViewFile`, `GrepSearch`, `Bash` (for running tests).\n"
                    "- **Guidelines**: Look for edge cases, performance issues, and security flaws. Audit the diffs carefully. "
                    "Suggest improvements but do NOT modify the codebase yourself unless explicitly permitted.";
+        case AgentRole::Architect:
+            return "### ROLE STRATEGY: ARCHITECT (Designer)\n"
+                   "You are in DESIGN mode. Your goal is high-level planning and modularity.\n"
+                   "- **Preferred Tools**: `ReadFile`, `ListDirectory`, `GrepSearch`.\n"
+                   "- **Guidelines**: Focus on design patterns, scalability, and loose coupling.";
+        case AgentRole::Debugger:
+            return "### ROLE STRATEGY: DEBUGGER (Troubleshooter)\n"
+                   "You are in TROUBLESHOOTING mode. Identify root causes and fix bugs precisely.\n"
+                   "- **Preferred Tools**: `Bash` (logging), `ReadFile`, `ReplaceFileContent`.\n"
+                   "- **Guidelines**: Fix the cause, not just the symptom. Minimal regressions.";
+        case AgentRole::SecurityAuditor:
+            return "### ROLE STRATEGY: SECURITY AUDITOR (Guardian)\n"
+                   "You are in AUDIT mode. Detect vulnerabilities and assess risks.\n"
+                   "- **Preferred Tools**: `GrepSearch`, `ViewFile`, `Bash` (static analysis tools).\n"
+                   "- **Guidelines**: Use OWASP standards. Rate risks as Low/Medium/High/Critical.";
         case AgentRole::RAG:
             return "### ROLE STRATEGY: RAG (Knowledge Retrieval)\n"
                    "You are in KNOWLEDGE RETRIEVAL mode. Use the provided context to answer questions about the entire project.\n"
@@ -132,8 +147,14 @@ QString PromptManager::detectImplicitGoals(const QString& query) const {
         goals += "- **Documentation:** Consider if help files need updating.\n";
         detected = true;
     }
-    if (query.contains("optim", Qt::CaseInsensitive)) {
-        goals += "- **Readability vs Performance:** Maintain code clarity while improving speed/memory.\n";
+    if (query.contains("optim", Qt::CaseInsensitive) || query.contains("fast", Qt::CaseInsensitive)) {
+        goals += "- **Efficiency:** Prioritize token economy and resource-efficient algorithms.\n";
+        goals += "- **Speed:** Focus on low-latency solutions and fast execution paths.\n";
+        detected = true;
+    }
+    if (query.contains("review", Qt::CaseInsensitive) || query.contains("audit", Qt::CaseInsensitive)) {
+        goals += "- **Security:** Identify potential vulnerabilities and security risks.\n";
+        goals += "- **Quality:** Ensure compliance with best practices and project standards.\n";
         detected = true;
     }
 
@@ -153,6 +174,9 @@ QString PromptManager::loadRolePrompt(AgentRole role) const {
         case AgentRole::Reviewer: fileName = "reviewer.txt"; break;
         case AgentRole::RAG:      fileName = "rag.txt"; break;
         case AgentRole::REFACTOR: fileName = "refactor.txt"; break;
+        case AgentRole::Architect: fileName = "architect.txt"; break;
+        case AgentRole::Debugger:  fileName = "debugger.txt"; break;
+        case AgentRole::SecurityAuditor: fileName = "security_auditor.txt"; break;
     }
     
     QFile file(":/resources/prompts/" + fileName);

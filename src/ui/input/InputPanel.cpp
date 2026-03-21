@@ -65,6 +65,7 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     m_attachBadge->setObjectName("attachBadge");
     m_attachBadge->setWordWrap(true);
     m_attachBadge->setVisible(false);
+    m_attachBadge->setStyleSheet("color: #FBBF24; background: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 6px; padding: 4px 10px; margin-bottom: 4px; font-size: 11px;");
     outerLayout->addWidget(m_attachBadge);
 
     // Text input
@@ -79,7 +80,7 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
 
     // Buttons row
     auto* btnRow = new QHBoxLayout;
-    btnRow->setSpacing(6);
+    btnRow->setSpacing(8);
 
     m_attachBtn = new AttachmentButton(this);
     m_voiceBtn  = new VoiceButton(recorder, this);
@@ -87,13 +88,24 @@ InputPanel::InputPanel(AudioRecorder* recorder, QWidget* parent) : QWidget(paren
     m_stopBtn = new QPushButton("⏹ Stop", this);
     m_stopBtn->setObjectName("stopBtn");
     m_stopBtn->setEnabled(false);
-    m_stopBtn->setFixedWidth(80);
+    m_stopBtn->setFixedWidth(90);
+    m_stopBtn->setStyleSheet(R"(
+        QPushButton { background-color: #450A0A; color: #FCA5A5; border: 1px solid #7F1D1D; border-radius: 8px; font-weight: 600; }
+        QPushButton:hover { background-color: #7F1D1D; }
+    )");
 
     m_sendBtn = new QPushButton("Send ▶", this);
     m_sendBtn->setObjectName("sendBtn");
     m_sendBtn->setEnabled(false);
-    m_sendBtn->setFixedWidth(90);
+    m_sendBtn->setFixedWidth(100);
     m_sendBtn->setDefault(true);
+    m_sendBtn->setStyleSheet(R"(
+        QPushButton { 
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #D97706, stop:1 #140F0A); 
+            color: #FFFFFF; border: 1px solid #F59E0B; border-radius: 8px; font-weight: 700; 
+        }
+        QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F59E0B, stop:1 #D97706); }
+    )");
 
     btnRow->addWidget(m_attachBtn);
     btnRow->addWidget(m_voiceBtn);

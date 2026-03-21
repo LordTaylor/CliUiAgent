@@ -221,24 +221,7 @@ void MainWindow::setupUi() {
             m_controller->agent(), &AgentEngine::setForcedContextFiles);
     sidebarLayout->addWidget(m_workFolderPanel);
 
-    // Sidebar Footer: Fox Icon
     sidebarLayout->addStretch();
-    auto* sideFooter = new QWidget(sidebarWidget);
-    auto* sideFooterLayout = new QHBoxLayout(sideFooter);
-    sideFooterLayout->setContentsMargins(15, 10, 15, 30);
-    
-    m_foxLabel = new QLabel(sideFooter);
-    m_foxLabel->setObjectName("foxIconLabel");
-    QPixmap foxPix(":/resources/icons/fox_icon.png");
-    if (foxPix.isNull()) {
-        // Fallback to absolute path for now since it's not yet in .qrc
-        foxPix.load("/Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex/resources/icons/fox_icon.png");
-    }
-    if (!foxPix.isNull()) {
-        m_foxLabel->setPixmap(foxPix.scaled(180, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    }
-    sideFooterLayout->addWidget(m_foxLabel, 0, Qt::AlignCenter);
-    sidebarLayout->addWidget(sideFooter);
 
     m_sidebarSplitter->addWidget(sidebarWidget);
     

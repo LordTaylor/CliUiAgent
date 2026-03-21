@@ -12,11 +12,11 @@ ChatControlBanner::ChatControlBanner(QWidget* parent) : QWidget(parent) {
     layout->setSpacing(12);
 
     m_modelLabel = new QLabel("🤖 Agent Standby", this);
-    m_modelLabel->setStyleSheet("color: #9CA3AF; font-weight: 600; font-size: 11px;");
+    m_modelLabel->setStyleSheet("color: #FBBF24; font-weight: 600; font-size: 11px;");
     layout->addWidget(m_modelLabel);
 
     m_statusLabel = new QLabel("", this);
-    m_statusLabel->setStyleSheet("color: #10B981; font-weight: 500; font-size: 10px; margin-left: 10px;");
+    m_statusLabel->setStyleSheet("color: #D97706; font-weight: 500; font-size: 10px; margin-left: 10px;");
     m_statusLabel->setVisible(false);
     layout->addWidget(m_statusLabel);
 
@@ -25,9 +25,9 @@ ChatControlBanner::ChatControlBanner(QWidget* parent) : QWidget(parent) {
     m_autoApproveCheck = new QCheckBox("Auto-Approve", this);
     m_autoApproveCheck->setCursor(Qt::PointingHandCursor);
     m_autoApproveCheck->setStyleSheet(R"(
-        QCheckBox { color: #9CA3AF; font-size: 11px; font-weight: 500; spacing: 4px; }
-        QCheckBox::indicator { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #4B5563; }
-        QCheckBox::indicator:checked { background-color: #10B981; border-color: #10B981; }
+        QCheckBox { color: #B4B4B4; font-size: 11px; font-weight: 500; spacing: 4px; }
+        QCheckBox::indicator { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #45362B; background: #1A120A; }
+        QCheckBox::indicator:checked { background-color: #D97706; border-color: #F59E0B; }
     )");
     layout->addWidget(m_autoApproveCheck);
 
@@ -35,10 +35,10 @@ ChatControlBanner::ChatControlBanner(QWidget* parent) : QWidget(parent) {
     m_clearBtn->setCursor(Qt::PointingHandCursor);
     m_clearBtn->setStyleSheet(R"(
         QPushButton { 
-            background: rgba(239, 68, 68, 0.1); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); 
-            border-radius: 6px; padding: 2px 10px; font-size: 10px; font-weight: 700;
+            background: rgba(217, 119, 6, 0.1); color: #FBBF24; border: 1px solid rgba(217, 119, 6, 0.3); 
+            border-radius: 6px; padding: 2px 12px; font-size: 10px; font-weight: 700;
         }
-        QPushButton:hover { background: rgba(239, 68, 68, 0.2); }
+        QPushButton:hover { background: rgba(217, 119, 6, 0.2); border-color: #D97706; }
     )");
     layout->addWidget(m_clearBtn);
 
@@ -49,7 +49,7 @@ ChatControlBanner::ChatControlBanner(QWidget* parent) : QWidget(parent) {
     connect(m_autoApproveCheck, &QCheckBox::toggled, this, &ChatControlBanner::autoApproveChanged);
     connect(m_clearBtn, &QPushButton::clicked, this, &ChatControlBanner::clearChatRequested);
 
-    setFixedHeight(34);
+    setFixedHeight(36);
 }
 
 void ChatControlBanner::setThinking(bool thinking) {
@@ -59,7 +59,7 @@ void ChatControlBanner::setThinking(bool thinking) {
     } else {
         m_pulseTimer->stop();
         m_pulseAlpha = 255;
-        m_modelLabel->setStyleSheet("color: #9CA3AF; font-weight: 600; font-size: 11px;");
+        m_modelLabel->setStyleSheet("color: #FBBF24; font-weight: 600; font-size: 11px;");
         m_modelLabel->setText("🤖 Agent Ready");
         m_statusLabel->setVisible(false);
         m_statusLabel->setText("");

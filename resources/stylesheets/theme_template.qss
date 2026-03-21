@@ -12,301 +12,200 @@ QMainWindow {
 }
 
 /* Glassmorphism Classes or IDs */
-#toolbar, #chatBanner, #inputPanelContainer {
+#toolbar, #chatBanner, #inputPanelContainer, #sidebarWidget {
     background-color: {{GLASS_BG}};
     border: 1px solid {{GLASS_BORDER}};
-    border-radius: 12px;
+    border-radius: 16px;
+    margin: 4px;
 }
 
-/* ---- Session Panel ---- */
-#sessionList {
-    background-color: {{BG_WIDGET}};
-    border: none;
+/* ---- Sidebar & Session List ---- */
+#sidebarWidget {
+    background-color: {{BG_MAIN}};
     border-right: 1px solid {{BORDER}};
+}
+
+#sessionList, #workFolderPanel {
+    background-color: {{BG_WIDGET}};
+    border: 1px solid {{GLASS_BORDER}};
+    border-radius: 12px;
+    margin: 8px;
     padding: 4px;
 }
+
 #sessionList::item {
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
     color: {{TEXT_DIM}};
+    margin: 2px 4px;
 }
+
 #sessionList::item:selected {
     background-color: {{ACCENT}};
     color: #FFFFFF;
+    border: 1px solid {{ACCENT_HOVER}};
 }
+
 #sessionList::item:hover:!selected {
     background-color: {{BG_HOVER}};
 }
 
+#newSessionBtn, #newTaskBtn {
+    background-color: transparent;
+    border: none;
+    color: {{ACCENT}};
+    text-align: left;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+#newSessionBtn:hover, #newTaskBtn:hover {
+    background-color: {{BG_HOVER}};
+    border-radius: 8px;
+}
+
 /* ---- Toolbar & Folder Selector ---- */
 #toolbar {
-    background-color: {{BG_WIDGET}};
+    background-color: {{GLASS_BG}};
     border-bottom: 1px solid {{BORDER}};
+    min-height: 48px;
 }
 
 #folderSelector {
     background-color: {{BG_WIDGET}};
     border: 1px solid {{BORDER}};
-    border-radius: 6px;
-    padding: 2px 8px;
+    border-radius: 8px;
+    padding: 2px 10px;
     margin: 4px;
 }
 
-#folderSelector:hover {
-    background-color: {{BG_HOVER}};
-    border-color: {{ACCENT}};
-}
-
-#folderLabel {
-    color: {{TEXT_MAIN}};
-    font-size: 11px;
+#profileCombo, #roleCombo, #modelCombo {
+    background-color: {{BG_DARKER}};
+    border: 1px solid {{BORDER}};
+    border-radius: 8px;
+    padding: 4px 12px;
+    color: {{ACCENT}};
     font-weight: 500;
 }
-#folderBtn {
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    padding: 2px 4px;
-}
-#folderBtn:hover {
-    background-color: {{BG_HOVER}};
-    border-radius: 4px;
-}
-#profileCombo {
-    background-color: {{BG_HOVER}};
-    border: 1px solid {{BORDER}};
-    border-radius: 6px;
-    padding: 3px 8px;
-    color: {{TEXT_MAIN}};
-}
+
 #profileCombo QAbstractItemView {
-    background-color: {{BG_WIDGET}};
-    border: 1px solid {{BORDER}};
+    background-color: {{BG_MAIN}};
+    border: 1px solid {{ACCENT}};
     selection-background-color: {{ACCENT}};
-}
-
-/* ---- LLM Performance Slider (Privacy vs Power) ---- */
-#llmSlider {
-    height: 32px;
-}
-#llmSlider::groove:horizontal {
-    border: 1px solid {{BORDER}};
-    height: 6px;
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10B981, stop:1 #3B82F6);
-    margin: 2px 0;
-    border-radius: 3px;
-}
-#llmSlider::handle:horizontal {
-    background: #FFFFFF;
-    border: 1px solid {{BORDER}};
-    width: 20px;
-    height: 20px;
-    margin: -8px 0;
-    border-radius: 10px;
-}
-
-#modelCombo {
-    background-color: {{BG_HOVER}};
-    border: 1px solid {{BORDER}};
-    border-radius: 6px;
-    padding: 3px 8px;
-    color: {{TEXT_MAIN}};
-    font-size: 11px;
-    font-weight: 600;
-}
-
-QCheckBox {
-    spacing: 5px;
-    color: {{TEXT_DIM}};
-}
-QCheckBox::indicator {
-    width: 16px;
-    height: 16px;
-    background-color: {{BG_HOVER}};
-    border: 1px solid {{BORDER}};
-    border-radius: 4px;
-}
-QCheckBox::indicator:checked {
-    background-color: {{ACCENT}};
-    border-color: {{ACCENT_HOVER}};
 }
 
 /* ---- Splitters ---- */
 QSplitter::handle {
     background-color: {{BORDER}};
 }
-QSplitter::handle:horizontal {
-    width: 2px;
-}
-QSplitter::handle:vertical {
-    height: 2px;
-}
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical { height: 1px; }
 
-/* ---- Work Folder Panel (New) ---- */
-#workFolderHeader {
-    background-color: {{BG_DARKER}};
-    border-top: 1px solid {{BORDER}};
-    border-bottom: 1px solid {{BORDER}};
-}
-#workFolderPathLabel {
-    color: {{TEXT_MAIN}};
-    font-weight: 600;
-    font-size: 12px;
-}
-#workFolderBrowseBtn {
-    background-color: {{BG_HOVER}};
-    border: 1px solid {{BORDER}};
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-#workFolderBrowseBtn:hover {
-    background-color: {{BORDER}};
-    border-color: {{ACCENT}};
-}
-
+/* ---- TreeView (File Explorer) ---- */
 QTreeView {
-    background-color: {{BG_WIDGET}};
+    background-color: transparent;
     border: none;
     color: {{TEXT_DIM}};
 }
 QTreeView::item {
-    padding: 4px;
+    padding: 6px;
+    border-radius: 4px;
 }
 QTreeView::item:hover {
     background-color: {{BG_HOVER}};
-    border-radius: 4px;
 }
 QTreeView::item:selected {
     background-color: {{ACCENT}};
     color: #FFFFFF;
-    border-radius: 4px;
-}
-
-/* ---- Sidebar Settings Icons ---- */
-#toolbar QLabel {
-    font-size: 11px;
-    font-weight: 600;
-    color: {{TEXT_DIM}};
-}
-
-#toolbar QPushButton {
-    background: transparent;
-    border: none;
-    font-size: 16px;
-}
-#toolbar QPushButton:hover {
-    background-color: {{BG_HOVER}};
-    border-radius: 6px;
 }
 
 /* ---- Chat View ---- */
 QListView {
     background-color: {{BG_DARKER}};
     border: none;
-    padding: 8px;
+    padding: 12px;
 }
 
 /* ---- Input Panel ---- */
+#inputPanel {
+    background-color: {{BG_MAIN}};
+    border-top: 1px solid {{BORDER}};
+    padding: 12px;
+}
+
 #inputTextEdit {
     background-color: {{BG_WIDGET}};
     border: 1px solid {{BORDER}};
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 12px;
+    padding: 10px;
     color: {{TEXT_MAIN}};
-    selection-background-color: {{ACCENT}};
 }
+
 #inputTextEdit:focus {
-    border-color: {{ACCENT_HOVER}};
+    border-color: {{ACCENT}};
 }
 
 /* ---- Buttons ---- */
 QPushButton {
-    background-color: {{BG_HOVER}};
+    background-color: {{BG_WIDGET}};
     border: 1px solid {{BORDER}};
-    border-radius: 6px;
-    padding: 6px 14px;
+    border-radius: 8px;
+    padding: 8px 20px;
     color: {{TEXT_MAIN}};
+    font-weight: 500;
 }
+
 QPushButton:hover {
-    background-color: {{BORDER}};
+    background-color: {{BG_HOVER}};
+    border-color: {{ACCENT}};
 }
+
 #sendBtn {
-    background-color: {{ACCENT}};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {{ACCENT}}, stop:1 {{BG_DARKER}});
+    border: 1px solid {{ACCENT_HOVER}};
     color: #FFFFFF;
-    font-weight: 600;
+    font-weight: bold;
 }
+
 #sendBtn:hover {
-    background-color: {{ACCENT_HOVER}};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {{ACCENT_HOVER}}, stop:1 {{ACCENT}});
 }
+
 #stopBtn, #stopFloatingBtn {
-    background-color: #7F1D1D;
+    background-color: #450A0A;
     color: #FCA5A5;
     border: 1px solid #991B1B;
-    font-weight: bold;
 }
 
-/* ---- Dialogs & Tabs ---- */
-QDialog {
-    background-color: {{BG_DARK}};
-    border: 1px solid {{BORDER}};
-}
-QTabWidget::pane {
-    border: 1px solid {{BORDER}};
-    background-color: {{BG_WIDGET}};
-    border-radius: 8px;
-    top: -1px;
-}
-QTabBar::tab {
-    background-color: {{BG_DARKER}};
-    border: 1px solid {{BORDER}};
-    border-bottom: none;
-    padding: 8px 16px;
-    color: {{TEXT_DIM}};
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    margin-right: 2px;
-}
-QTabBar::tab:selected {
-    background-color: {{BG_WIDGET}};
-    color: {{ACCENT}};
-    border-bottom: 2px solid {{ACCENT}};
-    font-weight: bold;
-}
-
-/* ---- List Widgets (Skills & Plugins) ---- */
-#skillsList, #pluginsList {
-    background-color: {{BG_WIDGET}};
-    border: 1px solid {{BORDER}};
-    border-radius: 8px;
-    outline: none;
-}
-#skillsList::item, #pluginsList::item {
-    padding: 10px;
-    border-bottom: 1px solid {{BORDER}};
-    color: {{TEXT_MAIN}};
-}
-#skillsList::item:last, #pluginsList::item:last {
-    border-bottom: none;
-}
-#skillsList::item:hover, #pluginsList::item:hover {
-    background-color: {{BG_HOVER}};
-}
-#skillsList::item:selected, #pluginsList::item:selected {
-    background-color: {{ACCENT}};
-    color: #FFFFFF;
-}
-
-/* ---- Terminal (New) ---- */
-#terminalToggleBtn {
-    background-color: {{BG_WIDGET}};
-    border-top: 1px solid {{BORDER}};
-    color: {{TEXT_DIM}};
-}
-
-/* ---- Status bar ---- */
+/* ---- Status bar & Progress ---- */
 QStatusBar {
-    background-color: {{BG_WIDGET}};
+    background-color: {{BG_MAIN}};
     color: {{TEXT_DIM}};
     border-top: 1px solid {{BORDER}};
+    font-size: 11px;
+}
+
+QProgressBar {
+    border: 1px solid {{BORDER}};
+    border-radius: 4px;
+    background: {{BG_DARKER}};
+    text-align: center;
+}
+QProgressBar::chunk {
+    background-color: {{ACCENT}};
+    border-radius: 3px;
+}
+
+/* ---- Scroll bars ---- */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+}
+QScrollBar::handle:vertical {
+    background: {{BORDER}};
+    border-radius: 4px;
+    min-height: 40px;
+}
+QScrollBar::handle:vertical:hover {
+    background: {{ACCENT}};
 }

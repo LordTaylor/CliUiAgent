@@ -16,18 +16,18 @@ ThemeManager::ThemeManager(QObject* parent) : QObject(parent) {
 }
 
 void ThemeManager::initVariables() {
-    // DARK THEME
-    m_darkVars["{{BG_MAIN}}"]     = "#0F172A";
-    m_darkVars["{{BG_DARKER}}"]  = "#0B0F1A";
-    m_darkVars["{{BG_WIDGET}}"]  = "#1F2937";
-    m_darkVars["{{BG_HOVER}}"]   = "#374151";
-    m_darkVars["{{TEXT_MAIN}}"]  = "#F8FAFC";
-    m_darkVars["{{TEXT_DIM}}"]   = "#9CA3AF";
-    m_darkVars["{{ACCENT}}"]     = "#2563EB";
-    m_darkVars["{{ACCENT_HOVER}}"] = "#3B82F6";
-    m_darkVars["{{BORDER}}"]     = "#374151";
-    m_darkVars["{{GLASS_BG}}"]   = "rgba(30, 41, 59, 0.7)";
-    m_darkVars["{{GLASS_BORDER}}"] = "rgba(71, 85, 105, 0.3)";
+    // DARK THEME (Amber Overhaul)
+    m_darkVars["{{BG_MAIN}}"]      = "#1A1612";
+    m_darkVars["{{BG_DARKER}}"]    = "#140F0A";
+    m_darkVars["{{BG_WIDGET}}"]    = "rgba(35, 28, 22, 0.6)";
+    m_darkVars["{{BG_HOVER}}"]     = "rgba(217, 119, 6, 0.1)";
+    m_darkVars["{{TEXT_MAIN}}"]    = "#E2E2E2";
+    m_darkVars["{{TEXT_DIM}}"]     = "#B4B4B4";
+    m_darkVars["{{ACCENT}}"]       = "#D97706";
+    m_darkVars["{{ACCENT_HOVER}}"] = "#F59E0B";
+    m_darkVars["{{BORDER}}"]       = "#2D241C";
+    m_darkVars["{{GLASS_BG}}"]     = "rgba(35, 28, 22, 0.7)";
+    m_darkVars["{{GLASS_BORDER}}"] = "rgba(217, 119, 6, 0.3)";
 
     // LIGHT THEME (New Palette!)
     m_lightVars["{{BG_MAIN}}"]     = "#F1F5F9";

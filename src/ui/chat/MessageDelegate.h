@@ -26,8 +26,8 @@ private:
     static constexpr int kBubblePadding  = 12;
     static constexpr int kBadgeHeight    = 20;
     static constexpr int kBadgeMargin    = 4;
-    static constexpr int kBubbleRadius  = 10;
-    static constexpr int kMaxBubbleWidth = 520;
+    static constexpr int kBubbleRadius   = 16;
+    static constexpr int kMaxBubbleWidth  = 640;
     static constexpr int kAvatarSize    = 32;
     static constexpr int kRowMargin     = 8;
 
