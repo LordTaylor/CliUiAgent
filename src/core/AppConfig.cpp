@@ -105,6 +105,12 @@ void AppConfig::rollbackPrompt() {
     emit systemPromptChanged(m_systemPrompt);
 }
 
+void AppConfig::setTavilyApiKey(const QString& key) {
+    if (m_tavilyApiKey == key) return;
+    m_tavilyApiKey = key;
+    save();
+}
+
 // Removed legacy LLM URL and API Key getters/setters as they are now part of LlmProvider
 
 /**
@@ -124,6 +130,7 @@ void AppConfig::load() {
 
     m_activeProviderId = obj["activeProviderId"].toString();
     m_systemPrompt = obj["systemPrompt"].toString();
+    m_tavilyApiKey = obj["tavilyApiKey"].toString();
     
     m_promptHistory.clear();
     QJsonArray histArr = obj["promptHistory"].toArray();
@@ -159,6 +166,7 @@ void AppConfig::save() const {
         {"manualApproval", m_manualApproval},
         {"activeProviderId", m_activeProviderId},
         {"systemPrompt", m_systemPrompt},
+        {"tavilyApiKey", m_tavilyApiKey},
         {"promptHistory", QJsonArray::fromStringList(m_promptHistory)},
         {"providers", providerArr}
     });

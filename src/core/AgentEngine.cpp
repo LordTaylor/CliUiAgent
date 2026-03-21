@@ -22,6 +22,7 @@
 #include "tools/MathLogicTool.h"
 #include "tools/VisualizeCodebaseTool.h"
 #include "tools/CompleteTaskTool.h"
+#include "tools/WebSearchTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -71,6 +72,7 @@ AgentEngine::AgentEngine(AppConfig* config,
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::MathLogicTool>()));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::VisualizeCodebaseTool>()));
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::CompleteTaskTool>(m_sessions, m_config)));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::WebSearchTool>(m_config)));
 
     // Connect Runner
     connect(m_runner, &CliRunner::outputChunk,    this, &AgentEngine::onOutputChunk);

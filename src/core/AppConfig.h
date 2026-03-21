@@ -48,6 +48,10 @@ public:
     void setSystemPrompt(const QString& prompt);
     void rollbackPrompt();
 
+    // Web Search (Item #4)
+    QString tavilyApiKey() const { return m_tavilyApiKey; }
+    void setTavilyApiKey(const QString& key);
+
 signals:
     void activeProviderChanged(const QString& id);
     void systemPromptChanged(const QString& prompt);
@@ -59,6 +63,9 @@ private:
     QString m_systemPrompt;
     QStringList m_promptHistory;
     bool    m_manualApproval = true;
+
+    // Web Search
+    QString m_tavilyApiKey;
 
     // Provider State
     LlmProviderList m_providers;

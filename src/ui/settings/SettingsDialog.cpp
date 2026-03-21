@@ -169,6 +169,17 @@ QWidget* SettingsDialog::createAdvancedPage() {
     crashTestBtn->setToolTip("Triggers a crash to test the Crash Reporter (Item 51).");
     layout->addRow("Diagnostics:", crashTestBtn);
 
+    layout->addRow(new QFrame(widget)); // Spacer
+
+    auto* tavilyEdit = new QLineEdit(widget);
+    tavilyEdit->setText(m_config->tavilyApiKey());
+    tavilyEdit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
+    tavilyEdit->setPlaceholderText("Enter Tavily API Key...");
+    tavilyEdit->setToolTip("Required for Web Search functionality (Item #4). Get your key at tavily.com.");
+    layout->addRow("Tavily API Key:", tavilyEdit);
+
+    connect(tavilyEdit, &QLineEdit::textEdited, m_config, &AppConfig::setTavilyApiKey);
+
     return widget;
 }
 
