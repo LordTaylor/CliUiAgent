@@ -255,11 +255,18 @@ void MainWindow::setupUi() {
     tbLayout->addWidget(m_roleCombo);
     
 
-    tbLayout->addSpacing(10);
-    m_themeBtn = new QPushButton("🌓", toolbar);
     m_themeBtn->setFixedSize(32, 32);
+    m_themeBtn->setCursor(Qt::PointingHandCursor);
     m_themeBtn->setToolTip("Toggle Dark/Light Theme");
-    tbLayout->addWidget(m_themeBtn);
+
+    m_debugBtn = new QPushButton(toolbar); // Parent to toolbar
+    m_debugBtn->setIcon(QIcon(":/resources/icons/bug.svg"));
+    m_debugBtn->setFixedSize(32, 32);
+    m_debugBtn->setCursor(Qt::PointingHandCursor);
+    m_debugBtn->setToolTip("Save Debug Logs (Raw LLM I/O)");
+    m_debugBtn->setObjectName("debugBtn");
+
+    m_autoApproveCheck = new QCheckBox("Auto-approve", central);
 
     tbLayout->addStretch();
     
@@ -278,8 +285,9 @@ void MainWindow::setupUi() {
 
     connect(m_themeBtn, &QPushButton::clicked,
             this, &MainWindow::onThemeToggleRequested);
+    connect(m_debugBtn, &QPushButton::clicked, this, &MainWindow::onDebugLogRequested);
 
-
+    // Input area
     // Chat view container for floating buttons
     auto* chatContainer = new QWidget(rightWidget);
     auto* chatGrid = new QGridLayout(chatContainer);
@@ -378,7 +386,8 @@ void MainWindow::setupUi() {
     m_splitter->setStretchFactor(0, 0);
     m_splitter->setStretchFactor(1, 1);
 
-    mainLayout->addWidget(m_splitter);
+    tbLayout->addWidget(m_themeBtn);
+    tbLayout->addWidget(m_debugBtn);
 
     // Wire input panel
     connect(m_inputPanel, &InputPanel::sendRequested,
@@ -486,18 +495,30 @@ void MainWindow::onHelpRequested(const QString& page) {
 }
 
 void MainWindow::onAbout() {
-    QMessageBox about(this);
-    about.setWindowTitle("About CodeHex");
-    about.setIconPixmap(QPixmap(":/resources/icons/app.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    about.setText("<h2>CodeHex 0.1.0</h2>"
-        "<p>A desktop coding chatbot for developers.</p>"
-        "<p>Supports <b>LM Studio</b>, <b>Ollama</b>, and other local "
-        "OpenAI-compatible LLMs with Lua/Python scripting hooks.</p>"
-        "<p>Built with Qt6/C++ · <a href='https://github.com/LordTaylor/CliUiAgent'>"
-        "GitHub</a></p>");
-    about.exec();
+    QMessageBox::about(this, "About CodeHex",
+        "CodeHex v" + qApp->applicationVersion() + "\n\n"
+        "Advanced Agentic Coding Environment\n"
+        "Built with Qt 6.7 and LLMs.");
 }
 
+void MainWindow::onDebugLogRequested() {
+    QString logDir = QDir::current().filePath("Debug_Logs");
+    QDir dir(logDir);
+    
+    // 1. Clear existing files
+    if (dir.exists()) {
+        dir.removeRecursively();
+    }
+    dir.mkpath(".");
+
+    // 2. Save logs via controller
+    if (m_controller && m_controller->agent()) {
+        m_controller->agent()->saveDebugLog(logDir);
+        statusBar()->showMessage("Debug logs saved to Debug_Logs/", 3000);
+    } else {
+        statusBar()->showMessage("Error: AgentEngine not available", 3000);
+    }
+}
 
 void MainWindow::loadStyleSheet() {
     // Initial Theme

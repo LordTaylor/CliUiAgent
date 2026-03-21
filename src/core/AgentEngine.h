@@ -74,6 +74,11 @@ public:
 
     void setSelectedModel(const QString& model) { m_selectedModel = model; }
     QString selectedModel() const { return m_selectedModel; }
+
+    /**
+     * @brief Saves the last raw request, response, and session state to a directory.
+     */
+    void saveDebugLog(const QString& targetDir);
     
     // CoVe State Machine
     enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
@@ -138,6 +143,9 @@ private:
     void resetStreamState();
     QString getSystemPrompt() const;
     void cleanupScratchpad();
+
+    QString m_lastRawRequest;
+    QString m_lastRawResponse;
 };
 
 }  // namespace CodeHex

@@ -138,6 +138,9 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
         const int inputTokens = TokenCounter::estimate(enrichedPrompt);
         session->updateTokens(inputTokens, 0);
 
+        m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() + "\n\n--- Prompt ---\n" + enrichedPrompt;
+        m_lastRawResponse.clear();
+
         m_runner->send(enrichedPrompt, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
     }
 }
@@ -208,8 +211,12 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
     if (useJsonSchema) {
         QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
         QJsonObject request = m_prompts->buildRequestJson(m_currentRole, nudge, session->messages, tools, 31999, true);
+        m_lastRawRequest = QJsonDocument(request).toJson();
+        m_lastRawResponse.clear();
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
+        m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() + "\n\n--- Nudge ---\n" + nudge;
+        m_lastRawResponse.clear();
         m_runner->send(nudge, m_config->workingFolder(), {}, session->messages, getSystemPrompt());
     }
 }
@@ -247,6 +254,7 @@ bool AgentEngine::isRunning() const {
 }
 
 void AgentEngine::onOutputChunk(const QString& chunk) {
+    m_lastRawResponse += chunk;
     QString filtered = m_filter->processChunk(chunk);
     if (!filtered.isEmpty()) {
         emit tokenReceived(filtered);
@@ -564,6 +572,47 @@ void AgentEngine::cleanupScratchpad() {
     }
     dir.mkpath(".");
     qDebug() << "[AgentEngine] Scratchpad cleaned up.";
+}
+
+void AgentEngine::saveDebugLog(const QString& targetDir) {
+    QDir dir(targetDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    auto saveFile = [&](const QString& name, const QString& content) {
+        QFile file(dir.filePath(name));
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            file.write(content.toUtf8());
+            file.close();
+        }
+    };
+
+    saveFile("request_raw.txt", m_lastRawRequest);
+    saveFile("response_raw.txt", m_lastRawResponse);
+    
+    if (auto* session = m_sessions->currentSession()) {
+        QJsonArray messages;
+        for (const auto& msg : session->messages) {
+            messages.append(msg.toJson());
+        }
+        QJsonObject sessionObj;
+        sessionObj["id"] = session->id.toString();
+        sessionObj["title"] = session->title;
+        sessionObj["messages"] = messages;
+        saveFile("session_state.json", QJsonDocument(sessionObj).toJson());
+    }
+
+    QString sysInfo = QString("OS: %1\nArch: %2\nProvider: %3\nModel: %4\nRole: %5\nDir: %6")
+        .arg(QSysInfo::prettyProductName())
+        .arg(QSysInfo::currentCpuArchitecture())
+        .arg(m_config->activeProvider().name)
+        .arg(m_config->activeProvider().selectedModel)
+        .arg((int)m_currentRole)
+        .arg(m_config->workingFolder());
+    saveFile("system_info.txt", sysInfo);
+
+    qInfo() << "Debug logs saved to" << targetDir;
 }
 
 void AgentEngine::resetStreamState() {

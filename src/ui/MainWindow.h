@@ -59,6 +59,7 @@ private slots:
     void onProviderChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();
+    void onDebugLogRequested();
     void onTokenBufferTimeout();
     void onCommandRequested(const QString& cmd, const QStringList& args);
     // Discovery logic moved to ProviderSettingsDialog
@@ -94,6 +95,7 @@ private:
     QPushButton*        m_autoScrollBtn; // Magnet button
     QPushButton*        m_stopBtn;       // Stop agent button
     QPushButton*        m_themeBtn;      // Dark/Light toggle
+    QPushButton*        m_debugBtn;      // Save debug logs
     QLabel*             m_statusLabel;   // "Agent is thinking..."
     QLabel*             m_tokenLabel   = nullptr;
 

@@ -6,3 +6,4 @@ build/
 CMakeUserPresets.json
 compile_commands.json
 TEMP_FILES/
+Debug_Logs/
