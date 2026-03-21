@@ -19,6 +19,7 @@
 #include <QSlider>
 #include <QPainter>
 #include <QSvgRenderer>
+#include <optional>
 #include "../core/LlmDiscoveryService.h"
 #include "../core/AppConfig.h"
 #include "help/HelpDialog.h"
@@ -232,43 +233,49 @@ void MainWindow::setupUi() {
     llmLayout->addWidget(m_providerCombo);
     tbLayout->addWidget(llmBar);
 
-    connect(manageProvidersBtn, &QPushButton::clicked, this, [this]() {
-        ProviderSettingsDialog dlg(m_config, this);
-        if (dlg.exec() == QDialog::Accepted) {
-            updateProviderList();
-        }
-    });
-
-    connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onProviderChanged);
-
     tbLayout->addStretch();
     
-    QLabel* roleLbl = new QLabel("Role:", toolbar);
-    tbLayout->addWidget(roleLbl);
-    m_roleCombo = new QComboBox(toolbar);
+    // Role Selection Group
+    auto* roleGroup = new QWidget(toolbar);
+    auto* roleLayout = new QHBoxLayout(roleGroup);
+    roleLayout->setContentsMargins(0, 0, 0, 0);
+    roleLayout->setSpacing(8);
+
+    QLabel* roleLbl = new QLabel("Role:", roleGroup);
+    m_roleCombo = new QComboBox(roleGroup);
     m_roleCombo->addItem("Base", (int)AgentRole::Base);
     m_roleCombo->addItem("Explorer", (int)AgentRole::Explorer);
     m_roleCombo->addItem("Executor", (int)AgentRole::Executor);
     m_roleCombo->addItem("Reviewer", (int)AgentRole::Reviewer);
     m_roleCombo->setMinimumWidth(100);
-    tbLayout->addWidget(m_roleCombo);
     
+    roleLayout->addWidget(roleLbl);
+    roleLayout->addWidget(m_roleCombo);
+    tbLayout->addWidget(roleGroup);
+    
+    tbLayout->addSpacing(12);
 
+    // Theme & Debug Buttons Group
+    auto* actionGroup = new QWidget(toolbar);
+    auto* actionLayout = new QHBoxLayout(actionGroup);
+    actionLayout->setContentsMargins(0, 0, 0, 0);
+    actionLayout->setSpacing(8);
+
+    m_themeBtn = new QPushButton("🌓", actionGroup);
     m_themeBtn->setFixedSize(32, 32);
     m_themeBtn->setCursor(Qt::PointingHandCursor);
     m_themeBtn->setToolTip("Toggle Dark/Light Theme");
 
-    m_debugBtn = new QPushButton(toolbar); // Parent to toolbar
+    m_debugBtn = new QPushButton(actionGroup);
     m_debugBtn->setIcon(QIcon(":/resources/icons/bug.svg"));
     m_debugBtn->setFixedSize(32, 32);
     m_debugBtn->setCursor(Qt::PointingHandCursor);
     m_debugBtn->setToolTip("Save Debug Logs (Raw LLM I/O)");
     m_debugBtn->setObjectName("debugBtn");
 
-    m_autoApproveCheck = new QCheckBox("Auto-approve", central);
-
-    tbLayout->addStretch();
+    actionLayout->addWidget(m_themeBtn);
+    actionLayout->addWidget(m_debugBtn);
+    tbLayout->addWidget(actionGroup);
     
     // Chat control banner (NEW)
     m_chatBanner = new ChatControlBanner(rightWidget);
@@ -386,22 +393,13 @@ void MainWindow::setupUi() {
     m_splitter->setStretchFactor(0, 0);
     m_splitter->setStretchFactor(1, 1);
 
-    tbLayout->addWidget(m_themeBtn);
-    tbLayout->addWidget(m_debugBtn);
-
-    // Wire input panel
-    connect(m_inputPanel, &InputPanel::sendRequested,
-            this, &MainWindow::onSendRequested);
-    connect(m_inputPanel, &InputPanel::commandRequested,
-            this, &MainWindow::onCommandRequested);
-    connect(m_inputPanel, &InputPanel::stopRequested,
-            this, &MainWindow::onStopRequested);
-
-    // Wire session panel
-    connect(m_sessionPanel, &SessionPanel::sessionSelected,
-            this, &MainWindow::onSessionSelected);
-    connect(m_sessionPanel, &SessionPanel::newSessionRequested,
-            this, &MainWindow::onNewSessionRequested);
+    // Wire toolbar actions
+    connect(manageProvidersBtn, &QPushButton::clicked, this, [this]() {
+        ProviderSettingsDialog dlg(m_config, this);
+        if (dlg.exec() == QDialog::Accepted) {
+            updateProviderList();
+        }
+    });
 
     connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onProviderChanged);
@@ -410,6 +408,10 @@ void MainWindow::setupUi() {
         AgentRole role = (AgentRole)m_roleCombo->itemData(index).toInt();
         m_controller->agent()->setRole(role);
     });
+
+    connect(m_themeBtn, &QPushButton::clicked,
+            this, &MainWindow::onThemeToggleRequested);
+    connect(m_debugBtn, &QPushButton::clicked, this, &MainWindow::onDebugLogRequested);
 
     // Token stats label in status bar
     m_tokenLabel = new QLabel(this);
@@ -758,14 +760,15 @@ void MainWindow::updateButtonIcons() {
     bool isDark = ThemeManager::instance().isDark();
     QColor iconColor = isDark ? QColor("#E5E7EB") : QColor("#374151");
     
-    auto tint = [&](const QString& path) -> QIcon {
+    auto tint = [&](const QString& path, std::optional<QColor> color = std::nullopt) -> QIcon {
+        QColor targetColor = color.value_or(iconColor);
         QPixmap pixmap(64, 64);
         pixmap.fill(Qt::transparent);
         QPainter painter(&pixmap);
         QSvgRenderer renderer(path);
         renderer.render(&painter);
         painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-        painter.fillRect(pixmap.rect(), iconColor);
+        painter.fillRect(pixmap.rect(), targetColor);
         painter.end();
         return QIcon(pixmap);
     };
@@ -787,10 +790,14 @@ void MainWindow::updateButtonIcons() {
             if (btn->toolTip().contains("Settings", Qt::CaseInsensitive)) iconPath = ":/resources/icons/settings.svg";
             else if (btn->toolTip().contains("Skills", Qt::CaseInsensitive)) iconPath = ":/resources/icons/skills.svg";
             else if (btn->toolTip().contains("Plugins", Qt::CaseInsensitive)) iconPath = ":/resources/icons/plugins.svg";
+            else if (btn->toolTip().contains("Plugins", Qt::CaseInsensitive)) iconPath = ":/resources/icons/plugins.svg";
             else if (btn->toolTip().contains("Manage LLM", Qt::CaseInsensitive)) iconPath = ":/resources/icons/power.svg";
+            else if (btn == m_debugBtn) iconPath = ":/resources/icons/bug.svg";
             
             if (!iconPath.isEmpty()) {
-                btn->setIcon(tint(iconPath));
+                // Use a lighter tint for the debug button icon if it's on a dark red background
+                QColor currentIconColor = (btn == m_debugBtn) ? QColor("#FCA5A5") : iconColor;
+                btn->setIcon(tint(iconPath, currentIconColor));
             }
         }
     }

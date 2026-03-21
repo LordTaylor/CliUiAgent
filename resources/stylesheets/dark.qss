@@ -177,6 +177,14 @@ QPushButton:disabled {
     color: #6B7280;
     border-color: #374151;
 }
+#debugBtn {
+    background-color: #7F1D1D;
+    border-color: #991B1B;
+    color: #FCA5A5;
+}
+#debugBtn:hover {
+    background-color: #991B1B;
+}
 
 /* ---- Attachment & Voice buttons ---- */
 #attachBtn, #voiceBtn {
