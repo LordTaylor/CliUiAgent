@@ -103,13 +103,25 @@ void CliRunner::startProcessInternal() {
         m_simpleProcess.waitForFinished(1000);
     }
 
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    
+    // Ensure common paths are in PATH, especially for Mac GUI apps
+    QString path = env.value("PATH");
+    QStringList commonPaths = {"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin", "/opt/homebrew/bin"};
+    for (const QString& cp : commonPaths) {
+        if (!path.contains(cp)) {
+            if (!path.isEmpty()) path += ":";
+            path += cp;
+        }
+    }
+    env.insert("PATH", path);
+
     const auto extra = m_profile->extraEnvironment();
     if (!extra.isEmpty()) {
-        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
         for (auto it = extra.cbegin(); it != extra.cend(); ++it)
             env.insert(it.key(), it.value());
-        m_process.setProcessEnvironment(env);
     }
+    m_process.setProcessEnvironment(env);
 
     QString promptToUse = m_lastRequest.prompt;
     if (m_lastRequest.isJson) {
@@ -133,7 +145,12 @@ void CliRunner::startProcessInternal() {
 
     m_process.setProgram(m_profile->executable());
     m_process.setArguments(baseArgs);
-    m_process.setWorkingDirectory(m_lastRequest.workDir);
+    
+    QString workDir = m_lastRequest.workDir;
+    if (workDir.isEmpty() || !QDir(workDir).exists()) {
+        workDir = QDir::currentPath();
+    }
+    m_process.setWorkingDirectory(workDir);
 
     m_lineBuf.clear();
     m_process.start();
