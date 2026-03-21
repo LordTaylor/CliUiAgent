@@ -55,7 +55,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 48. **Audio**: Visual sound waveform during voice recording.
 50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
 51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
-52. **Performance**: Use `mmap` for reading large files in `ViewFile`.
+52. [x] **Performance**: Use `mmap` for reading large files in `ViewFile`.
 56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
 57. [x] **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).

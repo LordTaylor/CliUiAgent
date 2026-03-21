@@ -32,15 +32,28 @@ public:
         QFile file(path);
         if (!file.exists())
             return ToolUtils::errResult(QString("ReadFile: file not found: %1").arg(path));
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        if (!file.open(QIODevice::ReadOnly))
             return ToolUtils::errResult(QString("ReadFile: cannot open '%1': %2").arg(path, file.errorString()));
 
         constexpr qint64 kMaxBytes = 100 * 1024;  // 100 KB
-        QByteArray data = file.read(kMaxBytes);
-        const bool truncated = (file.bytesAvailable() > 0);
+        qint64 size = file.size();
+        qint64 mapSize = std::min(size, kMaxBytes);
 
-        QString content = QString::fromLocal8Bit(data);
-        if (truncated)
+        QString content;
+        if (mapSize > 0) {
+            uchar* memory = file.map(0, mapSize);
+            if (memory) {
+                // Item 52: Use mmap for file reading
+                content = QString::fromLocal8Bit(reinterpret_cast<const char*>(memory), mapSize);
+                file.unmap(memory);
+            } else {
+                // Fallback to standard read
+                QByteArray data = file.read(mapSize);
+                content = QString::fromLocal8Bit(data);
+            }
+        }
+
+        if (size > kMaxBytes)
             content += "\n\n[... file truncated at 100 KB ...]";
         return ToolUtils::okResult(content);
     }
