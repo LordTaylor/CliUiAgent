@@ -12,13 +12,26 @@ namespace CodeHex {
 
 std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString& jsonPath) {
     QFile f(jsonPath);
-    if (!f.open(QIODevice::ReadOnly)) return nullptr;
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "ConfigurableProfile: Cannot open" << jsonPath;
+        return nullptr;
+    }
 
     QJsonParseError err;
     const auto doc = QJsonDocument::fromJson(f.readAll(), &err);
-    if (doc.isNull() || !doc.isObject()) return nullptr;
+    if (doc.isNull() || !doc.isObject()) {
+        qWarning() << "ConfigurableProfile: JSON parse error in" << jsonPath << ":" << err.errorString();
+        return nullptr;
+    }
 
     const auto obj = doc.object();
+    
+    // Mandatory field check (Item 35: Profile Validation)
+    if (!obj.contains("name") || !obj.contains("baseUrl") || !obj.contains("model")) {
+        qWarning() << "ConfigurableProfile: Skipping malformed profile (missing name/baseUrl/model):" << jsonPath;
+        return nullptr;
+    }
+
     auto p = std::unique_ptr<ConfigurableProfile>(new ConfigurableProfile);
 
     const QString typeStr = obj["type"].toString("openai-compatible");
@@ -27,11 +40,11 @@ std::unique_ptr<ConfigurableProfile> ConfigurableProfile::fromFile(const QString
     else
         p->m_type = ApiType::OpenAICompatible;
 
-    p->m_name        = obj["name"].toString("custom");
+    p->m_name        = obj["name"].toString();
     p->m_displayName = obj["displayName"].toString(p->m_name);
-    p->m_baseUrl     = obj["baseUrl"].toString("http://localhost:1234/v1");
+    p->m_baseUrl     = obj["baseUrl"].toString();
     p->m_apiKey      = obj["apiKey"].toString("not-needed");
-    p->m_model       = obj["model"].toString("local-model");
+    p->m_model       = obj["model"].toString();
     p->m_systemPrompt = obj["systemPrompt"].toString(
         "You are an expert coding assistant. Be concise and precise.");
 

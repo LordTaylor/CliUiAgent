@@ -38,7 +38,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 31. [x] **Signals**: Use `queued` connections where appropriate to avoid GUI thread blocking.
 32. **Memory**: Audit `AgentEngine` for potential cyclic shared_ptr references.
 34. **Logging**: [x] Implement a "Debug Console" window showing raw model I/O.
-35. **Profiles**: Validation for `profiles.json` to prevent app crashes on malformed config.
+35. [x] **Profiles**: Validation for `profiles.json` to prevent app crashes on malformed config.
 36. **Update**: Add an "Check for Updates" mechanism for the binary itself.
 38. **Audio**: Optimize sample rate conversion in `AudioRecorder` for better whisper accuracy.
 39. [x] **Network**: Support for proxy configurations (SOCKS5/HTTP).
