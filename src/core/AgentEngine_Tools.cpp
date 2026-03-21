@@ -70,6 +70,7 @@ void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
     callBlock.type = BlockType::LogStep;
     callBlock.content = "⚙ CALL: " + call.name;
     callMsg.contentBlocks << callBlock;
+    callMsg.isInternal = true;
     callMsg.timestamp = QDateTime::currentDateTime();
     session->appendMessage(callMsg);
     session->save();
@@ -93,6 +94,7 @@ void AgentEngine::approveToolCall(const ToolCall& call) {
         callBlock.type = BlockType::LogStep;
         callBlock.content = "⚙ CALL: " + call.name;
         callMsg.contentBlocks << callBlock;
+        callMsg.isInternal = true;
         callMsg.timestamp = QDateTime::currentDateTime();
         session->appendMessage(callMsg);
         session->save();
@@ -114,6 +116,10 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     toolMsg.role = Message::Role::User;
     toolMsg.timestamp = QDateTime::currentDateTime();
     toolMsg.toolResults << result;
+    toolMsg.isInternal = true;
+    if (!result.subAgentRole.isEmpty()) {
+        toolMsg.subAgentRole = result.subAgentRole;
+    }
     CodeBlock block;
     block.type = BlockType::LogStep;
     block.content = (result.isError ? "❌ FAILED: " : "✅ DONE: ") + toolName;

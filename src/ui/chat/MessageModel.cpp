@@ -142,17 +142,20 @@ void MessageModel::precomputeLayout(Message& msg) const {
 
         // Premium dark-mode stylesheet for rich Markdown rendering
         bl.doc->setDefaultStyleSheet(
-            "body { color: #E5E7EB; }"
+            "body { color: #E5E7EB; line-height: 1.4; word-wrap: break-word; }"
             "h1 { color: #F9FAFB; font-size: 18px; font-weight: bold; margin-top: 8px; margin-bottom: 4px; }"
             "h2 { color: #F3F4F6; font-size: 16px; font-weight: bold; margin-top: 6px; margin-bottom: 3px; }"
             "h3 { color: #D1D5DB; font-size: 14px; font-weight: bold; margin-top: 4px; margin-bottom: 2px; }"
+            "table { border-collapse: collapse; margin: 8px 0; width: 100%; border: 1px solid #374151; }"
+            "th, td { border: 1px solid #374151; padding: 6px; text-align: left; }"
+            "th { background-color: #1F2937; color: #F9FAFB; }"
             "code { background-color: #1F2937; color: #34D399; padding: 1px 4px; border-radius: 3px; font-family: 'Menlo', 'Courier New', monospace; font-size: 12px; }"
             "pre { background-color: #111827; color: #9CA3AF; padding: 8px; border-radius: 6px; font-family: 'Menlo', 'Courier New', monospace; font-size: 12px; }"
-            "a { color: #60A5FA; text-decoration: none; }"
-            "blockquote { border-left: 3px solid #4B5563; margin-left: 4px; padding-left: 8px; color: #9CA3AF; }"
+            "a { color: #3B82F6; text-decoration: none; font-weight: 500; }" // Brighter blue for better contrast
+            "blockquote { border-left: 3px solid #4B5563; margin-left: 4px; padding-left: 8px; color: #9CA3AF; font-style: italic; }"
             "ul, ol { margin-left: 16px; }"
             "li { margin-bottom: 2px; }"
-            "strong { color: #F9FAFB; }"
+            "strong { color: #F9FAFB; font-weight: 600; }"
             "em { color: #D1D5DB; }"
         );
 
@@ -308,6 +311,14 @@ QHash<int, QByteArray> MessageModel::roleNames() const {
         {ContentTypesRole, "contentTypes"},   // New
         {RawMessageRole,  "rawMessage"},     // New
     };
+}
+
+void MessageModel::toggleInternalExpand(int row) {
+    if (row < 0 || row >= m_visible.size()) return;
+    m_visible[row].isExpanded = !m_visible[row].isExpanded;
+    m_visible[row].layoutCache.reset();
+    precomputeLayout(m_visible[row]);
+    emit dataChanged(index(row), index(row));
 }
 
 void MessageModel::toggleThinkingVisibility(int row) {

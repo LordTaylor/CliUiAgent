@@ -110,6 +110,7 @@ public:
     
     // CoVe State Machine
     enum class CoVeState { None, Drafting, VerifyingQuestions, Answering, Finalizing };
+    bool isCoVeActive() const { return m_coveState != CoVeState::None; }
 
 signals:
     void statusChanged(const QString& status);

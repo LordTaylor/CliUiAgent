@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QUuid>
+#include "../core/AgentEngine.h"
 #include "../core/ChatController.h"
 #include "chat/ChatControlBanner.h"
 #include "chat/ChatView.h"
@@ -34,6 +35,9 @@ void MainWindow::onTokenBufferTimeout() {
         Message liveMsg;
         liveMsg.id = QUuid::createUuid();
         liveMsg.role = Message::Role::Assistant;
+        if (m_controller && m_controller->agent() && m_controller->agent()->isCoVeActive()) {
+            liveMsg.isInternal = true;
+        }
         liveMsg.contentBlocks.append(CodeBlock{tokens, BlockType::Text});
         liveMsg.contentTypes.append(Message::ContentType::Text);
         liveMsg.timestamp = QDateTime::currentDateTimeUtc();

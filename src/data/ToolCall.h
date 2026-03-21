@@ -23,6 +23,7 @@ struct ToolResult {
     QString toolUseId;          // matches ToolCall::id
     QString content;            // output text (stdout / file content / error msg)
     bool    isError = false;    // true when the tool execution failed
+    QString subAgentRole;       // set for AskAgent responses (e.g. "Reviewer")
 };
 
 }  // namespace CodeHex

@@ -31,6 +31,10 @@ struct Message {
     /** Confidence score emitted by the model (1–10). -1 = not provided. */
     int  confidenceScore = -1;
 
+    bool    isInternal   = false;  // true = render as collapsed 1-line chip
+    bool    isExpanded   = false;  // when isInternal, whether user expanded it
+    QString subAgentRole;          // set for AskAgent responses (e.g. "Reviewer")
+
     // UI Cache (not serialized)
     mutable std::shared_ptr<PrecomputedLayout> layoutCache;
 

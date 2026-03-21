@@ -19,10 +19,12 @@ public:
     int blockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
     int copyBlockIndexAt(const QPoint& pos, const QRect& rect, const Message& msg) const;
     bool isEyeButtonClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
+    bool isInternalChipClicked(const QPoint& pos, const QRect& rect, const Message& msg) const;
     void setSearchTerm(const QString& term) { m_searchTerm = term; }
 
 private:
     QString m_searchTerm;
+    static constexpr int kChipHeight     = 28;  // height of collapsed internal chip
     static constexpr int kBubblePadding  = 12;
     static constexpr int kBadgeHeight    = 20;
     static constexpr int kBadgeMargin    = 4;
@@ -34,6 +36,9 @@ private:
     // New: Generic method to paint message content blocks.
     void paintMessageContent(QPainter* p, const QStyleOptionViewItem& opt,
                              const Message& msg) const;
+
+    void paintInternalChip(QPainter* p, const QStyleOptionViewItem& opt,
+                            const Message& msg) const;
 
     // isMarkdown=true: renders CommonMark (assistant); false: plain text (user)
     QTextDocument* makeTextDoc(const QString& text, int maxWidth, bool isMarkdown) const;

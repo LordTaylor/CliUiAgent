@@ -270,6 +270,12 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
     painter->save();
     const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
 
+    if (msg.isInternal) {
+        paintInternalChip(painter, option, msg);
+        painter->restore();
+        return;
+    }
+
     if (!msg.contentBlocks.isEmpty() || !msg.attachments.isEmpty()) { // Also paint if only attachments
         paintMessageContent(painter, option, msg);
     }
@@ -300,6 +306,9 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
 QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
     const Message msg = index.data(MessageModel::RawMessageRole).value<Message>();
+    if (msg.isInternal && !msg.isExpanded) {
+        return {option.rect.width(), kChipHeight + 6};
+    }
     if (msg.layoutCache) {
         // Allow a small delta to prevent oscillating fallbacks during resize
         if (qAbs(msg.layoutCache->lastViewWidth - option.rect.width()) <= 2) {
@@ -385,6 +394,110 @@ bool MessageDelegate::isEyeButtonClicked(const QPoint& pos, const QRect& rect, c
     QRect btnRect(btnX, btnY, 24, 24);
     
     return btnRect.contains(pos);
+}
+
+void MessageDelegate::paintInternalChip(QPainter* p, const QStyleOptionViewItem& opt, const Message& msg) const {
+    const QRect& r = opt.rect;
+    const int rx = kAvatarSize + 8;
+    const int ry = r.top() + 3;
+    const int rw = r.width() - rx - 8;
+    const int rh = kChipHeight;
+
+    p->setRenderHint(QPainter::Antialiasing);
+
+    // Background chip
+    QColor bg(0x0D1117);
+    QColor accent = msg.subAgentRole.isEmpty() ? QColor(0x374151) : QColor(0x7C3AED);
+    p->setPen(QPen(accent.darker(130), 1));
+    p->setBrush(bg);
+    p->drawRoundedRect(rx, ry, rw, rh, 5, 5);
+
+    // Left accent stripe
+    p->setPen(Qt::NoPen);
+    p->setBrush(accent);
+    p->drawRoundedRect(rx, ry, 3, rh, 2, 2);
+
+    // Icon + text
+    QString arrow = msg.isExpanded ? "▼" : "▶";
+    QString icon;
+    QString summary;
+
+    if (!msg.subAgentRole.isEmpty()) {
+        const QString role = msg.subAgentRole;
+        if      (role.contains("Reviewer",   Qt::CaseInsensitive)) icon = "🔍";
+        else if (role.contains("Debugger",   Qt::CaseInsensitive)) icon = "🐛";
+        else if (role.contains("Security",   Qt::CaseInsensitive) ||
+                 role.contains("Auditor",    Qt::CaseInsensitive)) icon = "🔒";
+        else if (role.contains("Architect",  Qt::CaseInsensitive)) icon = "🏗";
+        else if (role.contains("Refactor",   Qt::CaseInsensitive)) icon = "♻";
+        else icon = "🤖";
+        // First text block as summary
+        for (const auto& block : msg.contentBlocks) {
+            if (block.type == BlockType::Text || block.type == BlockType::LogStep) {
+                summary = block.content.left(120).replace('\n', ' ');
+                break;
+            }
+        }
+        summary = QString("[%1 %2]: %3").arg(icon, role, summary);
+    } else {
+        // Tool call / result / CoVe step
+        for (const auto& block : msg.contentBlocks) {
+            summary = block.content.left(120).replace('\n', ' ');
+            break;
+        }
+        // Prepend role-based icon
+        if (summary.contains("CALL:", Qt::CaseInsensitive)) icon = "⚙";
+        else if (summary.contains("DONE:", Qt::CaseInsensitive) || summary.contains("FAILED:", Qt::CaseInsensitive)) icon = "✓";
+        else icon = "💭";
+        summary = icon + "  " + summary;
+    }
+
+    QFont chipFont = p->font();
+    chipFont.setPointSizeF(chipFont.pointSizeF() * 0.74);
+    p->setFont(chipFont);
+    p->setPen(QColor(0x9CA3AF));
+
+    const int textX = rx + 10;
+    const int arrowW = 14;
+    p->setPen(QColor(accent).lighter(140));
+    p->drawText(QRect(textX, ry, arrowW, rh), Qt::AlignVCenter, arrow);
+    p->setPen(QColor(0x9CA3AF));
+    p->drawText(QRect(textX + arrowW + 4, ry, rw - arrowW - 20, rh), Qt::AlignVCenter | Qt::AlignLeft, summary);
+
+    p->setFont(opt.font); // restore
+
+    // If expanded, draw full content below the chip (small font)
+    if (msg.isExpanded && msg.layoutCache) {
+        const auto& layout = *msg.layoutCache;
+        int curY = ry + rh + 4;
+        int idx = 0;
+        QFont expandedFont = opt.font;
+        expandedFont.setPointSizeF(expandedFont.pointSizeF() * 0.78);
+        p->setFont(expandedFont);
+        for (const CodeBlock& block : msg.contentBlocks) {
+            if (idx >= layout.blocks.size()) break;
+            const auto& bl = layout.blocks[idx++];
+            p->setBrush(QColor(0x111827));
+            p->setPen(QPen(QColor(0x374151), 1));
+            p->drawRoundedRect(rx + 4, curY, rw - 4, bl.height, 4, 4);
+            p->save();
+            p->translate(rx + 4 + kBubblePadding, curY + kBubblePadding / 2);
+            QAbstractTextDocumentLayout::PaintContext ctx;
+            ctx.palette.setColor(QPalette::Text, QColor(0x6B7280));
+            if (bl.doc) bl.doc->documentLayout()->draw(p, ctx);
+            p->restore();
+            curY += bl.height + 4;
+        }
+        p->setFont(opt.font);
+    }
+}
+
+bool MessageDelegate::isInternalChipClicked(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (!msg.isInternal) return false;
+    const int rx = kAvatarSize + 8;
+    const int ry = rect.top() + 3;
+    const int rw = rect.width() - rx - 8;
+    return QRect(rx, ry, rw, kChipHeight).contains(pos);
 }
 
 }  // namespace CodeHex

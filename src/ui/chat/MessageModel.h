@@ -33,6 +33,7 @@ public:
     void clear();
     void toggleBlock(int row, int blockIndex);
     void toggleThinkingVisibility(int row);
+    void toggleInternalExpand(int row);
 
     // Optimization: Pre-calculate layouts
     void setSearchTerm(const QString& term);

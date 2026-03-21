@@ -19,9 +19,9 @@ ChatView::ChatView(QWidget* parent) : QListView(parent) {
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     setUniformItemSizes(false);
     setResizeMode(QListView::Adjust);
-    setSelectionMode(QAbstractItemView::NoSelection);
+    setSelectionMode(QAbstractItemView::SingleSelection); // Enabled selection for bubbles
     setFrameShape(QFrame::NoFrame);
-    setSpacing(4);
+    setSpacing(6); // Increased spacing slightly
     setContextMenuPolicy(Qt::DefaultContextMenu);
 }
 
@@ -62,10 +62,11 @@ void ChatView::scrollToBottomSmooth() {
     if (!model() || model()->rowCount() == 0) return;
     
     QScrollBar* bar = verticalScrollBar();
-    // If we are near the bottom (within 100px), stay at the bottom
-    bool atBottom = (bar->value() >= bar->maximum() - 100);
+    // If we are near the bottom (within 20% of viewport height), stay at the bottom
+    int threshold = qMax(100, (int)(viewport()->height() * 0.2));
+    bool atBottom = (bar->value() >= bar->maximum() - threshold);
     
-    if (atBottom || bar->maximum() == 0) { // also scroll if it's a completely new chat with no scrollbar yet
+    if (atBottom || bar->maximum() == 0) {
         bar->setValue(bar->maximum());
     }
 }
@@ -112,11 +113,21 @@ void ChatView::contextMenuEvent(QContextMenuEvent* event) {
                     return;
                 }
             }
-        }
-
-        QAction* copyAct = menu.addAction("Copy entire message");
-        if (menu.exec(event->globalPos()) == copyAct) {
-            QApplication::clipboard()->setText(text);
+        } else {
+            QAction* copyTextAct = menu.addAction("Copy message text");
+            QAction* copyMdAct = menu.addAction("Copy as Markdown");
+            QAction* selected = menu.exec(event->globalPos());
+            
+            if (selected == copyTextAct) {
+                QApplication::clipboard()->setText(msg.textFromContentBlocks());
+            } else if (selected == copyMdAct) {
+                // If we had a toMarkdown() helper, we'd use it here. 
+                // For now, content blocks already contain markdown if they are asst messages.
+                QString full;
+                for (const auto& b : msg.contentBlocks) full += b.content + "\n\n";
+                QApplication::clipboard()->setText(full.trimmed());
+            }
+            return;
         }
     }
 }
@@ -128,6 +139,11 @@ void ChatView::mousePressEvent(QMouseEvent* event) {
             Message msg = idx.data(MessageModel::RawMessageRole).value<Message>();
             auto* delegate = qobject_cast<MessageDelegate*>(itemDelegate());
             if (delegate) {
+                if (msg.isInternal && delegate->isInternalChipClicked(event->pos(), visualRect(idx), msg)) {
+                    m_msgModel->toggleInternalExpand(idx.row());
+                    event->accept();
+                    return;
+                }
                 if (delegate->isEyeButtonClicked(event->pos(), visualRect(idx), msg)) {
                     m_msgModel->toggleThinkingVisibility(idx.row());
                     event->accept();
