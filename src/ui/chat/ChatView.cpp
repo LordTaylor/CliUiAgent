@@ -109,6 +109,11 @@ void ChatView::mousePressEvent(QMouseEvent* event) {
             Message msg = idx.data(MessageModel::RawMessageRole).value<Message>();
             auto* delegate = qobject_cast<MessageDelegate*>(itemDelegate());
             if (delegate) {
+                if (delegate->isEyeButtonClicked(event->pos(), visualRect(idx), msg)) {
+                    m_msgModel->toggleThinkingVisibility(idx.row());
+                    event->accept();
+                    return;
+                }
                 int blockIdx = delegate->blockIndexAt(event->pos(), visualRect(idx), msg);
                 if (blockIdx != -1) {
                     m_msgModel->toggleBlock(idx.row(), blockIdx);

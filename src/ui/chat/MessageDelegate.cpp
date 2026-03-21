@@ -209,6 +209,28 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
     if (!msg.contentBlocks.isEmpty() || !msg.attachments.isEmpty()) { // Also paint if only attachments
         paintMessageContent(painter, option, msg);
     }
+
+    // Draw Eye button for toggling thinking
+    if (msg.role == Message::Role::Assistant) {
+        bool hasThinking = false;
+        for (const auto& b : msg.contentBlocks) {
+            if (b.type == BlockType::Thinking) { hasThinking = true; break; }
+        }
+        if (hasThinking) {
+            const int viewWidth = option.rect.width();
+            int btnX = viewWidth - 24 - 12;
+            int btnY = option.rect.top() + 10;
+            QRect btnRect(btnX, btnY, 24, 24);
+            
+            painter->setPen(QColor(156, 163, 175)); // Gray-400
+            QFont iconFont = painter->font();
+            iconFont.setPointSize(14);
+            painter->setFont(iconFont);
+            // Draw either open eye or closed eye depending on state
+            painter->drawText(btnRect, Qt::AlignCenter, msg.showThinking ? "👁" : "👁‍🗨");
+        }
+    }
+
     painter->restore();
 }
 
@@ -254,6 +276,24 @@ int MessageDelegate::blockIndexAt(const QPoint& pos, const QRect& rect, const Me
         idx++;
     }
     return -1;
+}
+
+bool MessageDelegate::isEyeButtonClicked(const QPoint& pos, const QRect& rect, const Message& msg) const {
+    if (msg.role != Message::Role::Assistant) return false;
+    if (!msg.layoutCache) return false;
+
+    bool hasThinking = false;
+    for (const auto& b : msg.contentBlocks) {
+        if (b.type == BlockType::Thinking) { hasThinking = true; break; }
+    }
+    if (!hasThinking) return false;
+
+    const int viewWidth = rect.width();
+    int btnX = viewWidth - 24 - 12;
+    int btnY = rect.top() + 10;
+    QRect btnRect(btnX, btnY, 24, 24);
+    
+    return btnRect.contains(pos);
 }
 
 }  // namespace CodeHex

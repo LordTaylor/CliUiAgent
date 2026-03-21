@@ -10,8 +10,8 @@ This document outlines 60 proposed technical and user experience improvements, a
 3.  [x] **Context**: Implement "Dynamic Context Pruning" to remove least relevant history when near token limits.
 4.  [x] **Token Counting**: Replace manual estimates with a real Tiktoken-based counter (via Python/C++ bindings).
 5.  [x] **Multi-Model**: Support simultaneous reasoning across different LLMs for cross-verification.
-6.  **Loop Detection**: Implement semantic similarity checking for loop detection, not just exact string matches.
-7.  **Thinking**: Allow the user to toggle "Thinking" visibility per message.
+13. **Loop Detection**: Implement semantic similarity checking for loop detection, not just exact string matches.
+14. [x] **Thinking**: Allow the user to toggle "Thinking" visibility per message.
 8.  **Reliability**: Add Exponential Backoff for API retries.
 9.  **Cache**: Persist the thinking cache across application restarts for frequently used prompts.
 10. **Vector DB**: Migrate from in-memory search to an optimized local vector database (e.g., Faiss C++).
