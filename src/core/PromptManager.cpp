@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QProcess>
 #include <QtGlobal>
+#include <QCoreApplication>
 
 namespace CodeHex {
 
@@ -36,7 +37,10 @@ void PromptManager::ensureEnvCache() const {
     m_envVersionCache = info;
 }
 
-QString PromptManager::buildSystemPrompt(AgentRole role, const QString& autoContext) const {
+QString PromptManager::buildSystemPrompt(AgentRole role, 
+                                         const QString& autoContext,
+                                         const QStringList& activeTechniques,
+                                         const QMap<QString, QString>& blackboard) const {
     ensureEnvCache();
 
     QString base = "### CURRENT HOST CONTEXT:\n"
@@ -46,12 +50,34 @@ QString PromptManager::buildSystemPrompt(AgentRole role, const QString& autoCont
                    "- **Current Role**: " + (role == AgentRole::Executor ? "Executor" : 
                                             (role == AgentRole::Reviewer ? "Reviewer" : 
                                             (role == AgentRole::Explorer ? "Explorer" : 
-                                             (role == AgentRole::RAG ? "RAG" : "Base")))) + "\n\n";
+                                            (role == AgentRole::RAG ? "RAG" : 
+                                            (role == AgentRole::Architect ? "Architect" :
+                                            (role == AgentRole::Debugger ? "Debugger" :
+                                            (role == AgentRole::SecurityAuditor ? "SecurityAuditor" : "Base"))))))) + "\n\n";
 
     base += m_envVersionCache + "\n\n";
     base += roleStrategy(role) + "\n\n";
     base += loadRolePrompt(role);
     
+    // 🎭 ACTIVE TECHNIQUES (Behavior Injection)
+    if (!activeTechniques.isEmpty()) {
+        base += "\n\n### ACTIVE TECHNIQUES (MANDATORY BEHAVIORS):\n";
+        for (const QString& tech : activeTechniques) {
+            QString content = loadTechniquePrompt(tech);
+            if (!content.isEmpty()) {
+                base += content + "\n";
+            }
+        }
+    }
+
+    // 📋 SESSION BLACKBOARD (Short-Term Memory)
+    if (!blackboard.isEmpty()) {
+        base += "\n\n### SESSION BLACKBOARD (Short-Term Progress Notes):\n";
+        for (auto it = blackboard.begin(); it != blackboard.end(); ++it) {
+            base += QString("- **%1**: %2\n").arg(it.key(), it.value());
+        }
+    }
+
     // 🧠 AGENT BRAIN: Load persistent memory
     QString memoryPath = m_config->workingFolder() + "/.agent/memory.md";
     QFile memFile(memoryPath);
@@ -61,11 +87,42 @@ QString PromptManager::buildSystemPrompt(AgentRole role, const QString& autoCont
     }
 
     // 📜 PROJECT RULES: Load mandatory constraints
-    QString rulesPath = m_config->workingFolder() + "/.agent/rules.md";
-    QFile rulesFile(rulesPath);
-    if (rulesFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        base += "\n\n### MANDATORY PROJECT RULES & GUIDELINES (STRICT ADHERENCE REQUIRED):\n" + 
-                QString::fromUtf8(rulesFile.readAll());
+    // 1. Global rules: walk up from executable until .agent/rules.md is found
+    auto loadRulesFile = [](const QString& path) -> QString {
+        QFile f(path);
+        return (f.open(QIODevice::ReadOnly | QIODevice::Text))
+            ? QString::fromUtf8(f.readAll()) : QString();
+    };
+
+    QString globalRules;
+    {
+        QDir dir(QCoreApplication::applicationDirPath());
+        for (int i = 0; i < 8 && !dir.isRoot(); ++i) {
+            QString candidate = dir.filePath(".agent/rules.md");
+            globalRules = loadRulesFile(candidate);
+            if (!globalRules.isEmpty()) {
+                qDebug() << "[PromptManager] Global rules loaded from:" << candidate;
+                break;
+            }
+            dir.cdUp();
+        }
+    }
+
+    // 2. Project-specific rules (workingFolder — may override or extend global)
+    QString projectRules;
+    if (!m_config->workingFolder().isEmpty()) {
+        projectRules = loadRulesFile(m_config->workingFolder() + "/.agent/rules.md");
+    }
+
+    QString allRules = globalRules;
+    if (!projectRules.isEmpty() && projectRules != globalRules)
+        allRules += (allRules.isEmpty() ? "" : "\n\n---\n\n") + projectRules;
+
+    if (!allRules.isEmpty()) {
+        base += "\n\n### MANDATORY PROJECT RULES & GUIDELINES (STRICT ADHERENCE REQUIRED):\n"
+                + allRules;
+    } else {
+        qWarning() << "[PromptManager] No rules.md found — agent running without explicit rules.";
     }
 
     base += "\n\n### INTERNAL TOOLS & SCRATCHPAD:\n"
@@ -173,7 +230,7 @@ QString PromptManager::loadRolePrompt(AgentRole role) const {
         case AgentRole::Executor: fileName = "executor.txt"; break;
         case AgentRole::Reviewer: fileName = "reviewer.txt"; break;
         case AgentRole::RAG:      fileName = "rag.txt"; break;
-        case AgentRole::REFACTOR: fileName = "refactor.txt"; break;
+        case AgentRole::Refactor: fileName = "refactor.txt"; break;
         case AgentRole::Architect: fileName = "architect.txt"; break;
         case AgentRole::Debugger:  fileName = "debugger.txt"; break;
         case AgentRole::SecurityAuditor: fileName = "security_auditor.txt"; break;
@@ -186,10 +243,28 @@ QString PromptManager::loadRolePrompt(AgentRole role) const {
     return QString();
 }
 
+QString PromptManager::loadTechniquePrompt(const QString& name) const {
+    // 1. Try embedded resources first
+    QFile resFile(":/resources/prompts/techniques/" + name + ".txt");
+    if (resFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString::fromUtf8(resFile.readAll());
+    }
+    
+    // 2. Try file system if not in resources
+    QFile fsFile(m_config->workingFolder() + "/.agent/techniques/" + name + ".txt");
+    if (fsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString::fromUtf8(fsFile.readAll());
+    }
+    
+    return QString();
+}
+
 QJsonObject PromptManager::buildRequestJson(AgentRole role, 
                                           const QString& userInput, 
                                           const QList<Message>& history, 
                                           const QJsonArray& tools,
+                                          const QStringList& activeTechniques,
+                                          const QMap<QString, QString>& blackboard,
                                           int thinkingBudget,
                                           bool useCache,
                                           const QString& ragContext,
@@ -200,7 +275,9 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
     QJsonArray system;
     QJsonObject systemBlock;
     systemBlock["type"] = "text";
-    systemBlock["text"] = buildSystemPrompt(role, ragContext);
+    
+    // Note: We need to pass techniques and blackboard from AgentEngine/Session
+    systemBlock["text"] = buildSystemPrompt(role, ragContext, activeTechniques, blackboard);
     
     if (useCache) {
         QJsonObject cacheControl;
