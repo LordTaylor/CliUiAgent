@@ -24,6 +24,10 @@
 #include "tools/CompleteTaskTool.h"
 #include "tools/WebSearchTool.h"
 #include "tools/ConsultCollaboratorTool.h"
+#include "tools/AnalyzeVisionTool.h"
+#include "tools/ReadStacktraceTool.h"
+#include "tools/BuildTool.h"
+#include "tools/ExportKnowledgeGraphTool.h"
 #include "rag/EmbeddingManager.h"
 #include "rag/CodebaseIndexer.h"
 #include "SessionManager.h"
@@ -80,6 +84,15 @@ AgentEngine::AgentEngine(AppConfig* config,
     // We pass a raw pointer — safe because AgentEngine outlives ToolExecutor.
     m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ConsultCollaboratorTool>(this)));
     m_toolExecutor->registerAlias("Consult", "ConsultCollaborator");
+
+    // Batch Roadmap: New Tools
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::AnalyzeVisionTool>(this)));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ReadStacktraceTool>()));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::BuildTool>(m_config)));
+    m_toolExecutor->registerTool(std::static_pointer_cast<CodeHex::Tool>(std::make_shared<CodeHex::ExportKnowledgeGraphTool>(m_config)));
+    
+    m_toolExecutor->registerAlias("Vision", "AnalyzeVision");
+    m_toolExecutor->registerAlias("BuildPrj", "Build");
 
     // Create the dedicated secondary runner for collaborator queries
     m_collaboratorRunner = new CliRunner(this);
@@ -451,6 +464,23 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
     session->appendMessage(toolMsg);
     session->save();
 
+    // Loop Detection Logic
+    m_lastToolResults.append(result.content.trimmed());
+    if (m_lastToolResults.size() > MAX_LOOP_RESULTS) {
+        m_lastToolResults.removeFirst();
+    }
+
+    bool potentialLoop = false;
+    if (m_lastToolResults.size() == MAX_LOOP_RESULTS) {
+        potentialLoop = true;
+        for (int i = 1; i < m_lastToolResults.size(); ++i) {
+            if (m_lastToolResults[i] != m_lastToolResults[0]) {
+                potentialLoop = false;
+                break;
+            }
+        }
+    }
+
     // Automatically trigger the next agent turn if the profile isn't already doing something
     if (!m_runner->isProfileRunning()) {
         QString sp = getSystemPrompt();
@@ -459,6 +489,10 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
                 // For local models, a explicit nudge helps prevent hallucinations
                 QString nudge = QString("Tool Executed: %1\nOutput: %2\n\nPlease ANALYZE this output and decide on the NEXT STEP or FINALIZE the task if no more actions are needed.")
                                 .arg(toolName, result.content);
+                
+                if (potentialLoop) {
+                    nudge += "\n⚠️ WARNING: I detected that you are repeating the same output multiple times. Please check if you are stuck in a logic loop and try a DIFFERENT approach.";
+                }
                 sendContinueRequest(nudge);
             }
         } else {

@@ -178,6 +178,10 @@ private:
     // Owned by AgentEngine; separate from m_runner to avoid interference.
     CliRunner* m_collaboratorRunner = nullptr;
     QString    m_collaboratorResponse;
+
+    // --- Loop Detection (Item #13) ---
+    QStringList m_lastToolResults;
+    const int MAX_LOOP_RESULTS = 3;
 };
 
 }  // namespace CodeHex

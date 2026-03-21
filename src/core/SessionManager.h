@@ -23,6 +23,14 @@ public:
     Session* currentSession() const;
     void setCurrentSession(Session* s);
 
+    struct SearchResult {
+        QString sessionId;
+        QString sessionTitle;
+        QString messageText;
+    };
+    QList<SearchResult> searchAllSessions(const QString& query) const;
+    void autoArchiveOldSessions();
+
 signals:
     void sessionCreated(const QString& id);
     void sessionDeleted(const QString& id);

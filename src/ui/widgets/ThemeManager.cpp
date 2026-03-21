@@ -43,6 +43,12 @@ void ThemeManager::initVariables() {
     m_lightVars["{{GLASS_BORDER}}"] = "rgba(203, 213, 225, 0.5)";
 }
 
+void ThemeManager::setFontFamily(const QString& family) {
+    if (m_fontFamily == family) return;
+    m_fontFamily = family;
+    qApp->setStyleSheet(currentStyleSheet());
+}
+
 void ThemeManager::setTheme(bool dark) {
     if (m_isDark == dark) return;
     m_isDark = dark;
@@ -72,6 +78,7 @@ QString ThemeManager::processQss(const QString& rawQss) const {
         processed.replace(it.key(), it.value());
         ++it;
     }
+    processed.replace("{{FONT_FAMILY}}", m_fontFamily);
     return processed;
 }
 

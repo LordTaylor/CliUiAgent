@@ -65,7 +65,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 2.  **Autonomous Vision**: Use a screenshot of the user's screen to "see" UI bugs.
 3. [x] **Local RAG Agent** (Dedykowana rola do pytań o cały codebase - nie tylko 3 snippety). the *entire* codebase (not just 3 snippets).
 4. [x] **Web Search Tool** (Tavily/DuckDuckGo).
-5.  **Multi-Agent Collaborative Mode**: Two agents (e.g., Architect and Coder) debating the best approach.
+5. [x] **Multi-Agent Collaborative Mode**: Two agents (e.g., Architect and Coder) debating the best approach.
 6. [x] **Codebase Visualizer** (Generowanie diagramu Mermaid struktury projektu).
 7. [x] **Auto-Walkthrough** (Automatyczne generowanie walkthrough.md po zakończeniu zadania).ull request the agent makes.
 10. [x] **Refactoring Assistant** (Specjalna rola do upraszczania i optymalizacji kodu).

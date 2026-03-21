@@ -3,6 +3,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QUuid> // Added
 #include "../../core/SessionManager.h"
 #include "../../data/Session.h"
 

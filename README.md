@@ -7,21 +7,15 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 ## Features
 
 - **Multiple AI backends** — Claude CLI, Ollama (local), OpenAI via sgpt; switchable per session
-- **Streaming responses** — tokens stream live into the chat view
-- **Sessions** — JSON-based, unlimited history, lazy-loaded (10 messages at a time)
-- **Scripting** — Lua 5.4 and Python 3 hook scripts with hot-reload
-- **Voice & Images** — record `.wav` messages, attach images and code files
-- **Expandable Console** — shows raw CLI output for debugging
-- **Dark theme** — full QSS dark UI
-- **Cross-platform** — macOS, Linux, Windows
-- **Autonomous Agent** — executes shell commands and file operations (`Read`, `Write`, `Search`, `Replace`, `MathLogic`) and **Codebase Awareness (RAG)** for semantic search
-- **Core Intelligence & Reasoning (Phase 1)**:
-    - **Chain-of-Verification (CoVe)**: 4-step factual verification (Draft → Verify → Answer → Finalize).
-    - **Multi-Model Ensemble**: Orchestrates multiple LLMs and synthesizes optimal responses.
-    - **Advanced Mathematical Logic**: Symbolic computation integration via SymPy for complex algebra and calculus.
-    - **Self-Correction Loop**: Automatic detection of logic loops with corrective nudging.
-- **Safety Mode** — optional manual approval for persistent file changes or command execution
-- **Smart Context** — dynamic system prompt injection (OS, time, project structure), token-aware history, and semantic code retrieval via RAG
+- **🤝 Multi-Agent Collaboration** — Możliwość konsultacji z innymi modelami/agentami w celu weryfikacji rozwiązań (Roadmap Item #5).
+- **👁 Autonomous Vision** — Możliwość robienia zrzutów ekranu i analizy wizualnej interfejsu (Roadmap Item #2).
+- **📟 Terminal streaming** — Wyniki komend terminala oraz logi budowania są przesyłane w czasie rzeczywistym.
+- **🧠 Local RAG (Opcjonalnie)** — Indeksowanie plików przy użyciu wektorowej bazy danych dla lepszego kontekstu (obsługiwane przez `all-MiniLM-L6-v2`).
+- **♻ Loop Detection** — Inteligentne wykrywanie pętli logicznych i automatyczne ostrzeganie agenta.
+- **🔍 Global Search** — Przeszukiwanie treści wszystkich sesji (również archiwalnych).
+- **🎨 Custom Experience** — Tryb ciemny/jasny oraz wsparcie dla niestandardowych czcionek programistycznych.
+- **🛡 Bezpieczeństwo** — Każda operacja zapisu lub komenda może wymagać Twojej ręcznej akceptacji (Manual Approval).
+- **🎨 Modern UI** — Interfejs zbudowany w Qt6 z obsługą motywów i animacji.
 
 ---
 

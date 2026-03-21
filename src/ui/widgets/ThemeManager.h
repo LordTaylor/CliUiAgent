@@ -12,6 +12,9 @@ public:
 
     void setTheme(bool dark);
     bool isDark() const { return m_isDark; }
+
+    void setFontFamily(const QString& family);
+    QString fontFamily() const { return m_fontFamily; }
     
     QString currentStyleSheet() const;
 
@@ -23,6 +26,7 @@ private:
     QString processQss(const QString& rawQss) const;
     
     bool m_isDark = true;
+    QString m_fontFamily = "Inter"; // Default modern font
     QMap<QString, QString> m_darkVars;
     QMap<QString, QString> m_lightVars;
 

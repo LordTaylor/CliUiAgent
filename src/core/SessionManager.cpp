@@ -18,20 +18,10 @@ void SessionManager::loadAll() {
     m_sessions.clear();
     m_current = nullptr;
 
+    autoArchiveOldSessions();
+
     QDir dir(m_config->sessionsDir());
-    
-    // Auto-archive old sessions (Item 42)
-    QDir historyDir(dir.filePath("history"));
-    if (!historyDir.exists()) dir.mkpath("history");
-    QDateTime threshold = QDateTime::currentDateTime().addDays(-14);
-
     for (const QString& fname : dir.entryList({"*.json"}, QDir::Files, QDir::Time)) {
-        QFileInfo info(dir.filePath(fname));
-        if (info.lastModified() < threshold) {
-            QFile::rename(info.filePath(), historyDir.filePath(fname));
-            continue;
-        }
-
         auto* s = new Session(Session::load(dir.filePath(fname)));
         if (!s->id.isNull()) {
             m_sessions.append(s);
@@ -40,6 +30,46 @@ void SessionManager::loadAll() {
         }
     }
     emit sessionsLoaded();
+}
+
+QList<SessionManager::SearchResult> SessionManager::searchAllSessions(const QString& query) const {
+    QList<SearchResult> results;
+    if (query.isEmpty()) return results;
+
+    QDir dir(m_config->sessionsDir());
+    QStringList allFiles = dir.entryList({"*.json"}, QDir::Files);
+    
+    // Also include archived sessions
+    QDir historyDir(dir.filePath("history"));
+    if (historyDir.exists()) {
+        for (const QString& f : historyDir.entryList({"*.json"}, QDir::Files)) {
+            allFiles.append("history/" + f);
+        }
+    }
+
+    for (const QString& relPath : allFiles) {
+        Session s = Session::load(dir.filePath(relPath));
+        for (const auto& msg : s.messages) {
+            if (msg.textFromContentBlocks().contains(query, Qt::CaseInsensitive)) {
+                results.append({s.id.toString(QUuid::WithoutBraces), s.title, msg.textFromContentBlocks()});
+            }
+        }
+    }
+    return results;
+}
+
+void SessionManager::autoArchiveOldSessions() {
+    QDir dir(m_config->sessionsDir());
+    QDir historyDir(dir.filePath("history"));
+    if (!historyDir.exists()) dir.mkpath("history");
+    
+    QDateTime threshold = QDateTime::currentDateTime().addDays(-14);
+    for (const QString& fname : dir.entryList({"*.json"}, QDir::Files)) {
+        QFileInfo info(dir.filePath(fname));
+        if (info.lastModified() < threshold) {
+            QFile::rename(info.filePath(), historyDir.filePath(fname));
+        }
+    }
 }
 
 Session* SessionManager::createSession(const QString& profileName, const QString& modelName) {
