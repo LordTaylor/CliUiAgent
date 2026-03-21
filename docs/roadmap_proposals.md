@@ -51,7 +51,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 44. **Icons**: Replace generic icons with a custom, cohesive SVG icon set.
 45. **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
 46. [x] **Context**: Add "Include File" button in the file explorer to manually push files into context.
-47. **Search**: Highlighting of matched keywords in search results.
+47. [x] **Search**: Highlighting of matched keywords in search results.
 48. **Audio**: Visual sound waveform during voice recording.
 50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
 51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
