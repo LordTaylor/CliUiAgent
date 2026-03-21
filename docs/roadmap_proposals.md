@@ -78,8 +78,4 @@ This document outlines 60 proposed technical and user experience improvements, a
 16. **Performance Profiler Integration**: Agent analyzes flamegraphs to find bottlenecks.
 17. **Knowledge Graph**: A persistent graph of how functions and classes relate across the project.
 18. **Custom Skill Builder**: User can "teach" the agent a repeat task by recording a series of actions.
-21. **Docker Integration**: Agent can start/stop containers to test environment parity.
-23. **Code Quality Scoreboard**: Real-time linting score and "cleanliness" metrics.
-25. **Export to PDF/Docs**: Export session history or project analysis to professional reports.
-26. **SQL Query Assistant**: specialized tools for DB schema exploration and query optimization.
 28. **Natural Language UI Builder**: "Add a blue button that saves state" - agent modifies the QML/Qt UI.

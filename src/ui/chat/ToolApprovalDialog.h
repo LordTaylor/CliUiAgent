@@ -8,6 +8,8 @@
 
 namespace CodeHex {
 
+class DiffWidget;
+
 class ToolApprovalDialog : public QDialog {
     Q_OBJECT
 public:
@@ -24,6 +26,7 @@ private:
     bool m_approved = false;
 
     QLabel* m_infoLabel;
+    DiffWidget* m_diffWidget; // Rich diff view
     QPushButton* m_approveBtn;
     QPushButton* m_denyBtn;
 };

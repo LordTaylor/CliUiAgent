@@ -55,7 +55,7 @@ private slots:
     void onGenerationStopped();
     void onClearChatRequested();
     void onThemeToggleRequested();
-    void onToolApprovalRequested(const QString& toolName, const QJsonObject& input);
+    void onToolApprovalRequested(const CodeHex::ToolCall& call);
     void onProviderChanged(int index);
     void onHelpRequested(const QString& page = "getting-started");
     void onAbout();

@@ -53,7 +53,7 @@ signals:
     
     // UI-specific signals (re-emitted from AgentEngine)
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
-    void toolApprovalRequested(const QString& toolName, const QJsonObject& input);
+    void toolApprovalRequested(const CodeHex::ToolCall& call);
     
     void sessionRenamed(const QString& sessionId, const QString& newTitle);
 

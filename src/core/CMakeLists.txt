@@ -25,6 +25,7 @@ add_library(codehex_core STATIC
     tools/WebSearchTool.h
     FileHotnessProvider.h
     FileHotnessProvider.cpp
+    DiffUtils.cpp
     tools/ReplaceTool.h
     tools/SearchReplaceTool.h
     tools/MathLogicTool.h tools/MathLogicTool.cpp

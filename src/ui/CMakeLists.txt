@@ -12,6 +12,10 @@ add_library(codehex_ui STATIC
     widgets/TerminalPanel.h  widgets/TerminalPanel.cpp
     widgets/ThemeManager.h   widgets/ThemeManager.cpp
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
+    chat/DiffHighlighter.h
+    chat/DiffHighlighter.cpp
+    chat/DiffWidget.h
+    chat/DiffWidget.cpp
     workfolder/WorkFolderPanel.h    workfolder/WorkFolderPanel.cpp
     workfolder/SmartFileSortProxyModel.h
     settings/SettingsDialog.h       settings/SettingsDialog.cpp

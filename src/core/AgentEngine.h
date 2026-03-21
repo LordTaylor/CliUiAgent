@@ -94,7 +94,7 @@ signals:
     void tokenStatsUpdated(int input, int output);
     void consoleOutput(const QString& raw);
     void toolCallStarted(const QString& toolName, const QJsonObject& input);
-    void toolApprovalRequested(const QString& toolName, const QJsonObject& input);
+    void toolApprovalRequested(const CodeHex::ToolCall& call);
     void responseComplete(const Message& msg);
     void errorOccurred(const QString& error);
 

@@ -26,11 +26,18 @@ ResponseParser::ParseResult ResponseParser::parse(const QString& response) {
                              QRegularExpression::DotMatchesEverythingOption);
     
     QRegularExpressionMatchIterator toolIt = toolRe.globalMatch(response);
+    int lastPos = 0;
     while (toolIt.hasNext()) {
         QRegularExpressionMatch match = toolIt.next();
         QString tname = match.captured(1).trimmed();
         QString jsonStr = match.captured(2).trimmed();
         
+        // Capture explanation (text between previous tool and this one)
+        QString rawExplanation = response.mid(lastPos, match.capturedStart() - lastPos).trimmed();
+        // Clean the explanation (remove thoughts and XML tags)
+        QString cleanExpl = cleanText(rawExplanation).trimmed();
+        lastPos = match.capturedEnd();
+
         QJsonParseError err;
         QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &err);
         if (!doc.isNull() && doc.isObject()) {
@@ -38,6 +45,7 @@ ResponseParser::ParseResult ResponseParser::parse(const QString& response) {
             call.id = QUuid::createUuid().toString();
             call.name = tname;
             call.input = doc.object();
+            call.explanation = cleanExpl; // Store captured explanation
             result.toolCalls << call;
         } else {
             qWarning() << "[ResponseParser] FAILED to parse JSON for tool" << tname << ":" << err.errorString();

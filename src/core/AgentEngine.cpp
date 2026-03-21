@@ -360,9 +360,9 @@ void AgentEngine::onToolCallReady(const CodeHex::ToolCall& call) {
     }
     
     if (p == Permission::Ask) {
-        qDebug() << "[AgentEngine] Requesting approval for" << call.name;
-        emit toolApprovalRequested(call.name, call.input);
+        emit toolApprovalRequested(call);
         m_pendingCalls.append(call);
+        m_isRunning = false; // Stop running while waiting for approval
         return;
     }
 

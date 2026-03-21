@@ -9,9 +9,10 @@ namespace CodeHex {
 // Represents a single tool invocation requested by the model.
 // Populated by CliProfile::parseLine() when a tool_use block is fully received.
 struct ToolCall {
-    QString     id;     // unique ID from the model (e.g. "toolu_01Abc…")
-    QString     name;   // tool name (e.g. "Bash", "ReadFile", "WriteFile")
-    QJsonObject input;  // parsed tool parameters as JSON object
+    QString     id;          // unique ID from the model
+    QString     name;        // tool name
+    QJsonObject input;       // tool parameters
+    QString     explanation; // AI explanation of the change (captured from preceding text)
 };
 
 // ── ToolResult ───────────────────────────────────────────────────────────────

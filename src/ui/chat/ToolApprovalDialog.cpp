@@ -2,13 +2,17 @@
 #include <QJsonDocument>
 #include <QHBoxLayout>
 #include <QIcon>
+#include <QFile>
+#include <QTextStream>
+#include "DiffWidget.h"
+#include "../../core/DiffUtils.h"
 
 namespace CodeHex {
 
 ToolApprovalDialog::ToolApprovalDialog(const ToolCall& call, QWidget* parent)
     : QDialog(parent), m_call(call) {
     setWindowTitle("Tool Approval Required");
-    setMinimumWidth(400);
+    setMinimumSize(600, 450);
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(20, 20, 20, 20);
@@ -25,13 +29,42 @@ ToolApprovalDialog::ToolApprovalDialog(const ToolCall& call, QWidget* parent)
     m_infoLabel = new QLabel(this);
     m_infoLabel->setWordWrap(true);
     
-    QString details = "<b>Tool:</b> <code style='color: #10B981;'>" + call.name + "</code><br><br>";
-    details += "<b>Arguments:</b><br>";
-    details += "<pre style='font-size: 11px;'>" + QJsonDocument(call.input).toJson(QJsonDocument::Indented) + "</pre>";
-    
+    QString details = "<b>Tool:</b> <code style='color: #10B981;'>" + call.name + "</code>";
     m_infoLabel->setText(details);
-    m_infoLabel->setStyleSheet("background-color: #1F2937; color: #E5E7EB; padding: 12px; border: 1px solid #374151; border-radius: 8px;");
     layout->addWidget(m_infoLabel);
+
+    m_diffWidget = new DiffWidget(this);
+    m_diffWidget->setExplanation(call.explanation);
+
+    bool showDiff = false;
+    if (call.name == "replace_file_content") {
+        QString target = call.input["TargetContent"].toString();
+        QString replacement = call.input["ReplacementContent"].toString();
+        auto diff = DiffUtils::generateDiff(target, replacement);
+        m_diffWidget->setDiff(DiffUtils::toUnifiedString(diff));
+        showDiff = true;
+    } else if (call.name == "write_file_content" || call.name == "write_to_file") {
+         QString path = call.input["TargetFile"].toString();
+         QString newContent = call.input["CodeContent"].toString();
+         QString oldContent;
+         QFile file(path);
+         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+             oldContent = QTextStream(&file).readAll();
+         }
+         auto diff = DiffUtils::generateDiff(oldContent, newContent);
+         m_diffWidget->setDiff(DiffUtils::toUnifiedString(diff));
+         showDiff = true;
+    }
+
+    if (showDiff) {
+        layout->addWidget(m_diffWidget);
+    } else {
+        auto* jsonLabel = new QLabel(this);
+        jsonLabel->setWordWrap(true);
+        jsonLabel->setText("<pre style='font-size: 11px;'>" + QJsonDocument(call.input).toJson(QJsonDocument::Indented) + "</pre>");
+        jsonLabel->setStyleSheet("background-color: #1F2937; color: #E5E7EB; padding: 12px; border: 1px solid #374151; border-radius: 8px;");
+        layout->addWidget(jsonLabel);
+    }
 
     auto* btnLayout = new QHBoxLayout();
     btnLayout->setSpacing(10);

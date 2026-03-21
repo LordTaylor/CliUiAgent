@@ -708,16 +708,13 @@ void MainWindow::onStopRequested() {
     m_stopBtn->setVisible(false);
 }
 
-void MainWindow::onToolApprovalRequested(const QString& toolName, const QJsonObject& input) {
-    m_statusLabel->setText("Waiting for Tool Approval: " + toolName);
+void MainWindow::onToolApprovalRequested(const CodeHex::ToolCall& call) {
+    m_statusLabel->setText("Waiting for Tool Approval: " + call.name);
     m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #F59E0B").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #F59E0B"));
     
-    ToolCall call;
-    call.name = toolName;
-    call.input = input;
     ToolApprovalDialog dlg(call, this);
     if (dlg.exec() == QDialog::Accepted) {
-        m_statusLabel->setText("Executing Tool: " + toolName);
+        m_statusLabel->setText("Executing Tool: " + call.name);
         m_statusLabel->setStyleSheet(m_statusLabel->styleSheet().replace(QRegularExpression("color:[^;]+"), "color: #10B981").replace(QRegularExpression("border:[^;]+"), "border: 1px solid #10B981"));
         m_controller->approveToolCall(call);
     } else {
