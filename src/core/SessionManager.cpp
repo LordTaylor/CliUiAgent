@@ -1,5 +1,7 @@
 #include "SessionManager.h"
 #include <QDir>
+#include <QDateTime>
+#include <QFileInfo>
 #include "AppConfig.h"
 
 namespace CodeHex {
@@ -17,7 +19,19 @@ void SessionManager::loadAll() {
     m_current = nullptr;
 
     QDir dir(m_config->sessionsDir());
+    
+    // Auto-archive old sessions (Item 42)
+    QDir historyDir(dir.filePath("history"));
+    if (!historyDir.exists()) dir.mkpath("history");
+    QDateTime threshold = QDateTime::currentDateTime().addDays(-14);
+
     for (const QString& fname : dir.entryList({"*.json"}, QDir::Files, QDir::Time)) {
+        QFileInfo info(dir.filePath(fname));
+        if (info.lastModified() < threshold) {
+            QFile::rename(info.filePath(), historyDir.filePath(fname));
+            continue;
+        }
+
         auto* s = new Session(Session::load(dir.filePath(fname)));
         if (!s->id.isNull()) {
             m_sessions.append(s);

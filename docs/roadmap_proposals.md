@@ -46,7 +46,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 
 ### Polish & Details
 41. [x] **Status Bar**: Show current token usage and cost estimate in the status bar.
-42. **Sessions**: Auto-archive old sessions to a `history/` subdirectory.
+42. [x] **Sessions**: Auto-archive old sessions to a `history/` subdirectory.
 43. [x] **Title**: Sanitize auto-generated session titles (remove special characters).
 44. **Icons**: Replace generic icons with a custom, cohesive SVG icon set.
 45. **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
