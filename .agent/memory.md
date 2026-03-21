@@ -25,3 +25,7 @@ Ten plik służy jako pamięć długotrwała agenta. Tutaj zapisujemy:
 - **Session Integrity**: Przeładowane sesje z powtarzającymi się logami narzędzi degradują jakość odpowiedzi AI. Regularna sanitacja sesji (`clean_sessions.py`) jest kluczowa dla długich konwersacji.
 26: - **CMake Generator Mismatch**: Przy zmianie generatora (np. Ninja <-> Unix Makefiles) CMake rzuca błąd. Skrypt `run.sh` musi wykrywać tę zmianę i usuwać `CMakeCache.txt` oraz `CMakeFiles/`, aby wymusić czystą rekonfigurację.
 27: - **LlmDiscoveryService**: Różni dostawcy mają różne endpointy dla listowania modeli. Przy pobieraniu należy przekazać `type` (ollama, openai), aby wybrać poprawną ścieżkę API (`/api/tags` vs `/models`).
+- **Prompt Specialization**: Użycie wyspecjalizowanych promptów dla ról (Architect/Debugger) znacząco poprawia jakość odpowiedzi w konkretnych domenach technicznych w porównaniu do jednego, ogólnego promptu "Asystent".
+- **XML vs JSON**: Formaty XML w promptach są lepiej rozumiane przez modele typu Claude/Llama przy wywoływaniu narzędzi, jeśli dostarczy się im ścisłe schematy "One-Shot" w instrukcji systemowej.
+- **Negative Constraints**: Wyraźne zakazy (np. "NIE używaj Bash do edycji plików") są kluczowe dla zachowania integralności codebase, gdy agent ma dostęp do wielu nakładających się funkcjonalnie narzędzi.
+- **Script Verification**: Skrypt `run.sh --rebuild` jest najbardziej niezawodnym sposobem na weryfikację stanu projektu po dużych zmianach w systemach zasobów (prompty) i logice backendu.

@@ -10,11 +10,11 @@ enum class AgentRole {
     Explorer,  // Research, search, information gathering
     Executor,  // Code implementation, tool usage
     Reviewer,  // Verification, auditing, logic checking
-    RAG,       // Knowledge retrieval from codebase
-    REFACTOR,   // Code simplification & optimization
-    Architect, // High-level design and planning
-    Debugger,  // Root cause analysis and bug fixing
-    SecurityAuditor // Security auditing and risk assessment
+    RAG,             ///< Knowledge retrieval from codebase
+    REFACTOR,        ///< Code simplification & optimization
+    Architect,       ///< High-level design and architectural planning
+    Debugger,        ///< Root cause analysis and bug fixing
+    SecurityAuditor  ///< Security auditing and risk assessment
 };
 
 } // namespace CodeHex
