@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "../../core/AppConfig.h"
+#include "../../core/CrashHandler.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QListWidget>

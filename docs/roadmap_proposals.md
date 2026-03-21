@@ -49,16 +49,16 @@ This document outlines 60 proposed technical and user experience improvements, a
 42. [x] **Sessions**: Auto-archive old sessions to a `history/` subdirectory.
 43. [x] **Title**: Sanitize auto-generated session titles (remove special characters).
 44. **Icons**: Replace generic icons with a custom, cohesive SVG icon set.
-45. **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
+45. [x] **Prompts**: Version the system prompts and allow the user to "Rollback" to a previous prompt set.
 46. [x] **Context**: Add "Include File" button in the file explorer to manually push files into context.
 47. [x] **Search**: Highlighting of matched keywords in search results.
 48. **Audio**: Visual sound waveform during voice recording.
 50. **Onboarding**: A guided "First Run" tutorial showing key agent features.
-51. **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
+51. [x] **Crashes**: Implement a simple "Crash Reporter" to gather stack traces.
 52. [x] **Performance**: Use `mmap` for reading large files in `ViewFile`.
 56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
 57. [x] **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
-58. **Settings**: Hierarchical settings menu (General, Model, Advanced).
+58. [x] **Settings**: Hierarchical settings menu (General, Model, Advanced).
 60. [x] **Documentation**: Inline help tooltips for all settings and tool permissions.
 
 ---

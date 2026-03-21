@@ -12,6 +12,7 @@
 #include "../scripting/ScriptManager.h"
 #include "../ui/MainWindow.h"
 #include "../core/TokenCounter.h"
+#include "../core/CrashHandler.h"
 
 namespace CodeHex {
 
@@ -30,6 +31,7 @@ int Application::run() {
 }
 
 void Application::setupComponents() {
+    CrashHandler::init();
     TokenCounter::init();
 
     // Config

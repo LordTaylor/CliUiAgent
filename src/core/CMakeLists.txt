@@ -1,5 +1,6 @@
 add_library(codehex_core STATIC
     AppConfig.h      AppConfig.cpp
+    CrashHandler.h   CrashHandler.cpp
     TokenCounter.h   TokenCounter.cpp
     SessionManager.h SessionManager.cpp
     ChatController.h ChatController.cpp
