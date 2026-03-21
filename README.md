@@ -8,6 +8,7 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 
 - **Multiple AI backends** — Claude CLI, Ollama (local), OpenAI via sgpt; switchable per session
 - **🤝 Multi-Agent Collaboration** — Możliwość konsultacji z innymi modelami/agentami w celu weryfikacji rozwiązań (Roadmap Item #5).
+- **🧠 Core Intelligence** — Persistent thinking cache (#9), binary codebase indexing (#10), and semantic loop detection (#13).
 - **👁 Autonomous Vision** — Możliwość robienia zrzutów ekranu i analizy wizualnej interfejsu (Roadmap Item #2).
 - **📟 Terminal streaming** — Wyniki komend terminala oraz logi budowania są przesyłane w czasie rzeczywistym.
 - **🧠 Local RAG (Opcjonalnie)** — Indeksowanie plików przy użyciu wektorowej bazy danych dla lepszego kontekstu (obsługiwane przez `all-MiniLM-L6-v2`).

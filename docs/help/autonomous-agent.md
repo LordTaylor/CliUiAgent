@@ -51,6 +51,21 @@ Gdy opcja jest **wyłączona**:
 
 ---
 
+## Zaawansowana Inteligencja i Wydajność
+
+CodeHex posiada wbudowane mechanizmy optymalizujące pracę agenta:
+
+### Persistent Thinking (#9)
+AI reasoning blocks są zapisywane w pamięci trwałej (`thinking_cache.json`). Dzięki temu agent "pamięta" swoje wnioski z poprzednich sesji dla tych samych problemów, co przyspiesza odpowiedzi.
+
+### Semantic Loop Detection (#13)
+System monitoruje odpowiedzi AI pod kątem powtarzających się schematów. Wykorzystujemy "fingerprinting" (ignorujący białe znaki), by wykryć i przerwać zapętlenie się agenta, zanim zużyje Twój budżet tokenowy.
+
+### Binary Codebase Indexing (#10)
+Indeks Twojego projektu jest serializowany do formatu binarnego, co pozwala na błyskawiczne ładowanie RAG (Retrieval-Augmented Generation) przy każdym starcie aplikacji.
+
+---
+
 ## Inteligentny Kontekst
 
 Agent nie pracuje w próżni. Do każdego zapytania CodeHex automatycznie dołącza:

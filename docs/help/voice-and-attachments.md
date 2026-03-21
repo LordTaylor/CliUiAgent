@@ -25,6 +25,9 @@ Click **📎** in the InputPanel.
 **Method 2 — Keyboard:**
 `Ctrl+Shift+A`
 
+**Method 3 — Drag-and-Drop:**
+Drag files from your file manager (Finder/Explorer) directly into the CodeHex window.
+
 A native file dialog opens (supports multiple selection). Selected files appear as chips above the text field:
 
 ```
