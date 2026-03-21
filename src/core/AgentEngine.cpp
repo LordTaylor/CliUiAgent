@@ -547,9 +547,10 @@ void AgentEngine::buildAssistantMessage(const ResponseParser::ParseResult& resul
     if (session->messages.size() <= 2) { 
         QString firstText = msg.textFromContentBlocks();
         QString title = firstText.section(QRegularExpression("[.!?]"), 0, 0).trimmed();
+        title.remove(QRegularExpression("[^\\w\\s-]")); // Sanitize title (Item 43)
         if (title.length() > 40) title = title.left(37) + "...";
-        if (title.isEmpty()) title = "New Task";
-        session->title = title;
+        if (title.trimmed().isEmpty()) title = "New Task";
+        session->title = title.trimmed();
     }
 
     session->appendMessage(msg);
