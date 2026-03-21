@@ -76,6 +76,19 @@ QMainWindow {
     /* We handle the actual image in code */
 }
 
+/* ---- Sidebar Toggle ---- */
+#sidebarToggleBtn {
+    background: transparent;
+    border: none;
+    color: #6B7280;
+    font-size: 11px;
+    border-radius: 4px;
+}
+#sidebarToggleBtn:hover {
+    background: rgba(255,255,255,0.07);
+    color: #E2E2E2;
+}
+
 /* ---- Toolbar ---- */
 #toolbar {
     background-color: rgba(35, 28, 22, 0.92);

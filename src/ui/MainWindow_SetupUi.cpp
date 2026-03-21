@@ -45,7 +45,7 @@ void MainWindow::setupUi() {
     // ── Left sidebar ─────────────────────────────────────────────
     m_sidebarSplitter = new QSplitter(Qt::Vertical, m_splitter);
     m_sidebarSplitter->setObjectName("sidebarSplitter");
-    m_sidebarSplitter->setMinimumWidth(240);
+    m_sidebarSplitter->setMinimumWidth(220);
     m_sidebarSplitter->setMaximumWidth(320);
 
     auto* sidebarWidget = new QWidget(m_sidebarSplitter);
@@ -54,43 +54,33 @@ void MainWindow::setupUi() {
     sidebarLayout->setContentsMargins(0, 0, 0, 0);
     sidebarLayout->setSpacing(0);
 
+    // Header: single "New Chat" button
     auto* sideHeader = new QWidget(sidebarWidget);
-    auto* sideHeaderLayout = new QVBoxLayout(sideHeader);
-    sideHeaderLayout->setContentsMargins(12, 12, 12, 8);
-    sideHeaderLayout->setSpacing(4);
+    auto* sideHeaderLayout = new QHBoxLayout(sideHeader);
+    sideHeaderLayout->setContentsMargins(8, 8, 8, 6);
+    sideHeaderLayout->setSpacing(6);
 
-    auto* newTaskBtn  = new QPushButton("New Task", sideHeader);
-    newTaskBtn->setObjectName("newTaskBtn");
-    auto* newChatBtn1 = new QPushButton("New Chat", sideHeader);
-    newChatBtn1->setObjectName("newSessionBtn");
-    auto* newChatBtn2 = new QPushButton("New Chat", sideHeader);
-    newChatBtn2->setObjectName("newSessionBtn");
-    sideHeaderLayout->addWidget(newTaskBtn);
-    sideHeaderLayout->addWidget(newChatBtn1);
-    sideHeaderLayout->addWidget(newChatBtn2);
-
-    auto* dirLabel = new QLabel("<I current directory contents to unde", sideHeader);
-    dirLabel->setStyleSheet("color: #6B7280; font-size: 11px; margin-top: 8px;");
-    sideHeaderLayout->addWidget(dirLabel);
-
-    auto* thoughtLabel = new QLabel("<thought>", sideHeader);
-    thoughtLabel->setStyleSheet("color: #6B7280; font-size: 11px; font-style: italic;");
-    sideHeaderLayout->addWidget(thoughtLabel);
+    auto* newChatBtn = new QPushButton("+ New Chat", sideHeader);
+    newChatBtn->setObjectName("newSessionBtn");
+    newChatBtn->setCursor(Qt::PointingHandCursor);
+    sideHeaderLayout->addWidget(newChatBtn, 1);
+    connect(newChatBtn, &QPushButton::clicked, this, &MainWindow::onNewSessionRequested);
 
     sidebarLayout->addWidget(sideHeader);
 
+    // Sessions
     m_sessionPanel = new SessionPanel(m_sessions, sidebarWidget);
-    m_sessionPanel->setMinimumHeight(150);
-    sidebarLayout->addWidget(m_sessionPanel);
+    m_sessionPanel->setMinimumHeight(120);
+    sidebarLayout->addWidget(m_sessionPanel, 1);
 
+    // Work folder
     m_workFolderPanel = new WorkFolderPanel(sidebarWidget);
     m_workFolderPanel->setFolder(m_config->workingFolder());
     connect(m_workFolderPanel, &WorkFolderPanel::folderChanged,
             m_config, &AppConfig::setWorkingFolder);
     connect(m_workFolderPanel, &WorkFolderPanel::contextFilesChanged,
             m_controller->agent(), &AgentEngine::setForcedContextFiles);
-    sidebarLayout->addWidget(m_workFolderPanel);
-    sidebarLayout->addStretch();
+    sidebarLayout->addWidget(m_workFolderPanel, 2);
 
     m_sidebarSplitter->addWidget(sidebarWidget);
     m_splitter->addWidget(m_sidebarSplitter);
@@ -109,6 +99,20 @@ void MainWindow::setupUi() {
     auto* tbLayout = new QHBoxLayout(toolbar);
     tbLayout->setContentsMargins(8, 4, 8, 4);
     tbLayout->setSpacing(6);
+
+    // ── Sidebar toggle (leftmost) ────────────────────────────────
+    m_sidebarToggleBtn = new QPushButton("◀", toolbar);
+    m_sidebarToggleBtn->setFixedSize(28, 28);
+    m_sidebarToggleBtn->setCursor(Qt::PointingHandCursor);
+    m_sidebarToggleBtn->setToolTip("Toggle Sidebar (Ctrl+B)");
+    m_sidebarToggleBtn->setObjectName("sidebarToggleBtn");
+    tbLayout->addWidget(m_sidebarToggleBtn);
+
+    auto* sep0 = new QFrame(toolbar);
+    sep0->setFrameShape(QFrame::VLine);
+    sep0->setFixedWidth(1);
+    sep0->setStyleSheet("background: #2D241C; margin: 6px 2px;");
+    tbLayout->addWidget(sep0);
 
     // ── Left group: action icons ─────────────────────────────────
     auto* genSettingsBtn = new QPushButton(QIcon(":/resources/icons/settings.svg"), "", toolbar);
@@ -309,4 +313,19 @@ void MainWindow::setupUi() {
     m_tokenLabel = new QLabel(this);
     m_tokenLabel->setObjectName("tokenLabel");
     statusBar()->addPermanentWidget(m_tokenLabel);
+
+    // Sidebar collapse/expand
+    connect(m_sidebarToggleBtn, &QPushButton::clicked, this, [this]() {
+        if (m_sidebarSplitter->isVisible()) {
+            m_sidebarSizes = m_splitter->sizes();
+            m_sidebarSplitter->setVisible(false);
+            m_sidebarToggleBtn->setText("▶");
+            m_sidebarToggleBtn->setToolTip("Show Sidebar (Ctrl+B)");
+        } else {
+            m_sidebarSplitter->setVisible(true);
+            if (!m_sidebarSizes.isEmpty()) m_splitter->setSizes(m_sidebarSizes);
+            m_sidebarToggleBtn->setText("◀");
+            m_sidebarToggleBtn->setToolTip("Hide Sidebar (Ctrl+B)");
+        }
+    });
 }

@@ -156,7 +156,7 @@ void MainWindow::setupMenuBar() {
     QAction* toggleSidebar = viewMenu->addAction("Toggle &Sidebar");
     toggleSidebar->setShortcut(QKeySequence("Ctrl+B"));
     connect(toggleSidebar, &QAction::triggered, this, [this]() {
-        m_sessionPanel->setVisible(!m_sessionPanel->isVisible());
+        m_sidebarToggleBtn->click();
     });
 
     QAction* toggleConsole = viewMenu->addAction("Toggle &Console");
