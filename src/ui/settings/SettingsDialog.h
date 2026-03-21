@@ -1,7 +1,8 @@
 #pragma once
 #include <QDialog>
 
-class QTabWidget;
+class QListWidget;
+class QStackedWidget;
 
 namespace CodeHex {
 
@@ -12,11 +13,13 @@ public:
 
 private:
     void setupUi();
-    QWidget* createGeneralTab();
-    QWidget* createModelTab();
-    QWidget* createUiTab();
+    QWidget* createGeneralPage();
+    QWidget* createModelPage();
+    QWidget* createUiPage();
+    QWidget* createAdvancedPage();
 
-    QTabWidget* m_tabs;
+    QListWidget* m_sidebar;
+    QStackedWidget* m_pages;
 };
 
 } // namespace CodeHex

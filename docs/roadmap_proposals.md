@@ -59,7 +59,6 @@ This document outlines 60 proposed technical and user experience improvements, a
 56. [x] **Scroll**: Automatic "Scroll to Bottom" when the agent is typing.
 57. [x] **Stop**: Gracefully terminate sub-processes when "Stop" is clicked.
 58. **Settings**: Hierarchical settings menu (General, Model, Advanced).
-59. **Keyboard**: Full navigation of the app using only the keyboard.
 60. [x] **Documentation**: Inline help tooltips for all settings and tool permissions.
 
 ---
