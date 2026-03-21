@@ -107,32 +107,93 @@ void MainWindow::setupUi() {
     rightLayout->addWidget(toolbar);
 
     auto* tbLayout = new QHBoxLayout(toolbar);
-    tbLayout->setContentsMargins(12, 6, 12, 6);
-    tbLayout->setSpacing(12);
+    tbLayout->setContentsMargins(8, 4, 8, 4);
+    tbLayout->setSpacing(6);
 
-    auto* settingsBar    = new QWidget(toolbar);
-    auto* settingsLayout = new QHBoxLayout(settingsBar);
-    settingsLayout->setContentsMargins(0, 0, 0, 0);
-    settingsLayout->setSpacing(4);
-
-    auto* genSettingsBtn = new QPushButton(QIcon(":/resources/icons/settings.svg"), "", settingsBar);
-    auto* skillsBtn      = new QPushButton(QIcon(":/resources/icons/skills.svg"),   "", settingsBar);
-    auto* pluginsBtn     = new QPushButton(QIcon(":/resources/icons/plugins.svg"),  "", settingsBar);
+    // ── Left group: action icons ─────────────────────────────────
+    auto* genSettingsBtn = new QPushButton(QIcon(":/resources/icons/settings.svg"), "", toolbar);
+    genSettingsBtn->setToolTip("Settings");
+    auto* skillsBtn      = new QPushButton(QIcon(":/resources/icons/skills.svg"),   "", toolbar);
+    skillsBtn->setToolTip("Skills");
+    auto* pluginsBtn     = new QPushButton(QIcon(":/resources/icons/plugins.svg"),  "", toolbar);
+    pluginsBtn->setToolTip("Plugins");
     for (auto* b : {genSettingsBtn, skillsBtn, pluginsBtn}) {
-        b->setFixedSize(32, 32);
-        b->setIconSize(QSize(20, 20));
+        b->setFixedSize(30, 30);
+        b->setIconSize(QSize(18, 18));
         b->setCursor(Qt::PointingHandCursor);
-        settingsLayout->addWidget(b);
+        tbLayout->addWidget(b);
     }
-    tbLayout->addWidget(settingsBar);
 
+    // Thin separator
+    auto* sep1 = new QFrame(toolbar);
+    sep1->setFrameShape(QFrame::VLine);
+    sep1->setFixedWidth(1);
+    sep1->setStyleSheet("background: #2D241C; margin: 6px 4px;");
+    tbLayout->addWidget(sep1);
+
+    // Search box
     auto* searchEdit = new QLineEdit(toolbar);
     searchEdit->setPlaceholderText("Search in chat...");
-    searchEdit->setFixedWidth(200);
+    searchEdit->setFixedWidth(180);
     searchEdit->setClearButtonEnabled(true);
-    tbLayout->addStretch();
     tbLayout->addWidget(searchEdit);
-    connect(searchEdit, &QLineEdit::textChanged, m_chatView, &ChatView::setSearchTerm);
+
+    tbLayout->addStretch();  // single central stretch
+
+    // ── Right group: provider ────────────────────────────────────
+    auto* manageProvidersBtn = new QPushButton(QIcon(":/resources/icons/power.svg"), "", toolbar);
+    manageProvidersBtn->setFixedSize(30, 30);
+    manageProvidersBtn->setIconSize(QSize(18, 18));
+    manageProvidersBtn->setToolTip("Manage LLM Providers");
+    manageProvidersBtn->setCursor(Qt::PointingHandCursor);
+    tbLayout->addWidget(manageProvidersBtn);
+
+    m_providerCombo = new QComboBox(toolbar);
+    m_providerCombo->setObjectName("providerCombo");
+    m_providerCombo->setMinimumWidth(140);
+    tbLayout->addWidget(m_providerCombo);
+
+    // Thin separator
+    auto* sep2 = new QFrame(toolbar);
+    sep2->setFrameShape(QFrame::VLine);
+    sep2->setFixedWidth(1);
+    sep2->setStyleSheet("background: #2D241C; margin: 6px 4px;");
+    tbLayout->addWidget(sep2);
+
+    // ── Role combo ───────────────────────────────────────────────
+    QLabel* roleLbl = new QLabel("Role:", toolbar);
+    roleLbl->setStyleSheet("color: #6B7280; font-size: 12px;");
+    m_roleCombo = new QComboBox(toolbar);
+    m_roleCombo->addItem("Base",                  (int)AgentRole::Base);
+    m_roleCombo->addItem("Explorer",              (int)AgentRole::Explorer);
+    m_roleCombo->addItem("Executor",              (int)AgentRole::Executor);
+    m_roleCombo->addItem("Reviewer",              (int)AgentRole::Reviewer);
+    m_roleCombo->addItem("Local RAG",             (int)AgentRole::RAG);
+    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::Refactor);
+    m_roleCombo->setMinimumWidth(90);
+    tbLayout->addWidget(roleLbl);
+    tbLayout->addWidget(m_roleCombo);
+
+    // Thin separator
+    auto* sep3 = new QFrame(toolbar);
+    sep3->setFrameShape(QFrame::VLine);
+    sep3->setFixedWidth(1);
+    sep3->setStyleSheet("background: #2D241C; margin: 6px 4px;");
+    tbLayout->addWidget(sep3);
+
+    // ── Theme + Debug buttons ────────────────────────────────────
+    m_themeBtn = new QPushButton("🌓", toolbar);
+    m_themeBtn->setFixedSize(30, 30);
+    m_themeBtn->setCursor(Qt::PointingHandCursor);
+    m_themeBtn->setToolTip("Toggle Dark/Light Theme");
+    m_debugBtn = new QPushButton(toolbar);
+    m_debugBtn->setIcon(QIcon(":/resources/icons/bug.svg"));
+    m_debugBtn->setFixedSize(30, 30);
+    m_debugBtn->setCursor(Qt::PointingHandCursor);
+    m_debugBtn->setToolTip("Save Debug Logs (Raw LLM I/O)");
+    m_debugBtn->setObjectName("debugBtn");
+    tbLayout->addWidget(m_themeBtn);
+    tbLayout->addWidget(m_debugBtn);
 
     connect(genSettingsBtn, &QPushButton::clicked, this, [this]() { SettingsDialog dlg(m_config, this); dlg.exec(); });
     connect(skillsBtn,      &QPushButton::clicked, this, [this]() { SkillsDialog dlg(this); dlg.exec(); });
@@ -141,62 +202,6 @@ void MainWindow::setupUi() {
         dlg.setScratchpadPath(m_config->workingFolder() + "/.agent/scratchpad");
         dlg.exec();
     });
-    tbLayout->addStretch();
-
-    auto* llmBar    = new QWidget(toolbar);
-    auto* llmLayout = new QHBoxLayout(llmBar);
-    llmLayout->setContentsMargins(0, 0, 0, 0);
-    llmLayout->setSpacing(4);
-
-    auto* manageProvidersBtn = new QPushButton(QIcon(":/resources/icons/power.svg"), "", llmBar);
-    manageProvidersBtn->setFixedSize(32, 32);
-    manageProvidersBtn->setIconSize(QSize(20, 20));
-    manageProvidersBtn->setToolTip("Manage LLM Providers");
-    manageProvidersBtn->setCursor(Qt::PointingHandCursor);
-
-    m_providerCombo = new QComboBox(llmBar);
-    m_providerCombo->setObjectName("providerCombo");
-    m_providerCombo->setMinimumWidth(150);
-    llmLayout->addWidget(manageProvidersBtn);
-    llmLayout->addWidget(m_providerCombo);
-    tbLayout->addWidget(llmBar);
-    tbLayout->addStretch();
-
-    auto* roleGroup  = new QWidget(toolbar);
-    auto* roleLayout = new QHBoxLayout(roleGroup);
-    roleLayout->setContentsMargins(0, 0, 0, 0);
-    roleLayout->setSpacing(8);
-    QLabel* roleLbl = new QLabel("Role:", roleGroup);
-    m_roleCombo = new QComboBox(roleGroup);
-    m_roleCombo->addItem("Base",                  (int)AgentRole::Base);
-    m_roleCombo->addItem("Explorer",              (int)AgentRole::Explorer);
-    m_roleCombo->addItem("Executor",              (int)AgentRole::Executor);
-    m_roleCombo->addItem("Reviewer",              (int)AgentRole::Reviewer);
-    m_roleCombo->addItem("Local RAG",             (int)AgentRole::RAG);
-    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::Refactor);
-    m_roleCombo->setMinimumWidth(100);
-    roleLayout->addWidget(roleLbl);
-    roleLayout->addWidget(m_roleCombo);
-    tbLayout->addWidget(roleGroup);
-    tbLayout->addSpacing(12);
-
-    auto* actionGroup  = new QWidget(toolbar);
-    auto* actionLayout = new QHBoxLayout(actionGroup);
-    actionLayout->setContentsMargins(0, 0, 0, 0);
-    actionLayout->setSpacing(8);
-    m_themeBtn = new QPushButton("🌓", actionGroup);
-    m_themeBtn->setFixedSize(32, 32);
-    m_themeBtn->setCursor(Qt::PointingHandCursor);
-    m_themeBtn->setToolTip("Toggle Dark/Light Theme");
-    m_debugBtn = new QPushButton(actionGroup);
-    m_debugBtn->setIcon(QIcon(":/resources/icons/bug.svg"));
-    m_debugBtn->setFixedSize(32, 32);
-    m_debugBtn->setCursor(Qt::PointingHandCursor);
-    m_debugBtn->setToolTip("Save Debug Logs (Raw LLM I/O)");
-    m_debugBtn->setObjectName("debugBtn");
-    actionLayout->addWidget(m_themeBtn);
-    actionLayout->addWidget(m_debugBtn);
-    tbLayout->addWidget(actionGroup);
 
     // Chat control banner
     m_chatBanner = new ChatControlBanner(rightWidget);
@@ -219,6 +224,7 @@ void MainWindow::setupUi() {
     m_chatView     = new ChatView(chatContainer);
     m_messageModel->setViewWidth(m_chatView->width());
     m_chatView->setMessageModel(m_messageModel);
+    connect(searchEdit, &QLineEdit::textChanged, m_chatView, &ChatView::setSearchTerm);
     connect(m_chatView, &ChatView::loadMoreRequested, m_messageModel, &MessageModel::loadMoreMessages);
     connect(m_splitter, &QSplitter::splitterMoved, this, [this]() {
         if (m_messageModel && m_chatView)

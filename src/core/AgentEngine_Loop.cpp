@@ -85,6 +85,15 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
         const int inputTokens = TokenCounter::estimate(enrichedPrompt);
         session->updateTokens(inputTokens, 0);
 
+        // Emit context stats for non-JSON providers too
+        {
+            ContextManager::PruningOptions pruneOpts;
+            pruneOpts.maxTokens = 110000;
+            ContextManager::ContextStats stats;
+            ContextManager::prune(session->messages, pruneOpts, &stats);
+            emit contextStatsUpdated(stats);
+        }
+
         m_lastRawRequest = "--- System Prompt ---\n" + systemPrompt +
                            "\n\n--- Prompt ---\n" + enrichedPrompt;
         m_lastRawResponse.clear();
@@ -176,6 +185,15 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
         m_llmTimeoutTimer->start(LLM_TIMEOUT_MS);
         m_runner->sendJson(request, m_config->workingFolder());
     } else {
+        // Emit context stats for non-JSON providers too
+        {
+            ContextManager::PruningOptions pruneOpts;
+            pruneOpts.maxTokens = 110000;
+            ContextManager::ContextStats stats;
+            ContextManager::prune(session->messages, pruneOpts, &stats);
+            emit contextStatsUpdated(stats);
+        }
+
         m_lastRawRequest = "--- System Prompt ---\n" + getSystemPrompt() +
                            "\n\n--- Nudge ---\n" + nudge;
         m_lastRawResponse.clear();
