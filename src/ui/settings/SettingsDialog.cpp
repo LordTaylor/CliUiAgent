@@ -1,4 +1,5 @@
 #include "SettingsDialog.h"
+#include "../../core/AppConfig.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QListWidget>
@@ -15,9 +16,10 @@
 
 namespace CodeHex {
 
-SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
+SettingsDialog::SettingsDialog(AppConfig* config, QWidget* parent) 
+    : QDialog(parent), m_config(config) {
     setWindowTitle("Application Settings");
-    resize(480, 400);
+    resize(540, 420);
     setupUi();
 }
 
@@ -146,13 +148,21 @@ QWidget* SettingsDialog::createAdvancedPage() {
     layout->setContentsMargins(16, 16, 16, 16);
 
     auto* systemPromptEdit = new QLineEdit(widget);
+    systemPromptEdit->setText(m_config->systemPrompt());
     systemPromptEdit->setPlaceholderText("Enter custom system prompt...");
     systemPromptEdit->setToolTip("Override the default system prompt for all sessions.");
     layout->addRow("Global System Prompt:", systemPromptEdit);
 
+    connect(systemPromptEdit, &QLineEdit::textEdited, m_config, &AppConfig::setSystemPrompt);
+    connect(m_config, &AppConfig::systemPromptChanged, systemPromptEdit, [systemPromptEdit](const QString& p){
+        if (systemPromptEdit->text() != p) systemPromptEdit->setText(p);
+    });
+
     auto* rollbackBtn = new QPushButton("Rollback Prompt", widget);
     rollbackBtn->setToolTip("Restore the previous version of the system prompt (Item 45).");
     layout->addRow("Prompt Versioning:", rollbackBtn);
+
+    connect(rollbackBtn, &QPushButton::clicked, m_config, &AppConfig::rollbackPrompt);
 
     auto* crashTestBtn = new QPushButton("Simulate Crash", widget);
     crashTestBtn->setToolTip("Triggers a crash to test the Crash Reporter (Item 51).");

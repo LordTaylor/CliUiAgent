@@ -85,6 +85,26 @@ void AppConfig::setManualApproval(bool enabled) {
     save();
 }
 
+QString AppConfig::systemPrompt() const { return m_systemPrompt; }
+
+void AppConfig::setSystemPrompt(const QString& prompt) {
+    if (m_systemPrompt == prompt) return;
+    if (!m_systemPrompt.isEmpty()) {
+        m_promptHistory.prepend(m_systemPrompt);
+        if (m_promptHistory.size() > 10) m_promptHistory.removeLast();
+    }
+    m_systemPrompt = prompt;
+    save();
+    emit systemPromptChanged(prompt);
+}
+
+void AppConfig::rollbackPrompt() {
+    if (m_promptHistory.isEmpty()) return;
+    m_systemPrompt = m_promptHistory.takeFirst();
+    save();
+    emit systemPromptChanged(m_systemPrompt);
+}
+
 // Removed legacy LLM URL and API Key getters/setters as they are now part of LlmProvider
 
 /**
@@ -103,6 +123,13 @@ void AppConfig::load() {
     if (obj.find("manualApproval") == obj.end()) m_manualApproval = true;
 
     m_activeProviderId = obj["activeProviderId"].toString();
+    m_systemPrompt = obj["systemPrompt"].toString();
+    
+    m_promptHistory.clear();
+    QJsonArray histArr = obj["promptHistory"].toArray();
+    for (int i = 0; i < histArr.size(); ++i) {
+        m_promptHistory.append(histArr[i].toString());
+    }
 
     m_providers.clear();
     QJsonArray arr = obj["providers"].toArray();
@@ -131,6 +158,8 @@ void AppConfig::save() const {
         {"lastSessionId", m_lastSessionId},
         {"manualApproval", m_manualApproval},
         {"activeProviderId", m_activeProviderId},
+        {"systemPrompt", m_systemPrompt},
+        {"promptHistory", QJsonArray::fromStringList(m_promptHistory)},
         {"providers", providerArr}
     });
 }
@@ -166,6 +195,7 @@ void AppConfig::loadDefaults() {
     m_providers.append(openai);
 
     m_activeProviderId = "ollama";
+    m_systemPrompt = "You are an expert coding assistant. Be concise and precise.";
     save();
 }
 

@@ -211,7 +211,7 @@ void MainWindow::setupUi() {
     connect(searchEdit, &QLineEdit::textChanged, m_chatView, &ChatView::setSearchTerm);
 
     connect(genSettingsBtn, &QPushButton::clicked, this, [this]() {
-        SettingsDialog dlg(this);
+        SettingsDialog dlg(m_config, this);
         dlg.exec();
     });
     connect(skillsBtn, &QPushButton::clicked, this, [this]() {

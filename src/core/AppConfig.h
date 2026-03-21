@@ -43,13 +43,21 @@ public:
     void save() const;
     void ensureDirectories() const;
 
+    // Prompt Versioning (Item 45)
+    QString systemPrompt() const;
+    void setSystemPrompt(const QString& prompt);
+    void rollbackPrompt();
+
 signals:
     void activeProviderChanged(const QString& id);
+    void systemPromptChanged(const QString& prompt);
 
 private:
     QString m_workingFolder;
     QString m_lastSessionId;
     QString m_dataDir;
+    QString m_systemPrompt;
+    QStringList m_promptHistory;
     bool    m_manualApproval = true;
 
     // Provider State
