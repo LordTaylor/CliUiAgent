@@ -13,8 +13,8 @@ This document outlines 60 proposed technical and user experience improvements, a
 13. [x] **Loop Detection**: Implement semantic similarity checking for loop detection, not just exact string matches.
 14. [x] **Thinking**: Allow the user to toggle "Thinking" visibility per message.
 15. [x] **Reliability**: Add Exponential Backoff for API retries.
-9.  **Cache**: Persist the thinking cache across application restarts for frequently used prompts.
-10. **Vector DB**: Migrate from in-memory search to an optimized local vector database (e.g., Faiss C++).
+9.  [x] **Cache**: Persist the thinking cache across application restarts for frequently used prompts.
+10. [x] **Vector DB**: Migrate from in-memory search to an optimized local vector database (e.g., binary persistence).
 
 ### Tooling & Execution
 15. [x] **Git**: Detect existing merge conflicts and urge the user to resolve them before agent work.
@@ -28,7 +28,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 21. [x] **Markdown**: Improve code block rendering with Copy-to-Clipboard buttons.
 22. **Animations**: Add subtle transition effects when switching between switching/responding states.
 24. [x] **Search**: Add a global search bar for finding content within previous sessions.
-25. **Attachments**: Allow drag-and-drop of images directly into the chat for Vision analysis.
+25. [x] **Attachments**: Allow drag-and-drop of images directly into the chat for Vision analysis.
 26. [x] **Shortcuts**: Customizable hotkeys for "Stop Generation" and "Clear Chat".
 28. **Feedback**: Add "Thumbs Up/Down" for agent responses to fine-tune future prompts.
 29. **Progress**: Show a radial progress indicator for long-running indexing tasks.
@@ -39,7 +39,7 @@ This document outlines 60 proposed technical and user experience improvements, a
 32. **Memory**: Audit `AgentEngine` for potential cyclic shared_ptr references.
 34. **Logging**: [x] Implement a "Debug Console" window showing raw model I/O.
 35. [x] **Profiles**: Validation for `profiles.json` to prevent app crashes on malformed config.
-36. **Update**: Add an "Check for Updates" mechanism for the binary itself.
+36. [x] **Update**: Add an "Check for Updates" mechanism for the binary itself.
 39. [x] **Network**: Support for proxy configurations (SOCKS5/HTTP).
 40. **Plugins**: Standardize the Tool interface to allow easy creation of new tools.
 
