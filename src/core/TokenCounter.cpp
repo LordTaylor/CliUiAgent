@@ -1,43 +1,54 @@
 #include "TokenCounter.h"
-#include <QRegularExpression>
-#include <QRegularExpressionMatchIterator>
+#include <QDebug>
+
+#ifdef slots
+#undef slots
+#endif
+#include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
+#define slots Q_SLOTS
+
+namespace py = pybind11;
 
 namespace CodeHex::TokenCounter {
 
-// Tiktoken cl100k_base regex (roughly)
-// Handles English contractions, words, numbers, and whitespace.
-static const QRegularExpression cl100k_base_regex(
-    "(?:'s|'t|'re|'ve|'m|'ll|'d)|"
-    "[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|"
-    "\\p{N}{1,3}|"
-    " ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|"
-    "\\s*[\\r\\n]+|"
-    "\\s+(?!\\S)|\\s+",
-    QRegularExpression::CaseInsensitiveOption
-);
+static py::object* g_encoding = nullptr;
+static bool g_initialized = false;
+
+void init() {
+    if (g_initialized) return;
+    try {
+        py::gil_scoped_acquire acquire;
+        py::module_ tiktoken = py::module_::import("tiktoken");
+        g_encoding = new py::object(tiktoken.attr("get_encoding")("cl100k_base"));
+        g_initialized = true;
+        qInfo() << "TokenCounter: Tiktoken (cl100k_base) initialized.";
+    } catch (const py::error_already_set& e) {
+        qWarning() << "TokenCounter: Failed to initialize Tiktoken:" << e.what();
+    }
+}
 
 int count(const QString& text) {
     if (text.isEmpty()) return 0;
-    
-    int tokens = 0;
-    QRegularExpressionMatchIterator it = cl100k_base_regex.globalMatch(text);
-    while (it.hasNext()) {
-        it.next();
-        tokens++;
-    }
-    
-    // Fallback/Safety: if it returns 0 for non-empty string, use heuristic
-    if (tokens == 0 && !text.trimmed().isEmpty()) {
+    if (!g_initialized || !g_encoding) {
+        // Fallback to rough estimate if not initialized
         return qMax(1, text.length() / 4);
     }
-    
-    return tokens;
+
+    try {
+        py::gil_scoped_acquire acquire;
+        py::list tokens = g_encoding->attr("encode")(text.toStdString());
+        return static_cast<int>(py::len(tokens));
+    } catch (const py::error_already_set& e) {
+        qWarning() << "TokenCounter: Tiktoken error:" << e.what();
+        return qMax(1, text.length() / 4);
+    }
 }
 
 int countMessages(const QList<Message>& messages) {
     int total = 0;
     for (const auto& msg : messages) {
-        // Approximate overhead per message (role + formatting)
+        // Overhead per message (role + formatting) matches OpenAI's approx
         total += 4; 
         total += count(msg.textFromContentBlocks());
     }

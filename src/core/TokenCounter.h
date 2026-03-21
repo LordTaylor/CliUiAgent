@@ -10,7 +10,12 @@ namespace CodeHex {
 namespace TokenCounter {
 
 /**
- * @brief Count tokens in text using cl100k_base-inspired regex.
+ * @brief Initialize the Tiktoken counter (loads encoding).
+ */
+void init();
+
+/**
+ * @brief Count tokens in text using Tiktoken.
  */
 int count(const QString& text);
 

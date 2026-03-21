@@ -6,6 +6,7 @@
 using namespace CodeHex;
 
 TEST_CASE("ContextManager prunes history correctly", "[ContextManager]") {
+    TokenCounter::init();
     auto createMsg = [](Message::Role role, const QString& text) {
         Message msg;
         msg.role = role;

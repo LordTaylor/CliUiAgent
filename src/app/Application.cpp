@@ -11,6 +11,7 @@
 #include "../core/SessionManager.h"
 #include "../scripting/ScriptManager.h"
 #include "../ui/MainWindow.h"
+#include "../core/TokenCounter.h"
 
 namespace CodeHex {
 
@@ -29,6 +30,8 @@ int Application::run() {
 }
 
 void Application::setupComponents() {
+    TokenCounter::init();
+
     // Config
     m_config = std::make_unique<AppConfig>();
     m_config->ensureDirectories();
