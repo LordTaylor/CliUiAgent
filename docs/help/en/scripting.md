@@ -55,6 +55,15 @@ All `*.lua` and `*.py` files are loaded at startup and whenever a file is added,
 ```lua
 codehex.log(message)    -- print to Console widget
 codehex.version()       -- returns "0.1.0"
+
+-- IO & System (Phase 45+)
+codehex.read_file(path)               -- Read file content (relative to work dir)
+codehex.write_file(path, content)     -- Write file content
+codehex.list_directory(path)          -- List contents of a directory
+codehex.run_command(cmd)              -- Run a shell command (returns {stdout, stderr, exit_code})
+codehex.git_status()                  -- Get git status --porcelain
+codehex.get_work_dir()                -- Get current working directory path
+codehex.append_to_chat(text)          -- Add a message to the chat window
 ```
 
 ### Hook registration

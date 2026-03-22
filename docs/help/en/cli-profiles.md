@@ -113,6 +113,18 @@ The active selection is persistent and saved to `~/.codehex/config.json`.
 
 ---
 
+## HuggingFace Hub Integration
+
+CodeHex can automatically download and configure model profiles directly from the HuggingFace Hub.
+
+1.  Open **Provider Settings**.
+2.  Enter the **HuggingFace Repo ID** (e.g., `deepseek-ai/DeepSeek-V3`).
+3.  Click **Download Profile**.
+
+CodeHex will fetch `tokenizer_config.json` and `generation_config.json` to generate an optimized profile with the correct token mapping and system prompt templates.
+
+---
+
 ## Adding a custom CLI profile
 
 ### Step 1 — Create the header

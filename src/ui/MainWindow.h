@@ -48,6 +48,7 @@ namespace CodeHex {
     class LlmDiscoveryService;
     class HelpDialog;
     class UpdateChecker;
+    class PixelCauldron;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -122,6 +123,7 @@ private:
     QPushButton*        m_themeBtn;      // Dark/Light toggle
     QPushButton*        m_debugBtn;      // Save debug logs
     QLabel*             m_statusLabel;   // "Agent is thinking..."
+    CodeHex::PixelCauldron* m_cauldron;      // Procedural animation
     QWidget*            m_loopWarningBanner = nullptr;
     QLabel*             m_tokenLabel   = nullptr;
     QPushButton*        m_sidebarToggleBtn = nullptr;

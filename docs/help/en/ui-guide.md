@@ -29,6 +29,9 @@ A complete reference for every element of the CodeHex interface.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+> [!TIP]
+> **Agent Alchemy (Pixel Cauldron)**: In the bottom-left corner, you'll see a small animated cauldron. It indicates the agent's current state: **Blue** means thinking/processing, **Red** indicates an error or logic loop, and **Dark** means the agent is idle.
+
 ---
 
 ## [2] LLM Router Bar

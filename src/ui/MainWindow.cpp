@@ -27,6 +27,7 @@
 #include "chat/ChatControlBanner.h"
 #include "chat/ChatView.h"
 #include "chat/MessageModel.h"
+#include "widgets/PixelCauldron.h"
 #include "help/HelpDialog.h"
 #include "input/InputPanel.h"
 #include "session/SessionPanel.h"
@@ -101,6 +102,7 @@ MainWindow::MainWindow(AppConfig* config,
             this, [this](const QString& status) {
                 m_statusLabel->setText(status);
                 m_chatBanner->setStatusText(status);
+                if (m_cauldron) m_cauldron->setStatus(status);
             });
     connect(m_controller, &ChatController::toolApprovalRequested,
             this, &MainWindow::onToolApprovalRequested);

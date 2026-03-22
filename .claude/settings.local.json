@@ -12,7 +12,24 @@
       "Bash(mv ~/.claude/scripts/select-settings.sh ~/Documents/LordTaylor/CodeHex/scripts/)",
       "Bash(mv ~/.claude/lmstudio_settings.json ~/Documents/LordTaylor/CodeHex/scripts/settings/)",
       "Bash(rmdir ~/.claude/scripts)",
-      "Bash(chmod +x ~/Documents/LordTaylor/CodeHex/scripts/select-settings.sh)"
+      "Bash(chmod +x ~/Documents/LordTaylor/CodeHex/scripts/select-settings.sh)",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex log --oneline -10)",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex log --oneline --all)",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex show 132af4a --stat --format=\"%s%n%b\")",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex show 2614a05 --stat --format=\"%s%n%b\")",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex show f567e11 --stat --format=\"%s%n%b\")",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex show cd75d8b --stat --format=\"%s%n%b\")",
+      "Bash(git -C /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex status)",
+      "Bash(git add:*)",
+      "Bash(git -C:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex/**)",
+      "Bash(done)",
+      "Bash(grep -n \"detectRoleFromPrompt\\\\|roleStrategy\\\\|loadRolePrompt\" /Users/jaroslawkrawczyk/Documents/LordTaylor/CodeHex/src/core/*.cpp)",
+      "Bash(cmake --build build --target codehex_app)",
+      "Bash(cmake --build build)",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -12,7 +12,10 @@ add_library(codehex_ui STATIC
     input/InputPanel.h      input/InputPanel.cpp
     input/AttachmentButton.h input/AttachmentButton.cpp
     input/VoiceButton.h     input/VoiceButton.cpp
-    widgets/TerminalWidget.h widgets/TerminalWidget.cpp
+    widgets/TerminalWidget.h
+    widgets/TerminalWidget.cpp
+    widgets/PixelCauldron.h
+    widgets/PixelCauldron.cpp
     widgets/TerminalPanel.h  widgets/TerminalPanel.cpp
     workfolder/WorkFolderSelector.h workfolder/WorkFolderSelector.cpp
     chat/DiffHighlighter.h
