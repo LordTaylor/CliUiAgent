@@ -224,14 +224,32 @@ QPushButton:hover {
     color: #140F0A;
 }
 
-/* Status Label */
+/* Status Bar & Cauldron Footer (Phase 52) */
+#statusBar {
+    background: transparent;
+    border-top: 1px solid rgba(217, 119, 6, 0.2);
+    min-height: 140px;
+}
+
+#statusBar::item {
+    border: none;
+}
+
+#tokenLabel {
+    color: #6B7280;
+    font-size: 11px;
+    margin-right: 20px;
+    padding-bottom: 20px; /* Push it down slightly or center */
+}
+
 #agentStatusLabel {
     background-color: rgba(26, 22, 18, 0.9);
     border: 1px solid #D97706;
     color: #FBBF24;
-    border-radius: 15px;
-    padding: 8px 24px;
+    border-radius: 12px;
+    padding: 6px 16px;
     font-weight: 600;
+    margin-left: 20px;
 }
 
 /* Terminal & Progress */

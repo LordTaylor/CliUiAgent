@@ -2,6 +2,20 @@
 
 ---
 
+## Phase 52: Status Bar Expansion & Elite Cauldron (2026-03-22) — ZAKOŃCZONA
+
+**Data**: 2026-03-22
+**Cel**: Powiększenie dolnego paska (Status Bar) do rozmiarów pozwalających na pełną ekspozycję kociołka "Elite" (128x128).
+
+### UI/UX Refinement:
+- [x] **MainWindow_SetupUi.cpp**: Zwiększono wysokość `QStatusBar` do 140px; przywrócono kociołkowi rozmiar 128x128.
+- [x] **dark.qss**: Dodano dedykowaną stylizację dla `#statusBar` (transparentny bg, górna ramka amber) oraz poprawiono marginalia dla `tokenLabel` i `agentStatusLabel`.
+- [x] **Layout Stability**: Zapewniono, że kociołek i etykiety są czytelne i nie nachodzą na siebie w nowym, wysokim footerze.
+
+### Weryfikacja:
+- Build: ✅ Sukces (exit 0)
+- Rendering: ✅ Kociołek jest w pełni widoczny w lewym dolnym rogu paska statusu.
+
 ## Phase 51: CI/CD Readiness for Build Scripts (2026-03-22) — ZAKOŃCZONA
 
 **Data**: 2026-03-22

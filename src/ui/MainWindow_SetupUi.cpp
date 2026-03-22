@@ -356,13 +356,15 @@ void MainWindow::setupUi() {
                 }
             });
 
+    statusBar()->setMinimumHeight(140);
+    statusBar()->setObjectName("statusBar");
+
     m_tokenLabel = new QLabel(this);
     m_tokenLabel->setObjectName("tokenLabel");
     statusBar()->addPermanentWidget(m_tokenLabel);
 
-    // Initial Status Area (Reverted to original position)
+    // Initial Status Area (Elite Scale: 128x128)
     m_cauldron = new CodeHex::PixelCauldron(this);
-    m_cauldron->setFixedSize(30, 30);
     m_cauldron->setToolTip("Agent Alchemy");
     statusBar()->addPermanentWidget(m_cauldron);
 

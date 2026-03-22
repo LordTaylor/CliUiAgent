@@ -88,6 +88,13 @@ Refactored the core internal tooling to support seamless automation via GitHub A
 - **Optimized Release Workflow**: The `release.yml` now utilizes streamlined packaging scripts, reducing build time and improving reliability.
 - **Clean Builds**: Standardized the build directory structure for easier artifact management.
 
+## Phase 52: Status Bar Expansion & Elite Footer
+Transformed the application footer into a high-fidelity activity center.
+- **Full-Scale Cauldron**: Restored the `PixelCauldron` to its intended 128x128 'Elite' size, making all procedural animations (steam, bubbles, magic glow) fully visible.
+- **Expanded Status Bar**: Increased the `QStatusBar` height to 140px, providing a spacious and premium feel to the workspace.
+- **Refined Alignment**: Vertically centered the token counters and status labels within the new layout, achieving a balanced and modern aesthetic.
+- **Integrated Styling**: Applied amber-accented border and transparent background to the status bar via QSS, unifying the design with the rest of the 'Elite' UI.
+
 ## Stan Dokumentacji
 - `plans_history.md` — uzupełniony o Phase 37–50.
 - `walkthrough.md` — zaktualizowany (ten plik).
