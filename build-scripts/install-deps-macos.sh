@@ -11,43 +11,54 @@ echo "==> CodeHex macOS Setup"
 echo "    Project: $PROJECT_DIR"
 echo ""
 
-# ---- 1. Homebrew packages ----
-echo "==> Installing Homebrew packages..."
-brew install cmake ninja qt@6 python@3.12 2>/dev/null || true
-echo "    cmake, ninja, qt@6, python@3.12 OK"
+# ---- 1. Dependencies (Homebrew) ----
+if [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+    echo "==> [Local] Installing Homebrew packages..."
+    brew install cmake ninja qt@6 conan 2>/dev/null || true
+fi
 
-# ---- 2. Conan ----
+# ---- 2. Qt6 Path Discovery ----
+# Prioritize environment variables (from CI or manual export)
+if [ -n "${Qt6_DIR:-}" ]; then
+    echo "==> Using Qt6_DIR from environment: $Qt6_DIR"
+elif [ -n "${QT_DIR:-}" ]; then
+    export Qt6_DIR="$QT_DIR/lib/cmake/Qt6"
+    echo "==> Derived Qt6_DIR from QT_DIR: $Qt6_DIR"
+else
+    # Fallback to standard Homebrew path
+    export Qt6_DIR="/opt/homebrew/opt/qt@6/lib/cmake/Qt6"
+    echo "==> Fallback to Homebrew Qt6_DIR: $Qt6_DIR"
+fi
+
+# ---- 3. Conan Setup ----
 if ! command -v conan &>/dev/null; then
-    echo "==> Installing Conan..."
+    echo "==> Installing Conan via pip..."
     pip3 install conan --break-system-packages
 fi
-echo "    conan $(conan --version) OK"
 
+echo "==> Configuring Conan profile..."
 conan profile detect --force 2>/dev/null || true
 
-# ---- 3. Conan deps (Debug) ----
-echo "==> Installing C++ dependencies via Conan (Debug)..."
+# ---- 4. Conan Install (Dependencies) ----
+echo "==> Installing C++ dependencies via Conan..."
 cd "$PROJECT_DIR"
 conan install . \
-    --output-folder=build/debug/build/Debug \
+    --output-folder=build \
     --build=missing \
     -s build_type=Debug \
     -s compiler.cppstd=20
 
-# ---- 4. CMake configure ----
-echo "==> Configuring CMake (Debug)..."
-export Qt6_DIR=/opt/homebrew/opt/qt@6/lib/cmake/Qt6
-
-cmake -B build/debug/cmake \
+# ---- 5. CMake Configure & Build ----
+echo "==> Configuring CMake..."
+cmake -B build \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_TOOLCHAIN_FILE=build/debug/build/Debug/generators/conan_toolchain.cmake \
-    -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt@6/lib/cmake/Qt6 \
+    -DCMAKE_TOOLCHAIN_FILE=build/generators/conan_toolchain.cmake \
+    -DCMAKE_PREFIX_PATH="$Qt6_DIR" \
     -Wno-dev
 
-# ---- 5. Build ----
 echo "==> Building CodeHex..."
-cmake --build build/debug/cmake -j"$(sysctl -n hw.logicalcpu)"
+cmake --build build -j"$(sysctl -n hw.logicalcpu)"
 
 echo ""
 echo "==> Build complete!"

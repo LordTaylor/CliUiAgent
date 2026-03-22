@@ -105,12 +105,20 @@ if [ "$NEEDS_BUILD" = true ]; then
         fi
     fi
 
-    cmake --preset "$PRESET" 2>/dev/null || \
+    # ---- Qt Path Discovery (Consistent with other scripts) ----
+    if [ -n "${Qt6_DIR:-}" ]; then
+        QT_PATH="$Qt6_DIR"
+    elif [ -n "${QT_DIR:-}" ]; then
+        QT_PATH="$QT_DIR/lib/cmake/Qt6"
+    else
+        QT_PATH="$(brew --prefix qt@6 2>/dev/null || echo /opt/homebrew/opt/qt@6)/lib/cmake/Qt6"
+    fi
+
     cmake -B "$BUILD_DIR" \
         -G "$GENERATOR" \
         -DCMAKE_BUILD_TYPE="$BUILD_UPPER" \
         -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
-        -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6 2>/dev/null || echo /opt/homebrew/opt/qt@6)/lib/cmake/Qt6" \
+        -DCMAKE_PREFIX_PATH="$QT_PATH" \
         -Wno-dev
 
     echo "==> Building..."

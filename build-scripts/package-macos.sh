@@ -8,8 +8,18 @@ set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # ---- Environment Detect ----
-QT_DIR="${QT_DIR:-${Qt6_DIR:-/opt/homebrew/opt/qt@6}}"
-QT_BIN="${QT_BIN:-$QT_DIR/bin}"
+# Prioritize environment variables from CI (e.g. jurplel/install-qt-action)
+if [ -n "${Qt6_DIR:-}" ]; then
+    QT_DIR="$Qt6_DIR"
+    echo "==> Using Qt6_DIR from environment: $QT_DIR"
+elif [ -n "${QT_DIR:-}" ]; then
+    echo "==> Using QT_DIR from environment: $QT_DIR"
+else
+    export QT_DIR="/opt/homebrew/opt/qt@6"
+    echo "==> Fallback to Homebrew QT_DIR: $QT_DIR"
+fi
+
+export QT_BIN="$QT_DIR/bin"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build/release/cmake"
 APP="$BUILD_DIR/CodeHex.app"

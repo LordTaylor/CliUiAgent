@@ -5,8 +5,17 @@
 set -euo pipefail
 
 # ---- Environment Detect ----
-QT_VERSION="${QT_VERSION:-6.7.0}"
-QT_DIR="${QT_DIR:-$HOME/Qt/${QT_VERSION}/gcc_64}"
+# Prioritize environment variables from CI (e.g. jurplel/install-qt-action)
+if [ -n "${Qt6_DIR:-}" ]; then
+    QT_DIR="$Qt6_DIR"
+    echo "==> Using Qt6_DIR from environment: $QT_DIR"
+elif [ -n "${QT_DIR:-}" ]; then
+    echo "==> Using QT_DIR from environment: $QT_DIR"
+else
+    QT_VERSION="6.7.0"
+    export QT_DIR="$HOME/Qt/${QT_VERSION}/gcc_64"
+    echo "==> Fallback to local QT_DIR: $QT_DIR"
+fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_DIR/dist"
 VERSION=$(grep 'project(CodeHex VERSION' "$PROJECT_DIR/CMakeLists.txt" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)

@@ -81,6 +81,13 @@ Enhanced the visual indicator with premium procedural effects.
 - **Top Alignment**: Positioned the cauldron at the top of the widget (`offsetY=0`) for maximum visibility.
 - **Fluid Motion**: Frame rate increased to 20 FPS for a smoother, premium feel.
 
+## Phase 51: CI/CD Readiness & Build Automation
+Refactored the core internal tooling to support seamless automation via GitHub Actions.
+- **Environment Awareness**: Build scripts now automatically detect being in a CI environment and prioritize system-provided paths over local assumptions.
+- **Unified Qt Discovery**: Standardized the `Qt6_DIR` injection across macOS, Linux, and Windows build pipelines.
+- **Optimized Release Workflow**: The `release.yml` now utilizes streamlined packaging scripts, reducing build time and improving reliability.
+- **Clean Builds**: Standardized the build directory structure for easier artifact management.
+
 ## Stan Dokumentacji
 - `plans_history.md` — uzupełniony o Phase 37–50.
 - `walkthrough.md` — zaktualizowany (ten plik).

@@ -4,22 +4,24 @@
 # ============================================================
 param(
     [string]$QtVersion = "6.7.0",
-    [string]$QtDir     = $env:QT_DIR, # Prioritize environment variable from CI
+    [string]$QtDir     = "", # Will be detected below
     [string]$SignCert  = ""
 )
 
 $ErrorActionPreference = "Stop"
-$ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectDir = Split-Path -Parent $ScriptDir
-$DistDir    = "$ProjectDir\dist"
 
-# Extract version from CMakeLists.txt
-$VersionLine = Select-String -Path "$ProjectDir\CMakeLists.txt" -Pattern 'project\(CodeHex VERSION (\d+\.\d+\.\d+)'
-$Version = $VersionLine.Matches.Groups[1].Value
-Write-Host "==> CodeHex Windows Packaging  v$Version" -ForegroundColor Cyan
-
+# ---- Qt Path Discovery ----
 if (-not $QtDir) {
-    $QtDir = "$env:USERPROFILE\Qt\$QtVersion\msvc2019_64"
+    if ($env:Qt6_DIR) {
+        $QtDir = $env:Qt6_DIR
+        Write-Host "==> Using Qt6_DIR from environment: $QtDir" -ForegroundColor Gray
+    } elseif ($env:QT_DIR) {
+        $QtDir = $env:QT_DIR
+        Write-Host "==> Using QT_DIR from environment: $QtDir" -ForegroundColor Gray
+    } else {
+        $QtDir = "$env:USERPROFILE\Qt\$QtVersion\msvc2019_64"
+        Write-Host "==> Fallback to local QtDir: $QtDir" -ForegroundColor Gray
+    }
 }
 $QtBin    = "$QtDir\bin"
 $BuildDir = "$ProjectDir\build\release\cmake"

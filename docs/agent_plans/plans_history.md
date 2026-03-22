@@ -2,6 +2,22 @@
 
 ---
 
+## Phase 51: CI/CD Readiness for Build Scripts (2026-03-22) — ZAKOŃCZONA
+
+**Data**: 2026-03-22
+**Cel**: Pełna optymalizacja skryptów budujących i workflow GitHub Actions pod kątem automatyzacji i niezależności od lokalnych ścieżek.
+
+### Infrastruktura CI/CD:
+- [x] **install-deps-macos.sh**: Implementacja detekcji `GITHUB_ACTIONS`, dynamiczne wykrywanie ścieżek Qt6 przez zmienne środowiskowe.
+- [x] **install-deps-linux.sh**: Optymalizacja `apt-get` (-qq), priorytetyzacja `Qt6_DIR` z akcji `install-qt-action` nad lokalnymi instalacjami `aqt`.
+- [x] **release.yml**: Skonfigurowano poprawne przekazywanie `Qt6_DIR` do wszystkich etapów budowania i pakowania; usunięto zbędne kroki instalacji toolingu.
+- [x] **package-*.sh / .ps1**: Ujednolicenie logiki wykrywania binariów Qt oraz ścieżek wyjściowych Conan 2.x (`build/generators`).
+- [x] **run.sh**: Dostosowano skrypt deweloperski do nowej struktury katalogów i dynamicznego wykrywania Qt.
+
+### Weryfikacja:
+- Build: ✅ Sukces na macOS (local)
+- CI Sanity: ✅ Skrypty są teraz nieinteraktywne i gotowe do pracy w czystym kontenerze GitHub Actions.
+
 ## Faza 41: Unify Language & Tool Parameters (2026-03-21) — ZAKOŃCZONA
 
 **Data**: 2026-03-21

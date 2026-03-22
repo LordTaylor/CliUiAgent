@@ -68,7 +68,6 @@ jobs:
       - name: Package macOS
         if: matrix.os == 'macos-latest'
         env:
-          QT_DIR: ${{ env.Qt6_DIR }}
           Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
           chmod +x build-scripts/package-macos.sh
@@ -77,19 +76,18 @@ jobs:
       - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
         env:
-          QT_DIR: ${{ env.Qt6_DIR }}
+          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
           chmod +x build-scripts/package-linux.sh
-          # AppImages need a FUSE setup on GH Actions or we run with --appimage-extract-and-run
           ./build-scripts/package-linux.sh
 
       - name: Package Windows
         if: matrix.os == 'windows-latest'
         shell: pwsh
         env:
-          QT_DIR: ${{ env.Qt6_DIR }}
+          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
-          ./build-scripts/package-windows.ps1 -QtDir $env:QT_DIR
+          ./build-scripts/package-windows.ps1 -QtDir $env:Qt6_DIR
 
       - name: Upload Artifacts
         uses: softprops/action-gh-release@v1
