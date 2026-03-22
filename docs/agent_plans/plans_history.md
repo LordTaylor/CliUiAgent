@@ -528,3 +528,29 @@ Automatyczne pobieranie profili modeli z HuggingFace, rozszerzenie GitTool o ope
 - [x] **ToolExecutor Hooks**: Automatyczne wywoływanie hooków przed/po każdym narzędziu i przy zapisie pliku.
 - [x] **Roadmap 2026**: Nowa kompleksowa mapa drogowa ~350 pozycji w `ideas/roadmap_2026.md`.
 - [x] **Ideas Directory**: Centralizacja wszystkich planów i propozycji w katalogu `ideas/`.
+
+---
+
+## Phase 46: Procedural Pixel Cauldron Animation (2026-03-22) — ZAKOŃCZONA
+
+### Cel:
+Dodanie wizualnego wskaźnika aktywności agenta w formie proceduralnej animacji pixel-art.
+
+#### Zrealizowane zadania:
+- [x] **PixelCauldron Widget**: Implementacja customowego widgetu z proceduralnym systemem cząsteczek (para/bąbelki).
+- [x] **State Logic**: Trzy stany wizualne: `Idle` (ciemny), `Thinking` (niebieski), `Error` (czerwony).
+- [x] **Integration**: Podpięcie do strumienia statusów `AgentEngine`.
+
+---
+
+## Phase 50: Advanced 'Elite' Cauldron Animations (2026-03-22) — ZAKOŃCZONA
+
+### Cel:
+Transformacja kociołka w wizualne centrum aplikacji poprzez dodanie złożonych, wielokolorowych animacji w stylu retro.
+
+#### Zrealizowane zadania:
+- [x] **HSL Hue Shifting**: Implementacja płynnej zmiany kolorów cieczy podczas pracy agenta.
+- [x] **Magic Glow Aura**: Dodanie pulsującej poświaty wokół kociołka z użyciem `QRadialGradient`.
+- [x] **Enhanced Particles**: Rozszerzenie systemu cząsteczek o kolorowe "magiczne iskry".
+- [x] **Retro Scaling**: Podwojenie rozmiaru pikseli (8px) oraz wymiarów widgetu (128x128) dla efektu "chunky retro".
+- [x] **High-FPS Animation**: Zwiększenie częstotliwości odświeżania do 20 FPS dla płynniejszego ruchu.

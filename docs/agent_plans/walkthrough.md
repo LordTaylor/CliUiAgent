@@ -51,9 +51,37 @@ Rozszerzono `HookRegistry::HookPoint` o:
 
 ### 7. Organizacja Ideas
 - `AgentVision.md` i `planAgenta.md` przeniesione z korzenia projektu do `ideas/`.
-- `roadmap_2026.md` (~350 pozycji) skopiowany z `.claude/plans/` do `ideas/`.
+- [x] **Ideas Directory**: Centralizacja wszystkich planów i propozycji w katalogu `ideas/`.
+
+---
+
+## Phase 46: Procedural Pixel Cauldron Animation
+Implemented a retro-style pixel-art activity indicator for real-time visual feedback.
+
+### Key Features
+- **Procedural Particle System**: Dynamic steam and bubbles generated at 10 FPS.
+- **Visual States**:
+  - `Thinking`: Energetic blue boiling.
+  - `Error`: Ominous red glow.
+- **Performance**: Lightweight rendering using `QPainter` and cached pixel paths.
+
+---
+
+- **Performance**: Lightweight rendering using `QPainter` and cached pixel paths.
+
+## Phase 50: Elite Cauldron Animations
+Enhanced the visual indicator with premium procedural effects.
+
+### Visual Improvements
+- **Rainbow Liquid**: Liquid hue now cycles through the HSL spectrum when the agent is active.
+- **Pulsating Aura**: Added a soft, glowing magic aura that breathes with the animation.
+- **Magical Sparks**: Particles are now multi-colored and have more dynamic movement.
+- **Elite Scale**: Resized cauldron to exactly 50% of widget height (64px in a 128px container).
+- **Retro Aesthetic**: Doubled pixel size to 8px for a pronounced, chunky retro look.
+- **Top Alignment**: Positioned the cauldron at the top of the widget (`offsetY=0`) for maximum visibility.
+- **Fluid Motion**: Frame rate increased to 20 FPS for a smoother, premium feel.
 
 ## Stan Dokumentacji
-- `plans_history.md` — uzupełniony o Phase 37–45.
+- `plans_history.md` — uzupełniony o Phase 37–50.
 - `walkthrough.md` — zaktualizowany (ten plik).
-- `task.md` — wymaga aktualizacji przy następnym zadaniu.
+- `task.md` — wszystkie zadania zakończone.
