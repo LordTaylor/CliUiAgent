@@ -15,6 +15,11 @@ public:
     void shutdown() override;
     QString engineName() const override { return "Python"; }
 
+    void setWorkDir(const QString& dir);
+
+signals:
+    void appendToChatRequested(const QString& text);
+
 private:
     void registerCodeHexModule();
     bool m_initialized = false;

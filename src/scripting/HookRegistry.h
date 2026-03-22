@@ -10,7 +10,17 @@ namespace CodeHex {
 class HookRegistry : public QObject {
     Q_OBJECT
 public:
-    enum class HookPoint { PreSend, PostReceive, MessageTransform };
+    enum class HookPoint {
+        // Existing
+        PreSend,
+        PostReceive,
+        MessageTransform,
+        // New (F3)
+        PreToolCall,    // args: {toolName, input} — return modified args or {} to block
+        PostToolCall,   // args: {toolName, input, result, isError} — return modified result
+        OnFileWrite,    // args: {path, content} — fires after WriteFile succeeds
+        OnBuildResult,  // args: {command, stdout, stderr, exitCode}
+    };
 
     using HookFn = std::function<QVariant(QVariantMap)>;
 

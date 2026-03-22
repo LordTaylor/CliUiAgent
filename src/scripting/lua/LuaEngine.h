@@ -19,10 +19,16 @@ public:
     void shutdown() override;
     QString engineName() const override { return "Lua"; }
 
+    void setWorkDir(const QString& dir) { m_workDir = dir; }
+
+signals:
+    void appendToChatRequested(const QString& text);
+
 private:
     void registerCodeHexAPI();
 
     std::unique_ptr<sol::state> m_lua;
+    QString m_workDir;
 };
 
 }  // namespace CodeHex

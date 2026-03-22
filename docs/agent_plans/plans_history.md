@@ -413,3 +413,118 @@ Wdrożenie zaawansowanych strategii agentycznych: Dynamic Technik Library, Confi
 - [x] **Verification Anchor**: Implementacja parsowania `<confidence>` i mechanizmu nudgingu przy niskiej pewności (< 5).
 - [x] **ISV (Integrated Synthesis & Validation)**: Automatyczne wymuszanie weryfikacji po każdej edycji pliku.
 - [x] **Weryfikacja**: Pełna przebudowa systemowa oraz testy jednostkowe (`test_response_parser.cpp`) potwierdzające poprawność logiki.
+
+---
+
+## Phase 37: Code Splitting & Internal Chips (2026-03-21) — ZAKOŃCZONA
+
+### Cel:
+Podział monolitycznych plików na moduły oraz wizualne zwinięcie wewnętrznych komunikatów agenta do postaci "chipów".
+
+#### Zrealizowane zadania:
+- [x] **AgentEngine Split**: Podział `AgentEngine.cpp` (1005 linii) na 5 plików funkcjonalnych (`_Loop`, `_Runner`, `_Tools`, `_Collab`).
+- [x] **MainWindow Split**: Podział `MainWindow.cpp` (981 linii) na 4 pliki (`_SetupUi`, `_Generation`, `_Slots`).
+- [x] **Internal Chips UI**: Wewnętrzne wiadomości (tool calls, tool results, CoVe, sub-agenci) renderowane jako 28px chipy — klik rozwija.
+- [x] **Sub-Agent Chips**: Fioletowy akcent + ikona roli dla odpowiedzi sub-agentów.
+- [x] **Weryfikacja**: Build bez błędów.
+
+---
+
+## Phase 38: Toolbar, Sidebar & Context Bar Fixes (2026-03-21) — ZAKOŃCZONA
+
+### Cel:
+Naprawa layoutu toolbara, sidebar oraz dodanie paska kontekstu dla wszystkich typów providerów.
+
+#### Zrealizowane zadania:
+- [x] **Toolbar Layout**: Poprawiony układ przycisków i obramowania.
+- [x] **Sidebar Cleanup**: Usunięcie zbędnych elementów, collapsible toggle.
+- [x] **Context Bar**: Pasek kontekstu (fill %) dla wszystkich providerów (Ollama, LM Studio, OpenAI, custom).
+- [x] **Search Connect**: Podłączenie pola wyszukiwania w sidebarze.
+- [x] **Send/Stop Fix**: Przywrócenie brakujących przycisków Send/Stop w `InputPanel`.
+
+---
+
+## Phase 39: 10 Agent Improvements — Stability, Safety Loop, UI Badges (2026-03-21) — ZAKOŃCZONA
+
+### Cel:
+Pakiet 10 ulepszeń poprawiających stabilność, bezpieczeństwo pętli oraz wizualizację pewności odpowiedzi.
+
+#### Zrealizowane zadania:
+- [x] **Circuit Breaker**: `MAX_LOOP_ITERATIONS=25` — po przekroczeniu emituje błąd i zatrzymuje pętlę.
+- [x] **LLM Timeout**: `QTimer` 120s reset na każdy token; przerywa runner i emituje błąd przy braku odpowiedzi.
+- [x] **Semantic Loop Detection**: Śledzenie fingerprint `toolName:keyParam` — wykrywa pętle same-tool-same-param.
+- [x] **ToolCall Valid Flag**: Błędy parsowania JSON produkują czytelny `ToolResult` zamiast wykonania z pustymi parametrami.
+- [x] **Confidence Badge**: Pole `confidenceScore` w `Message`, renderowane jako `◆ N/10` (zielony/pomarańczowy/czerwony).
+- [x] **Token Stats Live**: Naprawiony `onTokenStatsUpdated` — live streaming tokenów w status barze.
+- [x] **CSS Fix (ChatControlBanner)**: Poprawiony format `rgba` w QSS (float 0.0–1.0).
+- [x] **ProjectAuditor Throttle**: Ostrzeżenia o brakujących `rules.md`/`docs/` raz na sesję.
+- [x] **PythonEngine ModuleNotFoundError**: Jedno WARN na unikalny moduł zamiast zalewania logów.
+- [x] **Retry with Backoff**: `ToolCall::retryCount` — do 2 retry z backoffem 500ms/1000ms przed wysłaniem błędu do LLM.
+
+---
+
+## Phase 40: Robust Parsing & OS Awareness (2026-03-21) — ZAKOŃCZONA
+
+### Cel:
+Odporność parsera na markdown w XML oraz świadomość środowiska macOS.
+
+#### Zrealizowane zadania:
+- [x] **Robust JSON Parsing**: `ResponseParser` wykrywa i usuwa bloki markdown (` ```json `) przed parsowaniem `<input>`.
+- [x] **macOS Awareness**: Systemowy prompt wzbogacony o narzędzia macOS: `pbcopy/pbpaste`, `open`, `mdfind`, `brew`, środowisko `zsh`.
+- [x] **Negative Examples**: Dodano przykłady błędnych i poprawnych wywołań XML w instrukcjach narzędzi.
+- [x] **Testy**: `Robustness: Markdown in Input` — PASSED; 37/38 testów PASSED.
+
+---
+
+## Phase 41: Rules Loading Fix & Terminal Wiring (2026-03-21) — ZAKOŃCZONA
+
+### Cel:
+Naprawa ładowania `rules.md` i podpięcie logów wykonania narzędzi do `TerminalPanel`.
+
+#### Zrealizowane zadania:
+- [x] **Rules Global Load**: `PromptManager` szuka `.agent/rules.md` idąc w górę od `applicationDirPath()` (do 8 poziomów) — reguły globalne ładowane niezależnie od `workingFolder`.
+- [x] **Project Rules**: Konkatenacja reguł globalnych + reguł projektowych z `workingFolder/.agent/rules.md`.
+- [x] **Terminal Wiring**: Sygnały `terminalOutput/terminalError` w `AgentEngine`; każde wywołanie narzędzia logowane jako `[HH:MM:SS] → CALL / ← DONE / ✗ FAIL`.
+- [x] **Status Messages**: Wiadomości `🧠 Thinking...`, `🔍 Searching`, `⏳ Retry` tunelowane przez `ChatController` do terminala.
+
+---
+
+## Phase 42-44: Advanced Orchestration, Precise Context & Multi-Model Support (2026-03-22) — ZAKOŃCZONA
+
+### Cel:
+Wdrożenie orkiestracji opartej na grafie (LangGraph-style), precyzyjne śledzenie kontekstu i natywne formatowanie dla DeepSeek/Mistral/Qwen.
+
+#### Zrealizowane zadania:
+- [x] **AgentGraph**: Maszyna stanów PLANNER→EXECUTOR→VERIFIER (`AgentGraph.h/.cpp`).
+- [x] **AgentEngine Integration**: `AgentEngine` używa `AgentGraph` jako głównego orkiestratora dla złożonych zadań.
+- [x] **Complex Task Heuristic**: Automatyczne wykrywanie złożonych zadań w `AgentEngine_Loop`.
+- [x] **Multi-Model Formatting**: `PromptManager` wykrywa rodzinę modelu i formatuje wyniki narzędzi natywnie (DeepSeek Unicode, Mistral JSON, Qwen XML).
+- [x] **Parsing Extensions**: `ResponseParser` obsługuje `<think>`, `[THINK]` oraz natywne formaty tool-call (Qwen XML, DeepSeek, Mistral).
+- [x] **Context Window Field**: `LlmProvider.contextWindow` + kontrolka UI w `ProviderSettingsDialog`.
+- [x] **ModelProfileManager**: Zarządzanie profilami modeli (`ModelProfile`, hot-reload przez `QFileSystemWatcher`).
+- [x] **Builtin Profiles**: Domyślne profile: `deepseek.json`, `llama.json`, `mistral.json`, `qwen3.json`.
+- [x] **ImportModelProfileTool**: Narzędzie agenta analizujące lokalny `tokenizer_config.json` i auto-zapisujące profil.
+- [x] **Tokenizer Analysis Prompt**: `resources/prompts/techniques/tokenizer_analysis.txt`.
+- [x] **App Icons**: Nowe ikony aplikacji (`.icns`, `.ico`, wielorozdzielcze `.png`).
+- [x] **AgentPipeline**: Multi-stage orchestration (`AgentPipeline.h/.cpp`).
+- [x] **ModelRouter**: Inteligentny wybór modelu (`ModelRouter.h/.cpp`).
+
+---
+
+## Phase 45: HuggingFace Integration, Git Write Ops, Scripting API (2026-03-22) — ZAKOŃCZONA
+
+### Cel:
+Automatyczne pobieranie profili modeli z HuggingFace, rozszerzenie GitTool o operacje zapisu oraz pełne API skryptowe dla Lua i Python.
+
+#### Zrealizowane zadania:
+- [x] **HuggingFaceImporter**: Async pobieranie `tokenizer_config.json` + `generation_config.json` z HF Hub (`QNetworkAccessManager`).
+- [x] **DownloadModelProfileTool**: Narzędzie agenta do pobierania profilu bezpośrednio z HuggingFace (synchroniczne przez `QEventLoop`).
+- [x] **ProviderSettingsDialog — HF Section**: GroupBox "Model Profile (HuggingFace)" z polami HF Repo ID, Download Profile, status profilu.
+- [x] **Auto-fill HF Repo ID**: Zmiana modelu w combo-boxie automatycznie kopiuje nazwę do pola HF Repo ID.
+- [x] **GitTool Write Ops**: Rozszerzenie `GitTool` o tryby: `Add`, `Commit`, `Checkout`, `Branches`, `Push`, `Stash`.
+- [x] **LuaEngine API**: Nowe funkcje: `read_file`, `write_file`, `list_directory`, `run_command`, `git_status`, `get_work_dir`, `append_to_chat`.
+- [x] **PythonEngine API**: Identyczne API przez `PYBIND11_EMBEDDED_MODULE` z globalnym stanem `g_workDir`.
+- [x] **HookRegistry Extensions**: Nowe punkty hookowe: `PreToolCall`, `PostToolCall`, `OnFileWrite`, `OnBuildResult`.
+- [x] **ToolExecutor Hooks**: Automatyczne wywoływanie hooków przed/po każdym narzędziu i przy zapisie pliku.
+- [x] **Roadmap 2026**: Nowa kompleksowa mapa drogowa ~350 pozycji w `ideas/roadmap_2026.md`.
+- [x] **Ideas Directory**: Centralizacja wszystkich planów i propozycji w katalogu `ideas/`.

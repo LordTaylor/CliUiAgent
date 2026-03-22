@@ -49,6 +49,8 @@ add_executable(prompt_tests PromptTesting.cpp)
 target_link_libraries(prompt_tests PRIVATE
     codehex_data
     codehex_core
+    codehex_scripting
     Qt6::Core Qt6::Test
+    lua::lua sol2::sol2 pybind11::embed
 )
 add_test(NAME prompt_tests COMMAND prompt_tests)

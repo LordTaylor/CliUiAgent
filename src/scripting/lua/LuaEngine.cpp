@@ -1,6 +1,9 @@
 #include "LuaEngine.h"
 #include <QDebug>
 #include <QFile>
+#include <QDir>
+#include <QProcess>
+#include <QDirIterator>
 #include <sol/sol.hpp>
 
 namespace CodeHex {
@@ -18,11 +21,72 @@ bool LuaEngine::initialize() {
 
 void LuaEngine::registerCodeHexAPI() {
     auto codehex = m_lua->create_named_table("codehex");
+
+    // ── Basic ────────────────────────────────────────────────────────────────
     codehex.set_function("log", [](const std::string& msg) {
         qDebug() << "[Lua]" << QString::fromStdString(msg);
     });
-    codehex.set_function("version", []() -> std::string {
-        return "0.1.0";
+    codehex.set_function("version", []() -> std::string { return "0.1.0"; });
+    codehex.set_function("get_work_dir", [this]() -> std::string {
+        return m_workDir.toStdString();
+    });
+
+    // ── File I/O ─────────────────────────────────────────────────────────────
+    codehex.set_function("read_file", [this](const std::string& path) -> std::string {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = m_workDir + "/" + p;
+        QFile f(p);
+        if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return "";
+        return f.readAll().toStdString();
+    });
+
+    codehex.set_function("write_file", [this](const std::string& path,
+                                               const std::string& content) -> bool {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = m_workDir + "/" + p;
+        QDir().mkpath(QFileInfo(p).path());
+        QFile f(p);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return false;
+        f.write(QByteArray::fromStdString(content));
+        return true;
+    });
+
+    codehex.set_function("list_directory", [this](const std::string& path) -> sol::table {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = m_workDir + "/" + p;
+        sol::table t = m_lua->create_table();
+        int idx = 1;
+        QDirIterator it(p, QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs);
+        while (it.hasNext()) {
+            t[idx++] = it.next().toStdString();
+        }
+        return t;
+    });
+
+    // ── Process ──────────────────────────────────────────────────────────────
+    codehex.set_function("run_command", [this](const std::string& cmd) -> sol::table {
+        QProcess proc;
+        proc.setWorkingDirectory(m_workDir);
+        proc.start("/bin/sh", {"-c", QString::fromStdString(cmd)});
+        proc.waitForFinished(30000);
+        sol::table t = m_lua->create_table();
+        t["stdout"]   = proc.readAllStandardOutput().toStdString();
+        t["stderr"]   = proc.readAllStandardError().toStdString();
+        t["exit_code"] = proc.exitCode();
+        return t;
+    });
+
+    codehex.set_function("git_status", [this]() -> std::string {
+        QProcess proc;
+        proc.setWorkingDirectory(m_workDir);
+        proc.start("git", {"status", "--porcelain"});
+        proc.waitForFinished(10000);
+        return proc.readAllStandardOutput().toStdString();
+    });
+
+    // ── Chat ─────────────────────────────────────────────────────────────────
+    codehex.set_function("append_to_chat", [this](const std::string& text) {
+        emit appendToChatRequested(QString::fromStdString(text));
     });
 }
 

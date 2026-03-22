@@ -44,6 +44,9 @@ add_library(codehex_core STATIC
     AgentGraph.h     AgentGraph.cpp
     tools/GitTool.h
     tools/SearchRepoTool.h
+    tools/ImportModelProfileTool.h
+    tools/DownloadModelProfileTool.h
+    HuggingFaceImporter.h HuggingFaceImporter.cpp
     rag/EmbeddingManager.h rag/EmbeddingManager.cpp
     rag/CodebaseIndexer.h  rag/CodebaseIndexer.cpp
 )

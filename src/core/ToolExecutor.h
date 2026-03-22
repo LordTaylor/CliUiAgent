@@ -12,6 +12,7 @@
 
 #include "ToolCall.h"
 #include "Tool.h"
+#include "../scripting/HookRegistry.h"
 
 namespace CodeHex {
 
@@ -19,6 +20,9 @@ class ToolExecutor : public QObject {
     Q_OBJECT
 public:
     explicit ToolExecutor(QObject* parent = nullptr);
+
+    /** Optional: wire up a HookRegistry to fire PreToolCall/PostToolCall/OnFileWrite. */
+    void setHookRegistry(HookRegistry* registry) { m_hooks = registry; }
 
     /**
      * @brief Executes the tool call asynchronously in a background thread.
@@ -58,6 +62,7 @@ signals:
 private:
     QMap<QString, std::shared_ptr<Tool>> m_tools;
     QMap<QString, QString> m_aliases;
+    HookRegistry* m_hooks = nullptr;
     std::atomic<Tool*> m_activeTool{nullptr};
 
     // --- Dedicated Tool ThreadPool (P-5) ---

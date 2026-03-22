@@ -1,4 +1,5 @@
 #include "ProviderSettingsDialog.h"
+#include "../../core/ModelProfileManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSplitter>
@@ -7,6 +8,7 @@
 #include <QIcon>
 #include <QGroupBox>
 #include <QSpinBox>
+#include <QApplication>
 
 namespace CodeHex {
 
@@ -20,13 +22,19 @@ ProviderSettingsDialog::ProviderSettingsDialog(AppConfig* config, QWidget* paren
     resize(700, 450);
     setMinimumSize(600, 400);
 
-    m_discovery = new LlmDiscoveryService(this);
+    m_discovery  = new LlmDiscoveryService(this);
+    m_hfImporter = new HuggingFaceImporter(this);
     m_workingList = m_config->providers();
 
     setupUi();
 
-    connect(m_discovery, &LlmDiscoveryService::modelsReady, this, &ProviderSettingsDialog::onModelsReady);
-    connect(m_discovery, &LlmDiscoveryService::errorOccurred, this, &ProviderSettingsDialog::onDiscoveryError);
+    connect(m_discovery,  &LlmDiscoveryService::modelsReady,   this, &ProviderSettingsDialog::onModelsReady);
+    connect(m_discovery,  &LlmDiscoveryService::errorOccurred, this, &ProviderSettingsDialog::onDiscoveryError);
+    connect(m_hfImporter, &HuggingFaceImporter::profileImported, this, &ProviderSettingsDialog::onHfProfileImported);
+    connect(m_hfImporter, &HuggingFaceImporter::errorOccurred,   this, &ProviderSettingsDialog::onHfError);
+    connect(m_hfImporter, &HuggingFaceImporter::progressMessage, this, [this](const QString& msg){
+        m_profileStatusLabel->setText(QString("<font color='#60A5FA'>%1</font>").arg(msg));
+    });
 
     updateList();
     if (!m_workingList.isEmpty()) {
@@ -95,6 +103,8 @@ void ProviderSettingsDialog::setupUi() {
     m_modelCombo = new QComboBox(formGroupBox);
     m_modelCombo->setEditable(true);
     m_modelCombo->setToolTip("The specific model identifier to be used (e.g., 'llama3' or 'gpt-4o'). You can type it or fetch from the provider.");
+    connect(m_modelCombo, &QComboBox::currentTextChanged,
+            this, &ProviderSettingsDialog::onModelNameChanged);
 
     auto* fetchBtn = new QPushButton("Fetch Models", formGroupBox);
     fetchBtn->setToolTip("Query the configured endpoint URL to retrieve a list of available models.");
@@ -117,6 +127,35 @@ void ProviderSettingsDialog::setupUi() {
     formLayout->addRow("", fetchBtn);
 
     rightLayout->addWidget(formGroupBox);
+
+    // ── HuggingFace Profile GroupBox ─────────────────────────────────────────
+    auto* hfGroupBox = new QGroupBox("Model Profile (HuggingFace)", rightWidget);
+    auto* hfLayout   = new QFormLayout(hfGroupBox);
+    hfLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    hfLayout->setLabelAlignment(Qt::AlignRight);
+    hfLayout->setSpacing(8);
+
+    m_hfRepoEdit = new QLineEdit(hfGroupBox);
+    m_hfRepoEdit->setPlaceholderText("e.g. Qwen/Qwen3-Coder-Next");
+    m_hfRepoEdit->setToolTip("HuggingFace repository ID (Owner/RepoName). "
+                              "Downloads tokenizer_config.json to auto-create a model profile.");
+
+    m_hfDownloadBtn = new QPushButton("Download Profile", hfGroupBox);
+    m_hfDownloadBtn->setToolTip("Download tokenizer config from HuggingFace and create a model profile "
+                                 "in ~/.codehex/profiles/ (hot-reloaded — no restart needed).");
+    connect(m_hfDownloadBtn, &QPushButton::clicked, this, &ProviderSettingsDialog::onDownloadProfile);
+
+    m_profileStatusLabel = new QLabel("", hfGroupBox);
+    m_profileStatusLabel->setWordWrap(true);
+
+    auto* hfRow = new QHBoxLayout();
+    hfRow->addWidget(m_hfRepoEdit);
+    hfRow->addWidget(m_hfDownloadBtn);
+
+    hfLayout->addRow("HF Repo ID:", hfRow);
+    hfLayout->addRow("Profile:", m_profileStatusLabel);
+
+    rightLayout->addWidget(hfGroupBox);
 
     m_statusLabel = new QLabel("", rightWidget);
     m_statusLabel->setWordWrap(true);
@@ -193,6 +232,8 @@ void ProviderSettingsDialog::loadProvider(int index) {
     m_contextWindowSpin->setValue(p.contextWindow);
 
     m_statusLabel->setText("");
+    m_hfRepoEdit->setText(p.selectedModel);
+    updateProfileStatus(p.selectedModel);
 }
 
 /**
@@ -235,6 +276,69 @@ void ProviderSettingsDialog::updateList() {
     for (const auto& p : m_workingList) {
         m_providerList->addItem(p.name);
     }
+}
+
+void ProviderSettingsDialog::onModelNameChanged(const QString& modelName) {
+    // Auto-fill HF Repo ID with model name — it's always the search key on HuggingFace
+    m_hfRepoEdit->setText(modelName);
+    updateProfileStatus(modelName);
+}
+
+void ProviderSettingsDialog::updateProfileStatus(const QString& modelName) {
+    if (!m_config->profileManager() || modelName.trimmed().isEmpty()) {
+        m_profileStatusLabel->setText("<font color='#9CA3AF'>No model selected</font>");
+        return;
+    }
+    const ModelProfile p = m_config->profileManager()->findProfile(modelName);
+    if (p.id == "default") {
+        m_profileStatusLabel->setText(
+            "<font color='#F59E0B'>&#9888; Profile not found. "
+            "Enter a HuggingFace repo ID above and click Download Profile.</font>");
+    } else {
+        m_profileStatusLabel->setText(
+            QString("<font color='#10B981'>&#10003; <b>%1</b> &mdash; "
+                    "%2 ctx &nbsp;|&nbsp; tools: %3</font>")
+            .arg(p.displayName)
+            .arg(p.contextWindow >= 1000000
+                 ? QString("%1M").arg(p.contextWindow / 1000000.0, 0, 'f', 1)
+                 : QString("%1K").arg(p.contextWindow / 1000))
+            .arg(p.toolCallFormat));
+    }
+}
+
+void ProviderSettingsDialog::onDownloadProfile() {
+    const QString repoId = m_hfRepoEdit->text().trimmed();
+    if (repoId.isEmpty() || !repoId.contains('/')) {
+        m_profileStatusLabel->setText(
+            "<font color='#EF4444'>Enter a valid repo ID (Owner/RepoName)</font>");
+        return;
+    }
+    m_hfDownloadBtn->setEnabled(false);
+    m_hfDownloadBtn->setText("Downloading…");
+    QApplication::processEvents();
+    m_hfImporter->fetchAndImport(repoId);
+}
+
+void ProviderSettingsDialog::onHfProfileImported(const ModelProfile& profile,
+                                                  const QString& savedPath) {
+    m_hfDownloadBtn->setEnabled(true);
+    m_hfDownloadBtn->setText("Download Profile");
+    m_profileStatusLabel->setText(
+        QString("<font color='#10B981'>&#10003; <b>%1</b> saved &mdash; "
+                "%2 ctx &nbsp;|&nbsp; tools: %3</font>")
+        .arg(profile.displayName)
+        .arg(profile.contextWindow >= 1000000
+             ? QString("%1M").arg(profile.contextWindow / 1000000.0, 0, 'f', 1)
+             : QString("%1K").arg(profile.contextWindow / 1000))
+        .arg(profile.toolCallFormat));
+    Q_UNUSED(savedPath)
+}
+
+void ProviderSettingsDialog::onHfError(const QString& error) {
+    m_hfDownloadBtn->setEnabled(true);
+    m_hfDownloadBtn->setText("Download Profile");
+    m_profileStatusLabel->setText(
+        QString("<font color='#EF4444'><b>Error:</b> %1</font>").arg(error));
 }
 
 } // namespace CodeHex

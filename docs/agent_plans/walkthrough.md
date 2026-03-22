@@ -1,33 +1,59 @@
-# Walkthrough: Robust Parsing & OS Awareness (Faza 40)
+# Walkthrough: Phase 45 — HuggingFace Integration, Git Write Ops, Scripting API
 
-Zaimplementowano zestaw ulepszeń mających na celu zwiększenie stabilności pracy agenta oraz jego orientacji w systemie operacyjnym MacOS.
+**Data**: 2026-03-22
 
 ## Co zostało zrobione
 
-### 1. Robust JSON Parsing
-Ulepszono `ResponseParser.cpp`, aby był odporny na częsty błąd modeli LLM polegający na owijaniu kodu JSON w bloki markdown (np. ` ```json `) wewnątrz tagów `<input>`.
-- **Zmiana**: Parser teraz proaktywnie wykrywa i usuwa znaczniki markdown przed próbą przetworzenia obiektu JSON.
-- **Korzyść**: Eliminacja błędów "Invalid JSON — unterminated object", które przerywały pętlę rozumowania agenta.
+### 1. HuggingFaceImporter
+Nowa klasa `HuggingFaceImporter` (`src/core/HuggingFaceImporter.h/.cpp`) pobiera asynchronicznie pliki `tokenizer_config.json` i `generation_config.json` z HuggingFace Hub.
+- URL: `https://huggingface.co/{Owner}/{Repo}/resolve/main/tokenizer_config.json`
+- Synchroniczny wrapper `fetchAndImportSync()` via `QEventLoop` + timeout 30s.
+- Auto-detekcja rodziny modelu: Qwen (`<|im_start|>`), DeepSeek (｜pełna szerokość｜), Mistral (`[TOOL_CALLS]`), LLaMA (fallback).
+- Zapis profilu do `~/.codehex/profiles/{id}.json` (hot-reload przez `ModelProfileManager`).
 
-### 2. Świadomość Systemu (OS Awareness)
-Wzbogacono systemowy prompt o szczegółowe informacje i porady specyficzne dla systemu MacOS.
-- **Nowe Porady**: Agent został poinstruowany o istnieniu narzędzi takich jak `pbcopy`/`pbpaste` (schowek), `open` (otwieranie plików i aplikacji), `mdfind` (szybkie wyszukiwanie Spotlight) oraz `brew`.
-- **Kontekst**: Agent ma teraz jasność, że pracuje w środowisku **zsh** na MacOS, co redukuje ryzyko użycia haseł specyficznych dla Linuxa lub Windows.
+### 2. DownloadModelProfileTool
+Narzędzie agenta `DownloadModelProfile` (`src/core/tools/DownloadModelProfileTool.h`) wywołuje `HuggingFaceImporter::fetchAndImportSync()`.
+- Parametry: `repoId` (wymagany), `apiToken` (opcjonalny), `profileId` (opcjonalny).
+- Zarejestrowane w `ToolExecutor` z aliasem `DownloadProfile`.
 
-### 3. Wytyczne Konstrukcji Komend
-Wprowadzono ścisłe reguły budowania komend w `ToolExecutor.cpp` oraz `PromptManager.cpp`.
-- **Negative Examples**: Dodano przykłady tego, czego agent NIE powinien robić (np. nie używać markdown wewnątrz XML).
-- **Format XML**: Wzmocniono instrukcję dotyczącą struktury `<tool_call>`.
+### 3. ProviderSettingsDialog — sekcja HuggingFace
+Dodano GroupBox "Model Profile (HuggingFace)" w `ProviderSettingsDialog`:
+- Pole `m_hfRepoEdit` — HF Repo ID.
+- Przycisk "Download Profile" — pobiera i tworzy profil modelu.
+- `m_profileStatusLabel` — zielony ✓ jeśli profil istnieje, pomarańczowy ⚠ jeśli brakuje.
+- **Auto-fill**: zmiana `m_modelCombo` automatycznie kopiuje wartość do `m_hfRepoEdit`.
 
-## Wyniki Weryfikacji
+### 4. GitTool Write Operations
+Rozszerzono `GitTool` (`src/core/tools/GitTool.h`) o tryby zapisu:
+- `Add` — `git add <files>`
+- `Commit` — `git commit -m <message>` (z shell-quoting)
+- `Checkout` — `git checkout <target>`
+- `Branches` — `git branch -a`
+- `Push` — `git push [remote] [branch]`
+- `Stash` — `git stash` / `git stash pop`
 
-### Testy Jednostkowe
-Dodano nowy test w `tests/test_response_parser.cpp`:
-- `Robustness: Markdown in Input` — **PASSED** ✅
+### 5. LuaEngine & PythonEngine API
+Rozszerzono API skryptowe (sol2 / pybind11):
+- `codehex.read_file(path)` — czyta plik (relative do workDir)
+- `codehex.write_file(path, content)` — zapisuje plik
+- `codehex.list_directory(path)` — lista plików/katalogów
+- `codehex.run_command(cmd)` — uruchamia polecenie shell, zwraca `{stdout, stderr, exit_code}`
+- `codehex.git_status()` — `git status --porcelain`
+- `codehex.get_work_dir()` — bieżący katalog roboczy
+- `codehex.append_to_chat(text)` — dodaje tekst do okna czatu
 
-Uruchomiono pełny zestaw testów (z wyjątkiem integracyjnych wymagających zewnętrznych usług):
-- `tests/codehex_tests` — **37/38 PASSED** ✅ (jeden nieistotny błąd w narzędziu screenshot, niezwiązany ze zmianami).
-- `ResponseParser tests` — **All 7 PASSED** ✅
+### 6. HookRegistry — nowe punkty hookowe
+Rozszerzono `HookRegistry::HookPoint` o:
+- `PreToolCall` — przed wykonaniem narzędzia (może inspect/modify input)
+- `PostToolCall` — po wykonaniu narzędzia
+- `OnFileWrite` — przy sukcesie `WriteFile`
+- `OnBuildResult` — przy wyniku budowania
 
-### Kompilacja
-Projekt kompiluje się prawidłowo (`cmake --build build`).
+### 7. Organizacja Ideas
+- `AgentVision.md` i `planAgenta.md` przeniesione z korzenia projektu do `ideas/`.
+- `roadmap_2026.md` (~350 pozycji) skopiowany z `.claude/plans/` do `ideas/`.
+
+## Stan Dokumentacji
+- `plans_history.md` — uzupełniony o Phase 37–45.
+- `walkthrough.md` — zaktualizowany (ten plik).
+- `task.md` — wymaga aktualizacji przy następnym zadaniu.

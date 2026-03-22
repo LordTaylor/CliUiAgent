@@ -10,6 +10,8 @@
 #include "tools/GitTool.h"
 #include "tools/MathLogicTool.h"
 #include "tools/TakeScreenshotTool.h"
+#include "tools/ImportModelProfileTool.h"
+#include "tools/DownloadModelProfileTool.h"
 #include <QtConcurrent>
 #include <QMetaType>
 #include <QJsonDocument>
@@ -39,8 +41,16 @@ ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Status));
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Diff));
     registerTool(std::make_shared<GitTool>(GitTool::Mode::Log));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Add));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Commit));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Checkout));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Branches));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Push));
+    registerTool(std::make_shared<GitTool>(GitTool::Mode::Stash));
     registerTool(std::make_shared<MathLogicTool>());
     registerTool(std::make_shared<TakeScreenshotTool>());
+    registerTool(std::make_shared<ImportModelProfileTool>());
+    registerTool(std::make_shared<DownloadModelProfileTool>());
 
     // Register Aliases
     registerAlias("Read",  "ReadFile");
@@ -52,6 +62,8 @@ ToolExecutor::ToolExecutor(QObject* parent) : QObject(parent) {
     registerAlias("Grep",  "Search");
     registerAlias("Sed",   "Replace");
     registerAlias("Screenshot", "TakeScreenshot");
+    registerAlias("ImportProfile",   "ImportModelProfile");
+    registerAlias("DownloadProfile", "DownloadModelProfile");
 }
 
 void ToolExecutor::registerTool(std::shared_ptr<Tool> tool) {
@@ -104,13 +116,46 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
         }
     }
 
+    // PreToolCall hook — scripts can inspect/modify input
+    QJsonObject effectiveInput = call.input;
+    if (m_hooks) {
+        QVariantMap hookArgs;
+        hookArgs["toolName"] = resolvedName;
+        hookArgs["input"]    = QString(QJsonDocument(call.input).toJson());
+        m_hooks->runHooks(HookRegistry::HookPoint::PreToolCall, hookArgs);
+    }
+
     if (m_tools.contains(resolvedName)) {
         Tool* tool = m_tools[resolvedName].get();
         m_activeTool = tool;
-        result = tool->execute(call.input, workDir);
+        result = tool->execute(effectiveInput, workDir);
         m_activeTool = nullptr;
     } else {
         result = ToolResult{ {}, QString("Unknown tool: '%1'").arg(toolName), true };
+    }
+
+    // PostToolCall hook
+    if (m_hooks) {
+        QVariantMap hookArgs;
+        hookArgs["toolName"] = resolvedName;
+        hookArgs["result"]   = result.content;
+        hookArgs["isError"]  = result.isError;
+        m_hooks->runHooks(HookRegistry::HookPoint::PostToolCall, hookArgs);
+    }
+
+    // OnFileWrite hook — fire when WriteFile succeeds
+    if (!result.isError && resolvedName == "WriteFile") {
+        const QString writtenPath = call.input.contains("TargetFile")
+            ? call.input["TargetFile"].toString()
+            : call.input["path"].toString();
+        if (m_hooks && !writtenPath.isEmpty()) {
+            QVariantMap hookArgs;
+            hookArgs["path"]    = writtenPath;
+            hookArgs["content"] = call.input.contains("CodeContent")
+                ? call.input["CodeContent"].toString()
+                : call.input["content"].toString();
+            m_hooks->runHooks(HookRegistry::HookPoint::OnFileWrite, hookArgs);
+        }
     }
 
     // Cache successful ReadFile results

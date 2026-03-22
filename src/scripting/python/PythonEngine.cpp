@@ -7,6 +7,10 @@
 #include <pybind11/pybind11.h>
 #pragma pop_macro("slots")
 #include <QDebug>
+#include <QFile>
+#include <QDir>
+#include <QProcess>
+#include <QDirIterator>
 #include <QRegularExpression>
 #include <QSet>
 
@@ -14,13 +18,76 @@ namespace py = pybind11;
 
 namespace CodeHex {
 
+// Global state for the embedded module (pybind11 modules are static — use a singleton)
+namespace {
+    QString g_workDir;
+    std::function<void(const QString&)> g_appendToChat;
+}
+
 // Embedded codehex Python module
 PYBIND11_EMBEDDED_MODULE(codehex, m) {
     m.doc() = "CodeHex scripting API";
+
+    // ── Basic ────────────────────────────────────────────────────────────────
     m.def("log", [](const std::string& msg) {
         qDebug() << "[Python]" << QString::fromStdString(msg);
     });
     m.def("version", []() -> std::string { return "0.1.0"; });
+    m.def("get_work_dir", []() -> std::string { return g_workDir.toStdString(); });
+
+    // ── File I/O ─────────────────────────────────────────────────────────────
+    m.def("read_file", [](const std::string& path) -> std::string {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = g_workDir + "/" + p;
+        QFile f(p);
+        if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return "";
+        return f.readAll().toStdString();
+    });
+
+    m.def("write_file", [](const std::string& path, const std::string& content) -> bool {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = g_workDir + "/" + p;
+        QDir().mkpath(QFileInfo(p).path());
+        QFile f(p);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return false;
+        f.write(QByteArray::fromStdString(content));
+        return true;
+    });
+
+    m.def("list_directory", [](const std::string& path) -> py::list {
+        QString p = QString::fromStdString(path);
+        if (QDir::isRelativePath(p)) p = g_workDir + "/" + p;
+        py::list result;
+        QDirIterator it(p, QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs);
+        while (it.hasNext()) result.append(it.next().toStdString());
+        return result;
+    });
+
+    // ── Process ──────────────────────────────────────────────────────────────
+    m.def("run_command", [](const std::string& cmd) -> py::dict {
+        QProcess proc;
+        proc.setWorkingDirectory(g_workDir);
+        proc.start("/bin/sh", {"-c", QString::fromStdString(cmd)});
+        proc.waitForFinished(30000);
+        py::dict d;
+        d["stdout"]    = proc.readAllStandardOutput().toStdString();
+        d["stderr"]    = proc.readAllStandardError().toStdString();
+        d["exit_code"] = proc.exitCode();
+        return d;
+    });
+
+    m.def("git_status", []() -> std::string {
+        QProcess proc;
+        proc.setWorkingDirectory(g_workDir);
+        proc.start("git", {"status", "--porcelain"});
+        proc.waitForFinished(10000);
+        return proc.readAllStandardOutput().toStdString();
+    });
+
+    // ── Chat ─────────────────────────────────────────────────────────────────
+    m.def("append_to_chat", [](const std::string& text) {
+        if (g_appendToChat) g_appendToChat(QString::fromStdString(text));
+    });
 }
 
 PythonEngine::PythonEngine(QObject* parent) : ScriptEngine(parent) {}
@@ -42,20 +109,25 @@ bool PythonEngine::initialize() {
     return true;
 }
 
+void PythonEngine::setWorkDir(const QString& dir) {
+    g_workDir = dir;
+}
+
 void PythonEngine::registerCodeHexModule() {
-    // Module already registered via PYBIND11_EMBEDDED_MODULE above
-    // Ensure sys.path includes project script directory to find rag_backend.py
+    // Module already registered via PYBIND11_EMBEDDED_MODULE above.
+    // Wire up the append_to_chat callback and sys.path.
+    g_appendToChat = [this](const QString& text) {
+        emit appendToChatRequested(text);
+    };
+
     try {
         py::gil_scoped_acquire acquire;
         py::module_ sys = py::module_::import("sys");
         py::list path = sys.attr("path");
-        
-        // Add project root scripts directory (where rag_backend.py usually lives)
         path.append("./scripts");
-        
         qDebug() << "[Python] sys.path initialized with ./scripts";
     } catch (const std::exception& e) {
-        qWarning() << "[Python] Failed to initialized sys.path:" << e.what();
+        qWarning() << "[Python] Failed to initialize sys.path:" << e.what();
     }
 }
 

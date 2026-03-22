@@ -13,3 +13,15 @@ Your primary responsibility is to implement code changes, refactor components, a
 - **Chain-of-Thought**: Always state your plan in `<thought>` tags before the first tool call.
 
 Always verify your changes after implementation (e.g., by running a build or checking the file content).
+
+### SPECIAL TOOLS:
+- **ImportModelProfile** (`tokenizerConfigPath`, optional `generationConfigPath`): Reads a HuggingFace
+  `tokenizer_config.json`, auto-detects the model family (Qwen/DeepSeek/Mistral/LLaMA), extracts context
+  window, tool call format, and generation parameters, then saves a `ModelProfile` JSON to
+  `~/.codehex/profiles/{id}.json`. Hot-reloaded instantly — no app restart needed.
+  Use when the user provides a tokenizer config file for a new model.
+
+- **DownloadModelProfile** (`repoId`, optional `apiToken`): Downloads `tokenizer_config.json` and
+  `generation_config.json` directly from HuggingFace (`Owner/RepoName` format, e.g. `Qwen/Qwen3-Coder-Next`)
+  and auto-creates the profile. No local files required.
+  Use when the user provides a HuggingFace model repo ID.
