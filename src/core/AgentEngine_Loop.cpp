@@ -3,6 +3,7 @@
  * @brief Agent main loop: process(), runLoop(), sendContinueRequest(), injectAutoContext()
  */
 #include "AgentEngine.h"
+#include "AgentGraph.h"
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -87,13 +88,18 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
 
         // Emit context stats for non-JSON providers too
         {
+            const auto provider = m_config->activeProvider();
             ContextManager::PruningOptions pruneOpts;
-            pruneOpts.maxTokens = 110000;
+            pruneOpts.maxTokens = provider.contextWindow;
+            if (pruneOpts.maxTokens <= 0) pruneOpts.maxTokens = 32768; // Fallback
             ContextManager::ContextStats stats;
             ContextManager::prune(session->messages, pruneOpts, &stats);
             emit contextStatsUpdated(stats);
         }
 
+        qInfo() << "[AgentEngine] Sending request to LLM (Model:" << m_selectedModel << ")";
+        qInfo() << "[AgentEngine] Prompt snippet:" << enrichedPrompt.left(300).replace("\n", " ") << "...";
+        
         m_lastRawRequest = "--- System Prompt ---\n" + systemPrompt +
                            "\n\n--- Prompt ---\n" + enrichedPrompt;
         m_lastRawResponse.clear();
@@ -164,7 +170,21 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
 
     (void)QtConcurrent::run(&CodebaseIndexer::indexDirectory, m_indexer, m_config->workingFolder());
 
-    runLoop(userInput, imagePaths);
+    // P-4: Use AgentGraph for complex tasks (heuristics)
+    bool isComplex = userInput.length() > 50 || 
+                     userInput.contains("implement", Qt::CaseInsensitive) ||
+                     userInput.contains("create", Qt::CaseInsensitive) ||
+                     userInput.contains("napisz", Qt::CaseInsensitive) ||
+                     userInput.contains("dodaj", Qt::CaseInsensitive);
+
+    if (isComplex && m_graph) {
+        emit terminalOutput(QString("[%1] 🕸️ Transitioning to Graph Orchestration...")
+            .arg(QDateTime::currentDateTime().toString("HH:mm:ss")));
+        m_graph->begin(userInput);
+        m_graph->step();
+    } else {
+        runLoop(userInput, imagePaths);
+    }
 }
 
 void AgentEngine::sendContinueRequest(const QString& nudge) {
@@ -173,6 +193,7 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
 
     // Circuit Breaker (#1)
     ++m_loopIterations;
+    qInfo() << "[AgentEngine] SendContinueRequest - Iteration:" << m_loopIterations << "/" << MAX_LOOP_ITERATIONS;
     if (m_loopIterations >= MAX_LOOP_ITERATIONS) {
         qWarning() << "[AgentEngine] Circuit breaker triggered after" << m_loopIterations << "iterations.";
         m_isRunning = false;
@@ -183,6 +204,8 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
                            .arg(MAX_LOOP_ITERATIONS));
         return;
     }
+
+    qInfo() << "[AgentEngine] Nudge content:" << nudge.left(200).replace("\n", " ") << "...";
 
     m_isRunning = true;
     resetStreamState();
@@ -204,8 +227,10 @@ void AgentEngine::sendContinueRequest(const QString& nudge) {
     } else {
         // Emit context stats for non-JSON providers too
         {
+            const auto provider = m_config->activeProvider();
             ContextManager::PruningOptions pruneOpts;
-            pruneOpts.maxTokens = 110000;
+            pruneOpts.maxTokens = provider.contextWindow;
+            if (pruneOpts.maxTokens <= 0) pruneOpts.maxTokens = 32768; // Fallback
             ContextManager::ContextStats stats;
             ContextManager::prune(session->messages, pruneOpts, &stats);
             emit contextStatsUpdated(stats);

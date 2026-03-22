@@ -30,6 +30,7 @@
 #include "ThinkingCache.h"
 #include "ToolExecutor.h"
 #include "AgentPipeline.h"
+#include "AgentGraph.h"
 #include "WalkthroughGenerator.h"
 #include "rag/CodebaseIndexer.h"
 #include "rag/EmbeddingManager.h"
@@ -62,6 +63,16 @@ AgentEngine::AgentEngine(AppConfig* config,
     : QObject(parent), m_sessions(sessions), m_runner(runner),
       m_toolExecutor(toolExecutor), m_currentRole(AgentRole::Base), m_config(config)
 {
+    m_pipeline = new AgentPipeline(this, this);
+    m_graph    = new AgentGraph(this);
+
+    // LangGraph-style orchestration
+    connect(m_graph, &AgentGraph::nodeStarted, this, [this](const QString& node, AgentRole role, const QString& prompt) {
+        emit terminalOutput(QString("[%1] 🕸️ Graph Node: %2").arg(QDateTime::currentDateTime().toString("HH:mm:ss"), node));
+        setRole(role);
+        runLoop(prompt, {});
+    });
+
     m_router = new ModelRouter(config, this);
     m_manualApproval = false;
     m_activeTechniques.clear();

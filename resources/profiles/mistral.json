@@ -1,0 +1,14 @@
+{
+  "id": "mistral",
+  "displayName": "Mistral / Codestral / Pixtral / Nemo",
+  "matchPatterns": ["mistral", "codestral", "pixtral", "nemo"],
+  "contextWindow": 128000,
+  "thoughtOpenTag": "[THINK]",
+  "thoughtCloseTag": "[/THINK]",
+  "toolCallFormat": "mistral-native",
+  "toolResponseFormat": "mistral-results",
+  "hasGenerationParams": true,
+  "temperature": 0.7,
+  "topP": 1.0,
+  "topK": -1
+}

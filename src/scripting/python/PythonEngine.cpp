@@ -44,9 +44,19 @@ bool PythonEngine::initialize() {
 
 void PythonEngine::registerCodeHexModule() {
     // Module already registered via PYBIND11_EMBEDDED_MODULE above
-    // Ensure sys.path includes user script directories
-    py::module_ sys = py::module_::import("sys");
-    // Additional path setup can be done here
+    // Ensure sys.path includes project script directory to find rag_backend.py
+    try {
+        py::gil_scoped_acquire acquire;
+        py::module_ sys = py::module_::import("sys");
+        py::list path = sys.attr("path");
+        
+        // Add project root scripts directory (where rag_backend.py usually lives)
+        path.append("./scripts");
+        
+        qDebug() << "[Python] sys.path initialized with ./scripts";
+    } catch (const std::exception& e) {
+        qWarning() << "[Python] Failed to initialized sys.path:" << e.what();
+    }
 }
 
 bool PythonEngine::loadScript(const QString& path) {

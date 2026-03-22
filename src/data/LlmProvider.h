@@ -16,6 +16,7 @@ struct LlmProvider {
     QString apiKey;
     QString selectedModel;
     QString type; // "ollama", "openai", "lmstudio", "custom"
+    int contextWindow = 32768; // Default 32k
     bool active = true;
 
     QJsonObject toJson() const {
@@ -26,6 +27,7 @@ struct LlmProvider {
         obj["apiKey"] = apiKey;
         obj["selectedModel"] = selectedModel;
         obj["type"] = type;
+        obj["contextWindow"] = contextWindow;
         obj["active"] = active;
         return obj;
     }
@@ -38,6 +40,7 @@ struct LlmProvider {
         p.apiKey = obj["apiKey"].toString();
         p.selectedModel = obj["selectedModel"].toString();
         p.type = obj["type"].toString();
+        p.contextWindow = obj["contextWindow"].toInt(32768);
         p.active = obj["active"].toBool(true);
         return p;
     }

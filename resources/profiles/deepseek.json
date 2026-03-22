@@ -1,0 +1,14 @@
+{
+  "id": "deepseek",
+  "displayName": "DeepSeek V3 / R1 / Coder",
+  "matchPatterns": ["deepseek"],
+  "contextWindow": 16384,
+  "thoughtOpenTag": "<think>",
+  "thoughtCloseTag": "</think>",
+  "toolCallFormat": "deepseek-native",
+  "toolResponseFormat": "deepseek-output",
+  "hasGenerationParams": true,
+  "temperature": 0.0,
+  "topP": 1.0,
+  "topK": -1
+}

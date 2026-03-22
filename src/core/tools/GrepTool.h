@@ -18,7 +18,7 @@ public:
                     {"type", "string"},
                     {"description", "Text pattern to search for"}
                 }},
-                {"root", QJsonObject{
+                {"DirectoryPath", QJsonObject{
                     {"type", "string"},
                     {"description", "Directory to search in (default: .)"}
                 }},
@@ -35,7 +35,7 @@ public:
         const QString query = input["query"].toString();
         if (query.isEmpty()) return ToolUtils::errResult("Search: 'query' parameter is required");
 
-        const QString root = ToolUtils::resolvePath(input.contains("root") ? input["root"].toString() : ".", workDir);
+        const QString root = ToolUtils::resolvePath(input.contains("DirectoryPath") ? input["DirectoryPath"].toString() : ".", workDir);
         if (!ToolUtils::isPathSafe(root, workDir))
             return ToolUtils::errResult(QString("Search: permission denied for path: %1").arg(root));
         const bool caseSensitive = input.contains("case_sensitive") ? input["case_sensitive"].toBool() : false;

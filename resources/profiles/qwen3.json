@@ -1,0 +1,14 @@
+{
+  "id": "qwen3",
+  "displayName": "Qwen3 / Qwen3-Coder",
+  "matchPatterns": ["qwen3", "qwen-coder", "qwen2.5-coder", "qwen2-coder"],
+  "contextWindow": 1048576,
+  "thoughtOpenTag": "<think>",
+  "thoughtCloseTag": "</think>",
+  "toolCallFormat": "qwen-xml",
+  "toolResponseFormat": "qwen-tool-role",
+  "hasGenerationParams": true,
+  "temperature": 1.0,
+  "topP": 0.95,
+  "topK": 40
+}

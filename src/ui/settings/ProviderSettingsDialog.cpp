@@ -6,6 +6,7 @@
 #include <QUuid>
 #include <QIcon>
 #include <QGroupBox>
+#include <QSpinBox>
 
 namespace CodeHex {
 
@@ -104,6 +105,15 @@ void ProviderSettingsDialog::setupUi() {
     formLayout->addRow("Endpoint URL:", m_urlEdit);
     formLayout->addRow("API Key:", m_keyEdit);
     formLayout->addRow("Selected Model:", m_modelCombo);
+    
+    m_contextWindowSpin = new QSpinBox(formGroupBox);
+    m_contextWindowSpin->setRange(1024, 2048000);
+    m_contextWindowSpin->setSingleStep(1024);
+    m_contextWindowSpin->setValue(32768);
+    m_contextWindowSpin->setSuffix(" tokens");
+    m_contextWindowSpin->setToolTip("The maximum context window size for this model. Old messages will be pruned when this limit is approached.");
+    formLayout->addRow("Context Window:", m_contextWindowSpin);
+
     formLayout->addRow("", fetchBtn);
 
     rightLayout->addWidget(formGroupBox);
@@ -159,6 +169,7 @@ void ProviderSettingsDialog::onProviderSelected(int index) {
         p.url = m_urlEdit->text();
         p.apiKey = m_keyEdit->text();
         p.selectedModel = m_modelCombo->currentText();
+        p.contextWindow = m_contextWindowSpin->value();
     }
 
     m_currentIndex = index;
@@ -179,6 +190,7 @@ void ProviderSettingsDialog::loadProvider(int index) {
         m_modelCombo->addItem(p.selectedModel);
         m_modelCombo->setCurrentText(p.selectedModel);
     }
+    m_contextWindowSpin->setValue(p.contextWindow);
 
     m_statusLabel->setText("");
 }

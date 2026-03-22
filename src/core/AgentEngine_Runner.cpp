@@ -11,6 +11,7 @@
 #include "ResponseFilter.h"
 #include "ResponseParser.h"
 #include "SessionManager.h"
+#include "AgentGraph.h"
 #include "../data/Session.h"
 
 namespace CodeHex {
@@ -106,6 +107,15 @@ void AgentEngine::onRunnerFinished(int exitCode) {
 
     ResponseParser::ParseResult parseResult = ResponseParser::parse(currentResp);
 
+    qInfo() << "[AgentEngine] Response received (length:" << currentResp.length() << ")";
+    qInfo() << "[AgentEngine] Parsing results -> Thoughts:" << parseResult.thoughts.size() 
+            << "| Tool Calls:" << parseResult.toolCalls.size()
+            << "| Confidence:" << parseResult.confidenceScore;
+
+    for (const auto& call : parseResult.toolCalls) {
+        qDebug() << "  - Tool Call:" << call.name << "(ID:" << call.id << ")";
+    }
+
     // Confidence Anchor
     if (parseResult.confidenceScore < 5 && parseResult.toolCalls.isEmpty()) {
         qDebug() << "[AgentEngine] Low confidence detected:" << parseResult.confidenceScore;
@@ -120,7 +130,6 @@ void AgentEngine::onRunnerFinished(int exitCode) {
     m_lastRawResponse = currentResp;
     buildAssistantMessage(parseResult, currentResp);
 
-    qDebug() << "[AgentEngine] onRunnerFinished: parsedCalls.size()=" << parseResult.toolCalls.size();
     if (parseResult.toolCalls.size() > 1) {
         qDebug() << "[AgentEngine] Dispatching tool batch:" << parseResult.toolCalls.size() << "calls";
         dispatchToolBatch(parseResult.toolCalls);
@@ -131,7 +140,13 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
         if (m_requestQueue.isEmpty()) cleanupScratchpad();
-        processNextQueueItem();
+        
+        // Progress LangGraph if active
+        if (m_graph && m_graph->state().nextNode != "END") {
+            m_graph->onNodeFinished(currentResp);
+        } else {
+            processNextQueueItem();
+        }
     }
 }
 

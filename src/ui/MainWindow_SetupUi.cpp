@@ -237,10 +237,11 @@ void MainWindow::setupUi() {
     chatGrid->addWidget(m_chatView, 0, 0, 3, 3);
 
     auto* btnOverlay    = new QWidget(chatContainer);
+    btnOverlay->setStyleSheet("background: transparent;");
     auto* overlayLayout = new QVBoxLayout(btnOverlay);
     overlayLayout->setAlignment(Qt::AlignBottom | Qt::AlignRight);
     overlayLayout->setSpacing(10);
-    overlayLayout->setContentsMargins(0, 0, 20, 20);
+    overlayLayout->setContentsMargins(0, 0, 16, 16);
 
     m_autoScrollBtn = new QPushButton("🧲", btnOverlay);
     m_autoScrollBtn->setCheckable(true);
@@ -272,8 +273,8 @@ void MainWindow::setupUi() {
     m_statusLabel->setVisible(true);
     m_statusLabel->setText("Ready");
     m_statusLabel->setStyleSheet(
-        "background: rgba(31, 41, 55, 0.95); color: #9CA3AF; padding: 8px 20px; "
-        "border-radius: 14px; border: 1px solid #4B5563; font-weight: bold; font-size: 13px;");
+        "background: rgba(26, 18, 10, 0.95); color: #FBBF24; padding: 8px 20px; "
+        "border-radius: 14px; border: 1px solid rgba(217, 119, 6, 0.6); font-weight: bold; font-size: 13px;");
     chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
     m_statusLabel->raise();
  

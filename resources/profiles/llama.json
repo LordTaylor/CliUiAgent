@@ -1,0 +1,14 @@
+{
+  "id": "llama",
+  "displayName": "Llama / Phi / Gemma / Falcon",
+  "matchPatterns": ["llama", "phi", "gemma", "falcon"],
+  "contextWindow": 8192,
+  "thoughtOpenTag": "<think>",
+  "thoughtCloseTag": "</think>",
+  "toolCallFormat": "codehex-xml",
+  "toolResponseFormat": "qwen-tool-role",
+  "hasGenerationParams": false,
+  "temperature": 0.7,
+  "topP": 1.0,
+  "topK": -1
+}

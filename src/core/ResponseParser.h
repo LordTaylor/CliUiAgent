@@ -29,8 +29,14 @@ public:
 
     /**
      * @brief Parses the raw LLM response.
+     *
+     * @param preferredToolFormat  When non-empty, the parser matching this format
+     *   (e.g. "qwen-xml", "deepseek-native", "mistral-native") is tried first
+     *   before falling through the standard fallback chain.
+     *   Pass ModelProfile::toolCallFormat here for best results.
      */
-    static ParseResult parse(const QString& response);
+    static ParseResult parse(const QString& response,
+                             const QString& preferredToolFormat = QString());
 
     /**
      * @brief Removes tool-related XML tags and thought tags from text intended for display.

@@ -15,24 +15,24 @@ public:
         return QJsonObject{
             {"type", "object"},
             {"properties", QJsonObject{
-                {"path", QJsonObject{
+                {"TargetFile", QJsonObject{
                     {"type", "string"},
-                    {"description", "Path to the file to write"}
+                    {"description", "Absolute path to the file to write"}
                 }},
-                {"content", QJsonObject{
+                {"CodeContent", QJsonObject{
                     {"type", "string"},
                     {"description", "Full content to write to the file"}
                 }}
             }},
-            {"required", QJsonArray{"path", "content"}}
+            {"required", QJsonArray{"TargetFile", "CodeContent"}}
         };
     }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
-        const QString path    = ToolUtils::resolvePath(input["path"].toString(), workDir);
-        const QString content = input["content"].toString();
+        const QString path    = ToolUtils::resolvePath(input["TargetFile"].toString(), workDir);
+        const QString content = input["CodeContent"].toString();
         if (path.isEmpty())
-            return ToolUtils::errResult("WriteFile: 'path' parameter is required");
+            return ToolUtils::errResult("WriteFile: 'TargetFile' parameter is required");
         if (!ToolUtils::isPathSafe(path, workDir))
             return ToolUtils::errResult(QString("WriteFile: permission denied for path: %1").arg(path));
 

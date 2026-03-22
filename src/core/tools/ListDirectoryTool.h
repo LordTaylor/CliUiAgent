@@ -15,7 +15,7 @@ public:
         return QJsonObject{
             {"type", "object"},
             {"properties", QJsonObject{
-                {"path", QJsonObject{
+                {"DirectoryPath", QJsonObject{
                     {"type", "string"},
                     {"description", "Path to the directory to list"}
                 }},
@@ -29,7 +29,7 @@ public:
     }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
-        const QString rawPath = input["path"].toString();
+        const QString rawPath = input["DirectoryPath"].toString();
         const QString root    = ToolUtils::resolvePath(rawPath.isEmpty() ? "." : rawPath, workDir);
         const int     maxDepth = input.contains("depth") ? input["depth"].toInt() : 3;
 

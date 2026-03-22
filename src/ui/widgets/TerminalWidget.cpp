@@ -2,6 +2,9 @@
 #include <QScrollBar>
 #include <QKeyEvent>
 #include <QRegularExpression>
+#include <QFontDatabase>
+#include <QPalette>
+#include <QColor>
 
 namespace CodeHex {
 
@@ -13,10 +16,21 @@ TerminalWidget::TerminalWidget(QWidget* parent) : QPlainTextEdit(parent) {
 
 void TerminalWidget::setupAppearance() {
     // Monospace font
-    QFont font("JetBrains Mono", 10);
-    if (font.exactMatch()) {
+    // Performance Fix: Avoid triggering thousands of "font not found" warnings by checking 
+    // registry/system first before an unconditional QFont("JetBrains Mono") which forces a heavy search.
+    QFont font;
+    bool found = false;
+
+    // Check if JetBrains Mono is available in the system or registered via QFontDatabase
+    if (QFontDatabase::families().contains("JetBrains Mono")) {
+        font = QFont("JetBrains Mono", 10);
+        found = true;
+    }
+
+    if (found) {
         setFont(font);
     } else {
+        // Fallback to system monospace font immediately without further warnings
         setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     }
 

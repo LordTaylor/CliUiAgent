@@ -31,6 +31,7 @@ class PromptManager;
 class EnsembleManager;
 class ModelRouter;
 class AgentPipeline;
+class AgentGraph;
 
 /**
  * @brief The AgentEngine class encapsulates the core "thinking" loop of the agent.
@@ -235,6 +236,7 @@ private:
 
     // --- Role Pipeline (P-4) ---
     AgentPipeline* m_pipeline = nullptr;
+    AgentGraph*    m_graph = nullptr;
 
     // --- Phase 2: Advanced Strategies ---
     QStringList m_activeTechniques;

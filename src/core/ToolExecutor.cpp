@@ -138,30 +138,30 @@ ToolResult ToolExecutor::executeSync(const ToolCall& call, const QString& workDi
 }
 
 QString ToolExecutor::getToolDefinitions() const {
-    QString defs = "## Narzędzia Systemowe (Tool Use)\n\n";
-    defs += "Aby wykonać akcję, MUSISZ użyć poniższego formatu XML w swojej odpowiedzi:\n\n";
+    QString defs = "## System Tools (Tool Use)\n\n";
+    defs += "To perform an action, you MUST use the following XML-JSON format in your response:\n\n";
     defs += "```xml\n";
     defs += "<tool_call>\n";
-    defs += "<name>NazwaNarzedzia</name>\n";
+    defs += "<name>ToolName</name>\n";
     defs += "<input>\n";
-    defs += "{\"parametr\": \"wartość\"}\n";
+    defs += "{\"parameter\": \"value\"}\n";
     defs += "</input>\n";
     defs += "</tool_call>\n";
     defs += "```\n\n";
     
-    defs += "### ZASADY:\n";
-    defs += "1. **Wiele narzędzi naraz.** Możesz wysłać kilka `<tool_call>` w jednej odpowiedzi — "
-            "zostaną wykonane RÓWNOLEGLE. Używaj tego dla niezależnych operacji (np. odczyt wielu plików).\n";
-    defs += "2. **Poprawny JSON.** Zawartość `<input>` MUSI być poprawnym obiektem JSON.\n";
-    defs += "3. **Brak Markdown wewnątrz.** Nie używaj ` ```json ` ani ` ``` ` wewnątrz tagu `<input>`. To częsty błąd, którego NALEŻY UNIKAĆ.\n";
+    defs += "### RULES:\n";
+    defs += "1. **Multi-tool Parallelism.** You can send multiple `<tool_call>` tags in a single response — "
+            "they will be executed PARALLELIZED. Use this for independent operations (e.g., reading multiple files).\n";
+    defs += "2. **Valid JSON.** The content of `<input>` MUST be a valid JSON object.\n";
+    defs += "3. **No Markdown Inside.** Do NOT use ` ```json ` or ` ``` ` tags inside the `<input>` block. This is a critical error to avoid.\n";
     defs += "   *Negative Example (WRONG):* `<input> ```json {\"path\": \"file.txt\"} ``` </input>`\n";
     defs += "   *Positive Example (CORRECT):* `<input>{\"path\": \"file.txt\"}</input>`\n";
-    defs += "4. **Myśl przed działaniem.** Używaj `<thought>` do zaplanowania kroku przed wysłaniem XML.\n\n";
+    defs += "4. **Chain-of-Thought.** Always use `<thought>` tags to plan your multi-step process before sending the XML.\n\n";
     
-    defs += "Lista dostępnych narzędzi:\n\n";
+    defs += "### AVAILABLE TOOLS:\n\n";
     for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
         auto tool = it.value();
-        defs += QString("### %1\n").arg(tool->name());
+        defs += QString("#### %1\n").arg(tool->name());
         defs += tool->description() + "\n";
         defs += "Parameters (JSON schema):\n";
         QJsonDocument doc(tool->parameters());

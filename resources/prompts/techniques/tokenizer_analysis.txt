@@ -1,0 +1,94 @@
+### TECHNIKA: ANALIZA TOKENIZERA I KONFIGURACJI MODELU
+
+Gdy użytkownik dostarczy plik tokenizer_config.json, tokenizer.json, generation_config.json lub podobny plik konfiguracyjny modelu LLM:
+
+---
+
+#### KROK 1 — Zidentyfikuj rodzinę modelu
+
+Sprawdź poniższe pola w pliku:
+
+**tokenizer_class** (bezpośrednia wskazówka):
+- "Qwen2Tokenizer" → rodzina **Qwen**
+- "LlamaTokenizerFast" lub "LlamaTokenizer" → **Llama** lub **DeepSeek** (sprawdź BOS token)
+- "TokenizersBackend" + processor_class="PixtralProcessor" → **Mistral/Pixtral**
+
+**BOS/EOS tokeny** (decydujące gdy tokenizer_class niejednoznaczny):
+- `<｜begin▁of▁sentence｜>` / `<｜end▁of▁sentence｜>` → **DeepSeek**
+- `<|im_start|>` / `<|im_end|>` → **Qwen**
+- `<s>` / `</s>` → **Llama** lub **Mistral**
+
+**added_tokens_decoder** — szukaj zarejestrowanych tokenów specjalnych:
+- `<tool_call>`, `</tool_call>`, `<tool_response>`, `<think>`, `</think>` → **Qwen3** (nowsze modele)
+- `<｜tool▁call▁begin｜>`, `<｜tool▁sep｜>` → **DeepSeek**
+- `[TOOL_CALLS]`, `[TOOL_RESULTS]`, `[THINK]`, `[/THINK]` → **Mistral**
+
+---
+
+#### KROK 2 — Wyodrębnij format tool call z chat_template
+
+Odczytaj pole `chat_template` i szukaj charakterystycznych wzorców:
+
+| Wzorzec w template | Format | Wartość toolCallFormat |
+|---|---|---|
+| `<tool_call>\n{"name": ..., "arguments": ...}\n</tool_call>` | JSON w XML | `"qwen-xml"` (Qwen3 standard) |
+| `<tool_call>\n<function=Name>\n<parameter=key>` | XML parametry | `"qwen-xml"` (Qwen3-Coder-Next) |
+| `<｜tool▁calls▁begin｜>...<｜tool▁sep｜>Name\n\`\`\`json` | DeepSeek Unicode | `"deepseek-native"` |
+| `[TOOL_CALLS][{"name": ..., "arguments": ...}]` | Mistral JSON array | `"mistral-native"` |
+| `<name>...</name><input>...</input>` | CodeHex XML | `"codehex-xml"` |
+
+---
+
+#### KROK 3 — Wyodrębnij format tool response
+
+Szukaj w chat_template sekcji obsługi `message.role == "tool"`:
+
+| Wzorzec | Format | Wartość toolResponseFormat |
+|---|---|---|
+| `role: "tool"` + `<tool_response>\n...\n</tool_response>` | Qwen/OpenAI | `"qwen-tool-role"` |
+| `<｜tool▁outputs▁begin｜><｜tool▁output▁begin｜>` | DeepSeek | `"deepseek-output"` |
+| `[TOOL_RESULTS][{"call_id": ..., "content": ...}][/TOOL_RESULTS]` | Mistral | `"mistral-results"` |
+
+---
+
+#### KROK 4 — Wyodrębnij parametry
+
+- `model_max_length` → `contextWindow` (jeśli = 1000000000000000019884624838656, ustaw 128000)
+- Z pliku generation_config.json (jeśli dostępny): `temperature`, `top_p`, `top_k`
+- Tagi myślenia: `<think>`/`</think>`, `[THINK]`/`[/THINK]`, `<thought>`/`</thought>`
+
+---
+
+#### KROK 5 — Zapisz profil do ~/.codehex/profiles/{id}.json
+
+Użyj narzędzia WriteFile. Struktura JSON profilu:
+
+```json
+{
+  "id": "nazwa-modelu-bez-spacji",
+  "displayName": "Czytelna nazwa modelu",
+  "matchPatterns": ["wzorzec1", "wzorzec2", "wzorzec3"],
+  "contextWindow": 32768,
+  "thoughtOpenTag": "<think>",
+  "thoughtCloseTag": "</think>",
+  "toolCallFormat": "qwen-xml",
+  "toolResponseFormat": "qwen-tool-role",
+  "hasGenerationParams": true,
+  "temperature": 0.7,
+  "topP": 1.0,
+  "topK": -1,
+  "stopSequences": []
+}
+```
+
+**matchPatterns**: dodaj co najmniej 3 wzorce (np. skróconą nazwę, pełną nazwę, wariant z myślnikiem). Zawsze lowercase.
+
+---
+
+#### KROK 6 — Potwierdź użytkownikowi
+
+Po zapisaniu pliku poinformuj:
+"Profil **{displayName}** zapisany do `~/.codehex/profiles/{id}.json`.
+CodeHex załaduje go automatycznie — nie jest potrzebna rekompilacja ani restart."
+
+Jeśli profil już istniał (nadpisanie): "Profil **{displayName}** zaktualizowany."

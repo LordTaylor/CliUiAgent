@@ -14,7 +14,7 @@ public:
         return QJsonObject{
             {"type", "object"},
             {"properties", QJsonObject{
-                {"path", QJsonObject{
+                {"TargetFile", QJsonObject{
                     {"type", "string"},
                     {"description", "Path to the file to modify"}
                 }},
@@ -27,17 +27,17 @@ public:
                     {"description", "Replacement text"}
                 }}
             }},
-            {"required", QJsonArray{"path", "pattern", "replacement"}}
+            {"required", QJsonArray{"TargetFile", "pattern", "replacement"}}
         };
     }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
-        const QString path    = ToolUtils::resolvePath(input["path"].toString(), workDir);
+        const QString path    = ToolUtils::resolvePath(input["TargetFile"].toString(), workDir);
         const QString pattern = input["pattern"].toString();
         const QString replacement = input["replacement"].toString();
 
         if (path.isEmpty() || pattern.isEmpty())
-            return ToolUtils::errResult("Replace: 'path' and 'pattern' parameters are required");
+            return ToolUtils::errResult("Replace: 'TargetFile' and 'pattern' parameters are required");
 
         if (!ToolUtils::isPathSafe(path, workDir))
             return ToolUtils::errResult(QString("Replace: permission denied for path: %1").arg(path));

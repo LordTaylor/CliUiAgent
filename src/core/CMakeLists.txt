@@ -38,8 +38,10 @@ add_library(codehex_core STATIC
     ProjectAuditor.h ProjectAuditor.cpp
     EnsembleManager.h EnsembleManager.cpp
     AgentRole.h
+    ModelProfileManager.h ModelProfileManager.cpp
     ModelRouter.h    ModelRouter.cpp
     AgentPipeline.h  AgentPipeline.cpp
+    AgentGraph.h     AgentGraph.cpp
     tools/GitTool.h
     tools/SearchRepoTool.h
     rag/EmbeddingManager.h rag/EmbeddingManager.cpp

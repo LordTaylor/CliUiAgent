@@ -6,6 +6,8 @@
 
 namespace CodeHex {
 
+class ModelProfileManager;
+
 class AppConfig : public QObject {
     Q_OBJECT
 public:
@@ -29,6 +31,9 @@ public:
 
     bool manualApproval() const;
     void setManualApproval(bool enabled);
+
+    // Model Profile Manager (hot-reloadable per-model settings)
+    ModelProfileManager* profileManager() const { return m_profileManager; }
 
     // LLM Provider Management
     LlmProviderList providers() const { return m_providers; }
@@ -70,7 +75,9 @@ private:
     // Provider State
     LlmProviderList m_providers;
     QString m_activeProviderId;
-    
+
+    ModelProfileManager* m_profileManager = nullptr;
+
     void loadDefaults();
 };
 

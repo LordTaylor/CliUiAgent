@@ -39,7 +39,15 @@ add_subdirectory(tests)
 set(MACOS_ICONS resources/icons/app.icns)
 set_source_files_properties(${MACOS_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 
-qt_add_executable(CodeHex src/main.cpp)
+# Windows: embed .ico via .rc resource file
+if(WIN32)
+    set(WIN_ICON_RC "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
+    file(WRITE "${WIN_ICON_RC}" "IDI_ICON1 ICON \"${CMAKE_SOURCE_DIR}/resources/icons/app.ico\"\n")
+    qt_add_executable(CodeHex src/main.cpp ${WIN_ICON_RC})
+else()
+    qt_add_executable(CodeHex src/main.cpp)
+endif()
+
 target_sources(CodeHex PRIVATE ${MACOS_ICONS})
 
 qt_add_resources(CodeHex "resources"
@@ -60,6 +68,12 @@ qt_add_resources(CodeHex "resources"
         resources/icons/bug.svg
         resources/icons/app.png
         resources/icons/app.icns
+        resources/icons/app.ico
+        resources/icons/app_16.png
+        resources/icons/app_32.png
+        resources/icons/app_48.png
+        resources/icons/app_128.png
+        resources/icons/app_256.png
         resources/prompts/base.txt
         resources/prompts/explorer.txt
         resources/prompts/executor.txt
@@ -72,6 +86,11 @@ qt_add_resources(CodeHex "resources"
         resources/prompts/techniques/tdd.txt
         resources/prompts/techniques/clean_code.txt
         resources/prompts/techniques/performance.txt
+        resources/prompts/techniques/tokenizer_analysis.txt
+        resources/profiles/qwen3.json
+        resources/profiles/deepseek.json
+        resources/profiles/mistral.json
+        resources/profiles/llama.json
 )
 
 qt_add_resources(CodeHex "help"

@@ -1,6 +1,8 @@
 #include "Application.h"
 #include <QDebug>
 #include <QDir>
+#include <QIcon>
+#include <QPixmap>
 #include "../audio/AudioPlayer.h"
 #include "../audio/AudioRecorder.h"
 #include "../cli/CliRunner.h"
@@ -21,6 +23,19 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv) {
     setApplicationName("CodeHex");
     setApplicationVersion("0.1.0");
     setOrganizationName("CodeHex");
+
+    // Set application icon for Windows / Linux (macOS uses app.icns from the bundle)
+#ifndef Q_OS_MACOS
+    QIcon appIcon;
+    appIcon.addPixmap(QPixmap(":/resources/icons/app_16.png"),  QIcon::Normal, QIcon::Off);
+    appIcon.addPixmap(QPixmap(":/resources/icons/app_32.png"),  QIcon::Normal, QIcon::Off);
+    appIcon.addPixmap(QPixmap(":/resources/icons/app_48.png"),  QIcon::Normal, QIcon::Off);
+    appIcon.addPixmap(QPixmap(":/resources/icons/app_128.png"), QIcon::Normal, QIcon::Off);
+    appIcon.addPixmap(QPixmap(":/resources/icons/app_256.png"), QIcon::Normal, QIcon::Off);
+    setWindowIcon(appIcon);
+#else
+    setWindowIcon(QIcon(":/resources/icons/app.png"));
+#endif
 }
 
 Application::~Application() {

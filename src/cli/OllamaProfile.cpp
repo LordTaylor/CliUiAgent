@@ -27,6 +27,17 @@ QStringList OllamaProfile::buildArguments(const QString& prompt,
 
     QString lastAssContent;
     int repeatCount = 0;
+    QString lastRole = (!systemPrompt.isEmpty() ? "System" : "");
+
+    auto appendOrMerge = [&](const QString& role, const QString& content) {
+        if (content.isEmpty()) return;
+        if (role == lastRole) {
+            context += "\n\n" + content;
+        } else {
+            context += role + ": " + content + "\n";
+            lastRole = role;
+        }
+    };
 
     for (int i = histStart; i < histEnd; ++i) {
         const Message& msg = history.at(i);
@@ -38,19 +49,20 @@ QStringList OllamaProfile::buildArguments(const QString& prompt,
                 continue;
             }
             lastAssContent = currentText;
-            context += "Assistant: " + currentText + "\n";
+            appendOrMerge("Assistant", currentText);
         } else if (msg.role == Message::Role::User) {
-            context += "User: " + currentText + "\n";
+            appendOrMerge("User", currentText);
         }
     }
 
     if (repeatCount >= 2) {
         context += "\nSystem: WARNING: You are appearing to repeat previous actions. Please finish the task or change your technical approach to avoid looping.\n";
+        lastRole = "System";
     }
 
-    const QString fullPrompt = context.isEmpty()
-        ? prompt
-        : context + "\nUser: " + prompt;
+    const QString fullPrompt = (lastRole == "User")
+        ? context + "\n\n" + prompt
+        : (context.isEmpty() ? prompt : context + "\nUser: " + prompt);
 
     return buildArguments(fullPrompt, workDir);
 }

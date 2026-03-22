@@ -2,6 +2,44 @@
 
 ---
 
+## Faza 41: Unify Language & Tool Parameters (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Eliminacja konfliktów językowych oraz unifikacja nazw parametrów narzędzi (`TargetFile`, `CodeContent`, `DirectoryPath`) w kodzie i promptach.
+
+### Unifikacja Systemowa:
+- [x] **ToolExecutor.cpp**: Przepisano `getToolDefinitions()` na j. angielski i zaktualizowano przykłady XML-JSON.
+- [x] **Core Tools**: Zaktualizowano `WriteFile`, `ReadFile`, `ListDirectory`, `Replace`, `Search`, `SearchFiles` do obsługi standardowych nazw parametrów.
+- [x] **Role Prompts**: Usunięto zduplikowane instrukcje z `explorer.txt` i `executor.txt`.
+
+### Weryfikacja:
+- Build: ✅ Sukces (exit 0)
+- Consistency: ✅ Wszystkie narzędzia używają teraz `TargetFile`/`CodeContent`/`DirectoryPath`.
+
+---
+
+## Faza 40: Debugging Looping & Tool Format Unification (2026-03-21) — ZAKOŃCZONA
+
+**Data**: 2026-03-21
+**Cel**: Rozwiązanie problemu zapętlania się agenta poprzez unifikację formatów tool call oraz poprawę diagnostyki (logging).
+
+### Unifikacja i Robustness:
+- [x] **resources/prompts/explorer.txt**: Zaktualizowano format z Pure XML na XML-JSON (`<name>`, `<input>`).
+- [x] **resources/prompts/executor.txt**: Zaktualizowano format z Pure XML na XML-JSON.
+- [x] **ResponseParser.cpp**: Dodano fallback dla formatu Pure XML (`<tool_name>`, `<parameters>`). Silnik teraz rozumie oba dialekty XML.
+- [x] **ResponseParser.cpp**: Dodano brakujące include (`QString`, `QJsonObject`).
+
+### Diagnostyka (Enhanced Logging):
+- [x] **AgentEngine_Runner.cpp**: Dodano szczegółowe logi `qInfo()` po każdym parsowaniu odpowiedzi (długość, count myśli/narzędzi, confidence).
+- [x] **AgentEngine_Loop.cpp**: Dodano logowanie snippetów wysyłanych promptów/nudges oraz numeru iteracji pętli (Circuit Breaker status).
+
+### Weryfikacja:
+- Build: ✅ Sukces (exit 0)
+- Loop: ✅ Wyeliminowano (agent poprawnie czyta i przesyła pliki)
+- Visibility: ✅ Logi LLM i konsoli są teraz znacznie bardziej informacyjne.
+
+---
+
 ## Faza 39: Agent Parallelism & Optimization (2026-03-21) — ZAKOŃCZONA
 
 **Data**: 2026-03-21

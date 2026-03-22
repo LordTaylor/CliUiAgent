@@ -17,7 +17,7 @@ public:
                     {"type", "string"},
                     {"description", "Glob pattern (e.g. *.cpp)"}
                 }},
-                {"root", QJsonObject{
+                {"DirectoryPath", QJsonObject{
                     {"type", "string"},
                     {"description", "Directory to search in (default: .)"}
                 }}
@@ -31,7 +31,7 @@ public:
         if (pattern.isEmpty())
             return ToolUtils::errResult("SearchFiles: 'pattern' parameter is required");
 
-        const QString rawRoot = input.contains("root") ? input["root"].toString() : ".";
+        const QString rawRoot = input.contains("DirectoryPath") ? input["DirectoryPath"].toString() : ".";
         const QString root    = ToolUtils::resolvePath(rawRoot, workDir);
 
         if (!ToolUtils::isPathSafe(root, workDir))

@@ -96,6 +96,18 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
         QString lastAssContent;
         int repeatCount = 0;
 
+        auto appendOrMerge = [&](const QString& role, const QString& content) {
+            if (content.isEmpty()) return;
+            if (!messages.isEmpty() && messages.last().toObject()["role"].toString() == role) {
+                QJsonObject last = messages.last().toObject();
+                QString existing = last["content"].toString();
+                last["content"] = existing + "\n\n" + content;
+                messages[messages.size() - 1] = last;
+            } else {
+                messages.append(QJsonObject{{"role", role}, {"content", content}});
+            }
+        };
+
         for (int i = histStart; i < histEnd; ++i) {
             const Message& msg = history.at(i);
             QString currentText = msg.textFromContentBlocks();
@@ -103,14 +115,12 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
             if (msg.role == Message::Role::Assistant) {
                 if (!lastAssContent.isEmpty() && currentText == lastAssContent) {
                     repeatCount++;
-                    continue; // Skip duplicate assistant thinking in history
+                    continue; 
                 }
                 lastAssContent = currentText;
-                
-                if (!currentText.isEmpty())
-                    messages.append(QJsonObject{{"role","assistant"},{"content", currentText}});
-            } else if (msg.role == Message::Role::User && !currentText.isEmpty()) {
-                messages.append(QJsonObject{{"role","user"},{"content", currentText}});
+                appendOrMerge("assistant", currentText);
+            } else if (msg.role == Message::Role::User) {
+                appendOrMerge("user", currentText);
             }
         }
         
@@ -119,7 +129,7 @@ QStringList ConfigurableProfile::buildArguments(const QString& prompt,
             messages.append(QJsonObject{{"role","system"},{"content", "WARNING: You are repeating yourself. Break the loop NOW. If you have the information, finalize the task. Otherwise, try a different approach."}});
         }
 
-        messages.append(QJsonObject{{"role","user"},{"content", prompt}});
+        appendOrMerge("user", prompt);
 
         const QJsonObject body{
             {"model",       m_model},
@@ -220,13 +230,22 @@ StreamResult ConfigurableProfile::parseLine(const QByteArray& line) const {
     if (m_type == ApiType::OpenAICompatible || trimmed.startsWith("data:")) {
         res.textToken = parseOpenAIStream(trimmed);
         
-        // Some providers send usage at the end of the stream in the same format
-        if (trimmed.startsWith("data: ")) {
-            QByteArray data = trimmed.mid(6).trimmed();
+        // Some providers send usage at the end of the stream in a final chunk
+        // or embedded in the last content chunk.
+        if (trimmed.startsWith("data:")) {
+            QByteArray data = trimmed.startsWith("data: ") ? trimmed.mid(6).trimmed() : trimmed.mid(5).trimmed();
             if (data != "[DONE]") {
                 const auto doc = QJsonDocument::fromJson(data);
                 if (!doc.isNull() && doc.isObject()) {
-                    auto usage = doc.object()["usage"].toObject();
+                    QJsonObject obj = doc.object();
+                    // Case 1: usage at root
+                    auto usage = obj["usage"].toObject();
+                    // Case 2: usage inside choices[0] (rare but possible in some proxies)
+                    if (usage.isEmpty()) {
+                        auto choices = obj["choices"].toArray();
+                        if (!choices.isEmpty()) usage = choices[0].toObject()["usage"].toObject();
+                    }
+
                     if (!usage.isEmpty()) {
                         res.inputTokens = usage["prompt_tokens"].toInt();
                         res.outputTokens = usage["completion_tokens"].toInt();

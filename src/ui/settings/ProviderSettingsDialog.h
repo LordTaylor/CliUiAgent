@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QSpinBox>
 #include "../../core/AppConfig.h"
 #include "../../core/LlmDiscoveryService.h"
 
@@ -46,7 +47,8 @@ private:
     QLineEdit* m_urlEdit;
     QLineEdit* m_keyEdit;
     QComboBox* m_modelCombo;
-    QLabel* m_statusLabel;
+    QSpinBox*  m_contextWindowSpin;
+    QLabel*    m_statusLabel;
 };
 
 } // namespace CodeHex

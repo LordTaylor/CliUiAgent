@@ -1,4 +1,5 @@
 #include "AppConfig.h"
+#include "ModelProfileManager.h"
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -8,7 +9,11 @@
 
 namespace CodeHex {
 
-AppConfig::AppConfig(QObject* parent) : QObject(parent) {}
+AppConfig::AppConfig(QObject* parent) : QObject(parent) {
+    // ModelProfileManager needs profilesDir() which depends on dataDir().
+    // dataDir() has no side effects, so it's safe to init here.
+    m_profileManager = new ModelProfileManager(this, this);
+}
 
 QString AppConfig::dataDir() const {
     if (!m_dataDir.isEmpty()) return m_dataDir;

@@ -13,19 +13,19 @@ public:
         return QJsonObject{
             {"type", "object"},
             {"properties", QJsonObject{
-                {"path", QJsonObject{
+                {"TargetFile", QJsonObject{
                     {"type", "string"},
                     {"description", "Path to the file to read"}
                 }}
             }},
-            {"required", QJsonArray{"path"}}
+            {"required", QJsonArray{"TargetFile"}}
         };
     }
 
     ToolResult execute(const QJsonObject& input, const QString& workDir) override {
-        const QString path = ToolUtils::resolvePath(input["path"].toString(), workDir);
+        const QString path = ToolUtils::resolvePath(input["TargetFile"].toString(), workDir);
         if (path.isEmpty())
-            return ToolUtils::errResult("ReadFile: 'path' parameter is required");
+            return ToolUtils::errResult("ReadFile: 'TargetFile' parameter is required");
         if (!ToolUtils::isPathSafe(path, workDir))
             return ToolUtils::errResult(QString("ReadFile: permission denied for path: %1").arg(path));
 

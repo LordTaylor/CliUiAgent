@@ -1,5 +1,6 @@
 #include "PromptManager.h"
 #include "AppConfig.h"
+#include "ModelProfileManager.h"
 #include <QSysInfo>
 #include <QFile>
 #include <QDebug>
@@ -122,7 +123,11 @@ QString PromptManager::buildSystemPrompt(AgentRole role,
         base += "\n\n### MANDATORY PROJECT RULES & GUIDELINES (STRICT ADHERENCE REQUIRED):\n"
                 + allRules;
     } else {
-        qWarning() << "[PromptManager] No rules.md found — agent running without explicit rules.";
+        static bool s_rulesWarned = false;
+        if (!s_rulesWarned) {
+            qWarning() << "[PromptManager] No rules.md found — agent running without explicit rules. (Reported once)";
+            s_rulesWarned = true;
+        }
     }
 
     base += "\n\n### INTERNAL TOOLS & SCRATCHPAD:\n"
@@ -313,58 +318,124 @@ QJsonObject PromptManager::buildRequestJson(AgentRole role,
 
     ContextManager::PruningOptions pruneOptions;
     // Dynamic token threshold based on model capability
-    // (In a real app, this would come from a model registry/config)
-    int modelLimit = 120000; 
-    QString model = m_config->activeProvider().selectedModel.toLower();
-    if (model.contains("sonnet") || model.contains("opus")) {
-        modelLimit = 120000;
-    } else if (model.contains("haiku") || model.contains("gpt-4o-mini")) {
-        modelLimit = 128000;
-    }
+    int modelLimit = m_config->activeProvider().contextWindow;
+    if (modelLimit <= 0) modelLimit = 32768; // Fallback
     
-    // We reserve some room for system prompt and tools (roughly 20% or 10k)
-    pruneOptions.maxTokens = modelLimit - 10000; 
+    // We reserve some room for system prompt and tools (roughly 10%)
+    pruneOptions.maxTokens = modelLimit - (modelLimit / 10); 
     
     QList<Message> prunedHistory = ContextManager::prune(fullHistory, pruneOptions, statsOut);
 
     QJsonArray messages;
+    auto appendOrMerge = [&](const QString& role, const QString& content) {
+        if (content.isEmpty()) return;
+        if (!messages.isEmpty() && messages.last().toObject()["role"].toString() == role) {
+            QJsonObject last = messages.last().toObject();
+            QJsonArray msgContent = last["content"].toArray();
+            if (!msgContent.isEmpty()) {
+                QJsonObject textBlock = msgContent.last().toObject();
+                QString existing = textBlock["text"].toString();
+                textBlock["text"] = existing + "\n\n" + content;
+                msgContent[msgContent.size() - 1] = textBlock;
+                last["content"] = msgContent;
+                messages[messages.size() - 1] = last;
+            }
+        } else {
+            QJsonObject msgObj;
+            msgObj["role"] = role;
+            QJsonArray msgContent;
+            QJsonObject textBlock;
+            textBlock["type"] = "text";
+            textBlock["text"] = content;
+            msgContent.append(textBlock);
+            msgObj["content"] = msgContent;
+            messages.append(msgObj);
+        }
+    };
+
+    // Resolve model profile (hot-reloadable, no recompilation needed)
+    const bool isAnthropic = useCache;
+    const QString modelName = m_config->activeProvider().selectedModel;
+    const ModelProfile profile = isAnthropic
+        ? ModelProfile::defaultProfile()
+        : m_config->profileManager()->findProfile(modelName);
+    const QString toolRespFmt = profile.toolResponseFormat;
+
     for (const auto& msg : prunedHistory) {
-        QJsonObject msgObj;
-        msgObj["role"] = (msg.role == Message::Role::Assistant) ? "assistant" : "user";
-        
-        QJsonArray content;
-        QJsonObject textBlock;
-        textBlock["type"] = "text";
-        
+        QString role = (msg.role == Message::Role::Assistant) ? "assistant" : "user";
         QString textContent = msg.rawContent;
         if (textContent.isEmpty()) {
             textContent = msg.textFromContentBlocks();
         }
-        
-        // Anthropic refuses completely empty text blocks. 
-        // If an assistant message contains absolutely no text/meaningful raw content, specify a fallback or skip.
-        // But for CodeHex, tool results are in User role (msg.textFromContentBlocks) and tool calls are Assistant role (msg.rawContent).
-        textBlock["text"] = textContent.isEmpty() ? "..." : textContent;
-        
-        content.append(textBlock);
-        
-        msgObj["content"] = content;
-        messages.append(msgObj);
+
+        // Non-Anthropic models: format tool results according to profile
+        if (!isAnthropic && !msg.toolResults.isEmpty()) {
+            for (const auto& tr : msg.toolResults) {
+                QJsonObject toolMsg;
+                QString wrappedContent;
+
+                if (toolRespFmt == "deepseek-output") {
+                    wrappedContent = QString("<\uFF5Ctool\u2581outputs\u2581begin\uFF5C>"
+                                            "<\uFF5Ctool\u2581output\u2581begin\uFF5C>"
+                                            "%1"
+                                            "<\uFF5Ctool\u2581output\u2581end\uFF5C>"
+                                            "<\uFF5Ctool\u2581outputs\u2581end\uFF5C>").arg(tr.content);
+                    toolMsg["role"] = "user";
+                } else if (toolRespFmt == "mistral-results") {
+                    QJsonObject resultObj;
+                    resultObj["call_id"] = tr.toolUseId;
+                    resultObj["content"] = tr.content;
+                    QJsonArray resultArr;
+                    resultArr.append(resultObj);
+                    wrappedContent = QString("[TOOL_RESULTS]%1[/TOOL_RESULTS]")
+                        .arg(QString::fromUtf8(QJsonDocument(resultArr).toJson(QJsonDocument::Compact)));
+                    toolMsg["role"] = "user";
+                } else {
+                    // "qwen-tool-role" and any future formats default to this
+                    wrappedContent = QString("<tool_response>\n%1\n</tool_response>").arg(tr.content);
+                    toolMsg["role"] = "tool";
+                }
+
+                QJsonArray toolContent;
+                QJsonObject block;
+                block["type"] = "text";
+                block["text"] = wrappedContent;
+                toolContent.append(block);
+                toolMsg["content"] = toolContent;
+                messages.append(toolMsg);
+            }
+            continue;
+        }
+
+        // Anthropic refuses completely empty text blocks.
+        if (textContent.isEmpty()) textContent = "...";
+
+        appendOrMerge(role, textContent);
     }
     request["messages"] = messages;
 
-    // 4. Thinking Configuration
-    if (thinkingBudget > 0) {
-        QJsonObject thinking;
-        thinking["type"] = "enabled";
-        thinking["budget_tokens"] = thinkingBudget;
-        request["thinking"] = thinking;
+    // 4. Provider-specific generation parameters (profile-driven)
+    if (isAnthropic) {
+        if (thinkingBudget > 0) {
+            QJsonObject thinking;
+            thinking["type"] = "enabled";
+            thinking["budget_tokens"] = thinkingBudget;
+            request["thinking"] = thinking;
+        }
+        QJsonObject outputConfig;
+        outputConfig["effort"] = "medium";
+        request["output_config"] = outputConfig;
+    } else if (profile.hasGenerationParams) {
+        request["temperature"] = profile.temperature;
+        request["top_p"]       = profile.topP;
+        if (profile.topK >= 0)
+            request["top_k"] = profile.topK;
+        if (!profile.stopSequences.isEmpty()) {
+            QJsonArray stops;
+            for (const auto& s : profile.stopSequences) stops.append(s);
+            request["stop"] = stops;
+        }
     }
-
-    // 5. Output Configuration
-    QJsonObject outputConfig;
-    outputConfig["effort"] = "medium";
-    request["output_config"] = outputConfig;
 
     return request;
 }
