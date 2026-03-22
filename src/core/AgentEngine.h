@@ -76,8 +76,16 @@ public:
     void setToolPermission(const QString& toolName, Permission p);
     Permission toolPermission(const QString& toolName) const;
 
-    void setRole(AgentRole role) { m_currentRole = role; }
+    void setRole(AgentRole role);
     AgentRole currentRole() const { return m_currentRole; }
+
+    /**
+     * @brief Delegates a sub-task to a different role using the collaborator runner.
+     * Non-blocking: result is delivered via the delegationComplete signal.
+     * @param targetRole  Role to use for the sub-task.
+     * @param prompt      The task/question for the delegated role.
+     */
+    void delegateToRole(AgentRole targetRole, const QString& prompt);
 
     void setSelectedModel(const QString& model) { m_selectedModel = model; }
     QString selectedModel() const { return m_selectedModel; }
@@ -131,6 +139,20 @@ signals:
     void responseComplete(const Message& msg);
     void errorOccurred(const QString& error);
     void potentialLoopDetected(const QString& message);
+
+    /**
+     * @brief Emitted when auto-detection switches the role away from Base.
+     * @param role   The detected role.
+     * @param score  Keyword match count (confidence indicator).
+     */
+    void roleAutoDetected(CodeHex::AgentRole role, int score);
+
+    /**
+     * @brief Emitted when a delegateToRole() call completes.
+     * @param targetRole  The role that was delegated to.
+     * @param result      The delegated agent's response text.
+     */
+    void delegationComplete(CodeHex::AgentRole targetRole, const QString& result);
 
 public slots:
     void onOutputChunk(const QString& chunk);
@@ -237,6 +259,9 @@ private:
     // --- Role Pipeline (P-4) ---
     AgentPipeline* m_pipeline = nullptr;
     AgentGraph*    m_graph = nullptr;
+
+    // --- Role auto-detection (#39): reset to Base after request completes ---
+    bool m_roleWasAutoDetected = false;
 
     // --- Phase 2: Advanced Strategies ---
     QStringList m_activeTechniques;

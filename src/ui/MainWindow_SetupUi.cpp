@@ -3,8 +3,6 @@
  * @brief Widget tree construction — sidebar, toolbar, chat container, input panel.
  *        Called once from the constructor via setupUi().
  */
-#include "MainWindow.h"
-#include "settings/ProviderSettingsDialog.h"
 #include <QComboBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -15,19 +13,24 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QWidget>
+
 #include "../core/AgentEngine.h"
 #include "../core/AgentRole.h"
 #include "../core/AppConfig.h"
 #include "../core/ChatController.h"
 #include "../core/SessionManager.h"
+#include "MainWindow.h"
 #include "chat/ChatControlBanner.h"
 #include "chat/ChatView.h"
 #include "chat/MessageModel.h"
 #include "input/InputPanel.h"
 #include "plugins/PluginsDialog.h"
 #include "session/SessionPanel.h"
+#include "settings/ProviderSettingsDialog.h"
 #include "settings/SettingsDialog.h"
 #include "skills/SkillsDialog.h"
+#include "widgets/PixelCauldron.h"
+#include "widgets/TerminalPanel.h"
 #include "workfolder/WorkFolderPanel.h"
 
 using namespace CodeHex;
@@ -76,10 +79,10 @@ void MainWindow::setupUi() {
     // Work folder
     m_workFolderPanel = new WorkFolderPanel(sidebarWidget);
     m_workFolderPanel->setFolder(m_config->workingFolder());
-    connect(m_workFolderPanel, &WorkFolderPanel::folderChanged,
-            m_config, &AppConfig::setWorkingFolder);
-    connect(m_workFolderPanel, &WorkFolderPanel::contextFilesChanged,
-            m_controller->agent(), &AgentEngine::setForcedContextFiles);
+    connect(m_workFolderPanel, &WorkFolderPanel::folderChanged, m_config,
+            &AppConfig::setWorkingFolder);
+    connect(m_workFolderPanel, &WorkFolderPanel::contextFilesChanged, m_controller->agent(),
+            &AgentEngine::setForcedContextFiles);
     sidebarLayout->addWidget(m_workFolderPanel, 2);
 
     m_sidebarSplitter->addWidget(sidebarWidget);
@@ -117,9 +120,9 @@ void MainWindow::setupUi() {
     // ── Left group: action icons ─────────────────────────────────
     auto* genSettingsBtn = new QPushButton(QIcon(":/resources/icons/settings.svg"), "", toolbar);
     genSettingsBtn->setToolTip("Settings");
-    auto* skillsBtn      = new QPushButton(QIcon(":/resources/icons/skills.svg"),   "", toolbar);
+    auto* skillsBtn = new QPushButton(QIcon(":/resources/icons/skills.svg"), "", toolbar);
     skillsBtn->setToolTip("Skills");
-    auto* pluginsBtn     = new QPushButton(QIcon(":/resources/icons/plugins.svg"),  "", toolbar);
+    auto* pluginsBtn = new QPushButton(QIcon(":/resources/icons/plugins.svg"), "", toolbar);
     pluginsBtn->setToolTip("Plugins");
     for (auto* b : {genSettingsBtn, skillsBtn, pluginsBtn}) {
         b->setFixedSize(30, 30);
@@ -168,13 +171,16 @@ void MainWindow::setupUi() {
     QLabel* roleLbl = new QLabel("Role:", toolbar);
     roleLbl->setStyleSheet("color: #6B7280; font-size: 12px;");
     m_roleCombo = new QComboBox(toolbar);
-    m_roleCombo->addItem("Base",                  (int)AgentRole::Base);
-    m_roleCombo->addItem("Explorer",              (int)AgentRole::Explorer);
-    m_roleCombo->addItem("Executor",              (int)AgentRole::Executor);
-    m_roleCombo->addItem("Reviewer",              (int)AgentRole::Reviewer);
-    m_roleCombo->addItem("Local RAG",             (int)AgentRole::RAG);
-    m_roleCombo->addItem("Refactoring Assistant", (int)AgentRole::Refactor);
-    m_roleCombo->setMinimumWidth(90);
+    m_roleCombo->addItem("Base", (int)AgentRole::Base);
+    m_roleCombo->addItem("Explorer", (int)AgentRole::Explorer);
+    m_roleCombo->addItem("Executor", (int)AgentRole::Executor);
+    m_roleCombo->addItem("Reviewer", (int)AgentRole::Reviewer);
+    m_roleCombo->addItem("Debugger", (int)AgentRole::Debugger);
+    m_roleCombo->addItem("Architect", (int)AgentRole::Architect);
+    m_roleCombo->addItem("Security Auditor", (int)AgentRole::SecurityAuditor);
+    m_roleCombo->addItem("Refactor", (int)AgentRole::Refactor);
+    m_roleCombo->addItem("Local RAG", (int)AgentRole::RAG);
+    m_roleCombo->setMinimumWidth(120);
     tbLayout->addWidget(roleLbl);
     tbLayout->addWidget(m_roleCombo);
 
@@ -199,9 +205,15 @@ void MainWindow::setupUi() {
     tbLayout->addWidget(m_themeBtn);
     tbLayout->addWidget(m_debugBtn);
 
-    connect(genSettingsBtn, &QPushButton::clicked, this, [this]() { SettingsDialog dlg(m_config, this); dlg.exec(); });
-    connect(skillsBtn,      &QPushButton::clicked, this, [this]() { SkillsDialog dlg(this); dlg.exec(); });
-    connect(pluginsBtn,     &QPushButton::clicked, this, [this]() {
+    connect(genSettingsBtn, &QPushButton::clicked, this, [this]() {
+        SettingsDialog dlg(m_config, this);
+        dlg.exec();
+    });
+    connect(skillsBtn, &QPushButton::clicked, this, [this]() {
+        SkillsDialog dlg(this);
+        dlg.exec();
+    });
+    connect(pluginsBtn, &QPushButton::clicked, this, [this]() {
         PluginsDialog dlg(this);
         dlg.setScratchpadPath(m_config->workingFolder() + "/.agent/scratchpad");
         dlg.exec();
@@ -215,28 +227,30 @@ void MainWindow::setupUi() {
         m_config->setManualApproval(!checked);
         m_controller->setManualApproval(!checked);
     });
-    connect(m_chatBanner, &ChatControlBanner::clearChatRequested, this, &MainWindow::onClearChatRequested);
+    connect(m_chatBanner, &ChatControlBanner::clearChatRequested, this,
+            &MainWindow::onClearChatRequested);
     connect(m_themeBtn, &QPushButton::clicked, this, &MainWindow::onThemeToggleRequested);
     connect(m_debugBtn, &QPushButton::clicked, this, &MainWindow::onDebugLogRequested);
 
     // Chat view + floating overlays
     auto* chatContainer = new QWidget(rightWidget);
-    auto* chatGrid      = new QGridLayout(chatContainer);
+    auto* chatGrid = new QGridLayout(chatContainer);
     chatGrid->setContentsMargins(0, 0, 0, 0);
 
     m_messageModel = new MessageModel(this);
-    m_chatView     = new ChatView(chatContainer);
+    m_chatView = new ChatView(chatContainer);
     m_messageModel->setViewWidth(m_chatView->width());
     m_chatView->setMessageModel(m_messageModel);
     connect(searchEdit, &QLineEdit::textChanged, m_chatView, &ChatView::setSearchTerm);
-    connect(m_chatView, &ChatView::loadMoreRequested, m_messageModel, &MessageModel::loadMoreMessages);
+    connect(m_chatView, &ChatView::loadMoreRequested, m_messageModel,
+            &MessageModel::loadMoreMessages);
     connect(m_splitter, &QSplitter::splitterMoved, this, [this]() {
         if (m_messageModel && m_chatView)
             m_messageModel->setViewWidth(m_chatView->viewport()->width());
     });
     chatGrid->addWidget(m_chatView, 0, 0, 3, 3);
 
-    auto* btnOverlay    = new QWidget(chatContainer);
+    auto* btnOverlay = new QWidget(chatContainer);
     btnOverlay->setStyleSheet("background: transparent;");
     auto* overlayLayout = new QVBoxLayout(btnOverlay);
     overlayLayout->setAlignment(Qt::AlignBottom | Qt::AlignRight);
@@ -268,53 +282,48 @@ void MainWindow::setupUi() {
     chatGrid->addWidget(btnOverlay, 0, 0, 3, 3, Qt::AlignBottom | Qt::AlignRight);
     btnOverlay->raise();
 
-    m_statusLabel = new QLabel(chatContainer);
-    m_statusLabel->setObjectName("agentStatusLabel");
-    m_statusLabel->setVisible(true);
-    m_statusLabel->setText("Ready");
-    m_statusLabel->setStyleSheet(
-        "background: rgba(26, 18, 10, 0.95); color: #FBBF24; padding: 8px 20px; "
-        "border-radius: 14px; border: 1px solid rgba(217, 119, 6, 0.6); font-weight: bold; font-size: 13px;");
-    chatGrid->addWidget(m_statusLabel, 0, 0, 3, 3, Qt::AlignHCenter | Qt::AlignBottom);
-    m_statusLabel->raise();
- 
+
     // Loop Warning Banner (Phase 40)
     m_loopWarningBanner = new QWidget(chatContainer);
     m_loopWarningBanner->setObjectName("loopWarningBanner");
     m_loopWarningBanner->setVisible(false);
     auto* loopLayout = new QHBoxLayout(m_loopWarningBanner);
     loopLayout->setContentsMargins(15, 8, 15, 8);
-    
-    QLabel* loopText = new QLabel("⚠️ Potential logic loop detected. The agent is repeating actions.", m_loopWarningBanner);
+
+    QLabel* loopText = new QLabel(
+        "⚠️ Potential logic loop detected. The agent is repeating actions.", m_loopWarningBanner);
     loopText->setStyleSheet("color: #FCA5A5; font-weight: bold;");
-    
+
     QPushButton* stopLoopBtn = new QPushButton("Stop Agent", m_loopWarningBanner);
     stopLoopBtn->setFixedSize(100, 24);
-    stopLoopBtn->setStyleSheet("background: #991B1B; color: white; border-radius: 4px; font-size: 11px;");
+    stopLoopBtn->setStyleSheet(
+        "background: #991B1B; color: white; border-radius: 4px; font-size: 11px;");
     connect(stopLoopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
 
     loopLayout->addWidget(loopText, 1);
     loopLayout->addWidget(stopLoopBtn);
-    
-    m_loopWarningBanner->setStyleSheet("background: rgba(153, 27, 27, 0.9); border: 1px solid #EF4444; border-radius: 8px;");
+
+    m_loopWarningBanner->setStyleSheet(
+        "background: rgba(153, 27, 27, 0.9); border: 1px solid #EF4444; border-radius: 8px;");
     chatGrid->addWidget(m_loopWarningBanner, 0, 0, 3, 3, Qt::AlignTop | Qt::AlignHCenter);
     m_loopWarningBanner->raise();
 
     rightLayout->addWidget(chatContainer, 1);
 
     connect(m_scrollToBottomBtn, &QPushButton::clicked, m_chatView, &ChatView::scrollToBottom);
-    connect(m_autoScrollBtn,     &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
-    connect(m_stopBtn,           &QPushButton::clicked, this,       &MainWindow::onStopRequested);
+    connect(m_autoScrollBtn, &QPushButton::toggled, m_chatView, &ChatView::setAutoScrollEnabled);
+    connect(m_stopBtn, &QPushButton::clicked, this, &MainWindow::onStopRequested);
     connect(m_chatView->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int value) {
         if (value < m_chatView->verticalScrollBar()->maximum() - 20)
-            if (m_autoScrollBtn->isChecked()) m_autoScrollBtn->setChecked(false);
+            if (m_autoScrollBtn->isChecked())
+                m_autoScrollBtn->setChecked(false);
     });
 
     m_inputPanel = new InputPanel(m_recorder, rightWidget);
     rightLayout->addWidget(m_inputPanel);
-    connect(m_inputPanel, &InputPanel::sendRequested,    this, &MainWindow::onSendRequested);
+    connect(m_inputPanel, &InputPanel::sendRequested, this, &MainWindow::onSendRequested);
     connect(m_inputPanel, &InputPanel::commandRequested, this, &MainWindow::onCommandRequested);
-    connect(m_inputPanel, &InputPanel::stopRequested,    this, &MainWindow::onStopRequested);
+    connect(m_inputPanel, &InputPanel::stopRequested, this, &MainWindow::onStopRequested);
 
     m_terminalPanel = new TerminalPanel(rightWidget);
     rightLayout->addWidget(m_terminalPanel);
@@ -325,17 +334,41 @@ void MainWindow::setupUi() {
 
     connect(manageProvidersBtn, &QPushButton::clicked, this, [this]() {
         ProviderSettingsDialog dlg(m_config, this);
-        if (dlg.exec() == QDialog::Accepted) updateProviderList();
+        if (dlg.exec() == QDialog::Accepted)
+            updateProviderList();
     });
-    connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onProviderChanged);
-    connect(m_roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
-        m_controller->agent()->setRole((AgentRole)m_roleCombo->itemData(index).toInt());
-    });
+    connect(m_providerCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &MainWindow::onProviderChanged);
+    connect(m_roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int index) {
+                m_controller->agent()->setRole((AgentRole)m_roleCombo->itemData(index).toInt());
+            });
+
+    // #39: Sync combo when agent auto-detects a role
+    connect(m_controller->agent(), &AgentEngine::roleAutoDetected, this,
+            [this](AgentRole role, int /*score*/) {
+                for (int i = 0; i < m_roleCombo->count(); ++i) {
+                    if (m_roleCombo->itemData(i).toInt() == (int)role) {
+                        QSignalBlocker blocker(m_roleCombo);  // prevent feedback loop
+                        m_roleCombo->setCurrentIndex(i);
+                        break;
+                    }
+                }
+            });
 
     m_tokenLabel = new QLabel(this);
     m_tokenLabel->setObjectName("tokenLabel");
     statusBar()->addPermanentWidget(m_tokenLabel);
+
+    // Initial Status Area (Reverted to original position)
+    m_cauldron = new CodeHex::PixelCauldron(this);
+    m_cauldron->setFixedSize(30, 30);
+    m_cauldron->setToolTip("Agent Alchemy");
+    statusBar()->addPermanentWidget(m_cauldron);
+
+    m_statusLabel = new QLabel("Ready", this);
+    m_statusLabel->setObjectName("agentStatusLabel");
+    statusBar()->addWidget(m_statusLabel);
 
     // Sidebar collapse/expand
     connect(m_sidebarToggleBtn, &QPushButton::clicked, this, [this]() {
@@ -346,7 +379,8 @@ void MainWindow::setupUi() {
             m_sidebarToggleBtn->setToolTip("Show Sidebar (Ctrl+B)");
         } else {
             m_sidebarSplitter->setVisible(true);
-            if (!m_sidebarSizes.isEmpty()) m_splitter->setSizes(m_sidebarSizes);
+            if (!m_sidebarSizes.isEmpty())
+                m_splitter->setSizes(m_sidebarSizes);
             m_sidebarToggleBtn->setText("◀");
             m_sidebarToggleBtn->setToolTip("Hide Sidebar (Ctrl+B)");
         }

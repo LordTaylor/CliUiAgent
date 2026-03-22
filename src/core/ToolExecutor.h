@@ -12,6 +12,7 @@
 
 #include "ToolCall.h"
 #include "Tool.h"
+#include "AgentRole.h"
 #include "../scripting/HookRegistry.h"
 
 namespace CodeHex {
@@ -43,6 +44,13 @@ public:
      */
     QString getToolDefinitions() const;
     QJsonArray getToolDefinitionsJson() const;
+
+    /**
+     * @brief Returns tool definitions filtered to the allowed set for the given role.
+     * Roles with an empty allowed list receive all tools.
+     */
+    QJsonArray getToolDefinitionsForRole(AgentRole role,
+                                         const QStringList& allowedTools) const;
 
     /**
      * @brief Aborts the currently running tool.

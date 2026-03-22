@@ -32,10 +32,28 @@ public:
      */
     AgentRole detectRoleFromPrompt(const QString& userInput) const;
 
+    /**
+     * @brief Returns scores for all roles based on keyword matches.
+     * Use for debugging/UI display of detection confidence.
+     */
+    QMap<AgentRole, int> scoreRolesFromPrompt(const QString& userInput) const;
+
+    /**
+     * @brief Returns the set of tool names available for the given role.
+     * Empty list means all tools are allowed (Base/Executor).
+     */
+    QStringList allowedToolsForRole(AgentRole role) const;
+
+    /**
+     * @brief Returns the default technique names to activate for a given role.
+     * These are auto-activated when the role is set/auto-detected.
+     */
+    QStringList defaultTechniquesForRole(AgentRole role) const;
+
 private:
     AppConfig* m_config;
     QMap<AgentRole, QString> m_roleMap;
-    
+
     void loadDefaults();
 };
 

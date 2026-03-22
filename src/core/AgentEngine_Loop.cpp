@@ -66,9 +66,12 @@ void AgentEngine::runLoop(const QString& prompt, const QStringList& imagePaths) 
     QString systemPrompt = m_prompts->buildSystemPrompt(
         m_currentRole, ragContext, m_activeTechniques, m_blackboard);
 
+    // #38: Role specialization — filter available tools by role
+    const QStringList allowedTools = m_router->allowedToolsForRole(m_currentRole);
+
     if (useJsonSchema) {
         emit statusChanged("🧠 Reasoning (JSON Schema)...");
-        QJsonArray tools = m_toolExecutor->getToolDefinitionsJson();
+        QJsonArray tools = m_toolExecutor->getToolDefinitionsForRole(m_currentRole, allowedTools);
         ContextManager::ContextStats stats;
         QJsonObject request = m_prompts->buildRequestJson(
             m_currentRole, prompt, session->messages, tools,
@@ -151,20 +154,29 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     m_loopIterations = 0;
     // m_lastToolCallFingerprints.clear(); // P-13: Persist across turns to detect inter-turn loops
 
-    // Role Auto-Detect (P-8): if user hasn't manually set a role, detect from prompt
+    // Role Auto-Detect (#39): if user hasn't manually set a role, detect from prompt
+    m_roleWasAutoDetected = false;
     if (m_currentRole == AgentRole::Base) {
-        AgentRole detected = m_router->detectRoleFromPrompt(userInput);
+        const QMap<AgentRole, int> scores = m_router->scoreRolesFromPrompt(userInput);
+        AgentRole detected = AgentRole::Base;
+        int bestScore = 0;
+        for (auto it = scores.begin(); it != scores.end(); ++it) {
+            if (it.value() > bestScore) { bestScore = it.value(); detected = it.key(); }
+        }
         if (detected != AgentRole::Base) {
-            m_currentRole = detected;
             static const QMap<AgentRole, QString> roleNames = {
                 {AgentRole::Explorer, "Explorer"}, {AgentRole::Executor, "Executor"},
                 {AgentRole::Reviewer, "Reviewer"}, {AgentRole::Debugger, "Debugger"},
                 {AgentRole::Refactor, "Refactor"}, {AgentRole::Architect, "Architect"},
                 {AgentRole::SecurityAuditor, "Security"}, {AgentRole::RAG, "RAG"},
             };
-            emit terminalOutput(QString("[%1] 🎭 Auto-detected role: %2")
+            setRole(detected);           // also activates default techniques (#42)
+            m_roleWasAutoDetected = true;
+            emit roleAutoDetected(detected, bestScore);  // #39: notify UI
+            emit terminalOutput(QString("[%1] 🎭 Auto-detected role: %2 (score: %3)")
                 .arg(QDateTime::currentDateTime().toString("HH:mm:ss"),
-                     roleNames.value(detected, "Base")));
+                     roleNames.value(detected, "Base"),
+                     QString::number(bestScore)));
         }
     }
 

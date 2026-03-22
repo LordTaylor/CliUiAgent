@@ -239,6 +239,38 @@ void AgentEngine::setToolPermission(const QString& toolName, Permission p) {
     m_toolPermissions[toolName] = p;
 }
 
+// ---------------------------------------------------------------------------
+// Role Management (#38, #39, #42)
+// ---------------------------------------------------------------------------
+
+void AgentEngine::setRole(AgentRole role) {
+    if (m_currentRole == role) return;
+    m_currentRole = role;
+
+    // #42: Auto-activate default techniques for the new role
+    const QStringList defaults = m_router->defaultTechniquesForRole(role);
+    for (const QString& t : defaults)
+        activateTechnique(t);
+}
+
+void AgentEngine::delegateToRole(AgentRole targetRole, const QString& prompt) {
+    emit terminalOutput(QString("[%1] 🔁 DELEGATE → %2: %3")
+        .arg(QDateTime::currentDateTime().toString("HH:mm:ss"))
+        .arg((int)targetRole)
+        .arg(prompt.left(60)));
+
+    // Run delegation in background via the collaborator runner
+    AgentRole prevRole = m_currentRole;
+    setRole(targetRole);
+
+    QtConcurrent::run([this, targetRole, prompt, prevRole]() {
+        QString result = consultCollaborator(prompt,
+            QString("Role %1").arg((int)targetRole));
+        setRole(prevRole); // restore original role
+        emit delegationComplete(targetRole, result);
+    });
+}
+
 AgentEngine::Permission AgentEngine::toolPermission(const QString& toolName) const {
     if (!m_manualApproval) return Permission::Allow;
     return m_toolPermissions.value(toolName, Permission::Ask);

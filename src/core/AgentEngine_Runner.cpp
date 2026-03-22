@@ -140,7 +140,14 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         qDebug() << "[AgentEngine] No tool calls found in response";
         emit statusChanged("");
         if (m_requestQueue.isEmpty()) cleanupScratchpad();
-        
+
+        // #39: Reset auto-detected role back to Base when the full interaction completes
+        if (m_roleWasAutoDetected) {
+            m_currentRole = AgentRole::Base;
+            m_roleWasAutoDetected = false;
+            emit roleAutoDetected(AgentRole::Base, 0); // notify UI to reset combo
+        }
+
         // Progress LangGraph if active
         if (m_graph && m_graph->state().nextNode != "END") {
             m_graph->onNodeFinished(currentResp);

@@ -235,6 +235,26 @@ void ToolExecutor::stop() {
     }
 }
 
+QJsonArray ToolExecutor::getToolDefinitionsForRole(AgentRole role,
+                                                    const QStringList& allowedTools) const {
+    Q_UNUSED(role)
+    if (allowedTools.isEmpty())
+        return getToolDefinitionsJson(); // All tools
+
+    QJsonArray tools;
+    for (auto it = m_tools.begin(); it != m_tools.end(); ++it) {
+        if (allowedTools.contains(it.key())) {
+            auto tool = it.value();
+            QJsonObject obj;
+            obj["name"]         = tool->name();
+            obj["description"]  = tool->description();
+            obj["input_schema"] = tool->parameters();
+            tools.append(obj);
+        }
+    }
+    return tools;
+}
+
 void ToolExecutor::clearCacheFor(const QString& path) {
     QMutexLocker lock(&m_cacheMutex);
     m_readCache.remove(path);
