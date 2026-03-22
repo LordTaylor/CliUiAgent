@@ -152,6 +152,7 @@ void AgentEngine::process(const QString& userInput, const QList<Attachment>& att
     resetStreamState();
     m_isRunning = true;
     m_loopIterations = 0;
+    m_consecutiveRepetitions = 0; // Reset for new user input
     // m_lastToolCallFingerprints.clear(); // P-13: Persist across turns to detect inter-turn loops
 
     // Role Auto-Detect (#39): if user hasn't manually set a role, detect from prompt

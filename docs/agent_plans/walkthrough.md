@@ -94,8 +94,13 @@ Transformed the application footer into a high-fidelity activity center.
 - **Expanded Status Bar**: Increased the `QStatusBar` height to 140px, providing a spacious and premium feel to the workspace.
 - **Refined Alignment**: Vertically centered the token counters and status labels within the new layout, achieving a balanced and modern aesthetic.
 - **Integrated Styling**: Applied amber-accented border and transparent background to the status bar via QSS, unifying the design with the rest of the 'Elite' UI.
+- **Official Release**: Tagged and pushed `v1.2.0`, triggering the cross-platform GitHub Actions build pipeline.
 
-## Stan Dokumentacji
+## Phase 54: Documentation Refresh — 'Elite' & v1.2.0
+Refreshing project documentation to match the high-fidelity release status.
+- **Version Parity**: Synchronized version string `v1.2.0` across `README.md`, `CMakeLists.txt`, `Application.cpp`, `conanfile.py`, and scripting engines.
+- **Elite Feature Highlights**: Updated the root `README.md` and localized `ui-guide.md` files with descriptions of the 140px expanded status bar and the 128x128 procedurally animated Pixel Cauldron.
+- **Scripting API Update**: Ensured the internal `codehex.version()` call and its documentation correctly reflect the latest milestone.
 - `plans_history.md` — uzupełniony o Phase 37–50.
 - `walkthrough.md` — zaktualizowany (ten plik).
 - `task.md` — wszystkie zadania zakończone.

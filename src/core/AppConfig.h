@@ -57,6 +57,10 @@ public:
     QString tavilyApiKey() const { return m_tavilyApiKey; }
     void setTavilyApiKey(const QString& key);
 
+    // Loop Mitigation (Phase 55)
+    bool coveEnabled() const { return m_coveEnabled; }
+    void setCoveEnabled(bool enabled);
+
 signals:
     void activeProviderChanged(const QString& id);
     void systemPromptChanged(const QString& prompt);
@@ -71,6 +75,9 @@ private:
 
     // Web Search
     QString m_tavilyApiKey;
+
+    // Loop Mitigation
+    bool m_coveEnabled = false;
 
     // Provider State
     LlmProviderList m_providers;

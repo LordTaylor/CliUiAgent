@@ -234,7 +234,10 @@ private:
     // --- Circuit Breaker (#1) ---
     /** Iteration counter reset at the start of each user request. */
     int m_loopIterations = 0;
-    static constexpr int MAX_LOOP_ITERATIONS = 25;
+    static constexpr int MAX_LOOP_ITERATIONS = 12;
+
+    /** Tracks consecutive exact repetitions for 'Hard Break' logic. */
+    int m_consecutiveRepetitions = 0;
 
     // --- LLM Timeout (#2) + Adaptive Timeout (P-10) ---
     QTimer* m_llmTimeoutTimer = nullptr;

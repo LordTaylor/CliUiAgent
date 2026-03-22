@@ -1,4 +1,22 @@
-# Historia Rozwoju CodeHex (Plany i Realizacja)
+## Phase 55: Loop Mitigation & CoVe Optimization (2026-03-22) — ZAKOŃCZONA
+
+**Data**: 2026-03-22
+**Cel**: Wdrożenie wielowarstwowej obrony przed zapętleniem oraz optymalizacja procesu CoVe.
+
+### Loop & CoVe Optimization:
+- [x] **Hard Break**: Silnik przerywa pracę po wykryciu 2 identycznych odpowiedzi asystenta z rzędu.
+- [x] **Circuit Breaker**: Zmniejszono limit pętli (`MAX_LOOP_ITERATIONS`) z 25 na 12.
+- [x] **Selective CoVe**: Weryfikacja jest teraz opcjonalna (`AppConfig::coveEnabled`) i zależy od roli agenta.
+- [x] **Semantic Fingerprints**: Sygnatury narzędzi są teraz zapamiętywane między wiadomościami użytkownika.
+- [x] **Enhanced Nudging**: Ostrzeżenia o pętlach zawierają teraz detale o powtórzonych parametrach narzędzi.
+
+### Weryfikacja:
+- Build: ✅ Sukces (exit 0)
+- Loop Protection: ✅ Potwierdzono poprawne działanie mechanizmu Hard Break i redukcję limitu iteracji.
+
+---
+
+Ten plik zawiera szczegółową historię wszystkich faz i kroków milowych w rozwoju projektu CodeHex, od fundamentów CLI po zaawansowaną autonomię agenta.
 
 ---
 
@@ -11,10 +29,24 @@
 - [x] **MainWindow_SetupUi.cpp**: Zwiększono wysokość `QStatusBar` do 140px; przywrócono kociołkowi rozmiar 128x128.
 - [x] **dark.qss**: Dodano dedykowaną stylizację dla `#statusBar` (transparentny bg, górna ramka amber) oraz poprawiono marginalia dla `tokenLabel` i `agentStatusLabel`.
 - [x] **Layout Stability**: Zapewniono, że kociołek i etykiety są czytelne i nie nachodzą na siebie w nowym, wysokim footerze.
+- [x] **GitHub Action Integration**: Otagowano wersję `v1.2.0` i wypchnięto na main, uruchamiając proces release.
+
+## Phase 54: Documentation Refresh — 'Elite' & v1.2.0 (2026-03-22) — ZAKOŃCZONA
+
+**Data**: 2026-03-22
+**Cel**: Synchronizacja wersji v1.2.0 oraz dokumentacji 'Elite' we wszystkich kluczowych plikach projektu.
+
+### Documentation & Version Parity:
+- [x] **README.md**: Aktualizacja wersji do v1.2.0 w przykładach pakowania; dodanie sekcji animacji 'Elite'.
+- [x] **Build Systems**: Synchronizacja wersji v1.2.0 w `CMakeLists.txt` oraz `conanfile.py`.
+- [x] **Core Metadata**: Aktualizacja wersji w `Application.cpp` oraz funkcjach API silników skryptowych (Lua/Python).
+- [x] **Help Refresh**: Odświeżenie przewodników (EN/PL) o opisy kociołka 128x128 oraz rozbudowanego footeru 140px.
+- [x] **Stability Check**: Wykonano pomyślny build weryfikacyjny całego projektu.
 
 ### Weryfikacja:
 - Build: ✅ Sukces (exit 0)
 - Rendering: ✅ Kociołek jest w pełni widoczny w lewym dolnym rogu paska statusu.
+- Deployment: ✅ Tag `v1.2.0` wypchnięty do origin.
 
 ## Phase 51: CI/CD Readiness for Build Scripts (2026-03-22) — ZAKOŃCZONA
 

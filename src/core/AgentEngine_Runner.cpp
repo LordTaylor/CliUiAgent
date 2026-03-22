@@ -12,6 +12,7 @@
 #include "ResponseParser.h"
 #include "SessionManager.h"
 #include "AgentGraph.h"
+#include "AppConfig.h"
 #include "../data/Session.h"
 
 namespace CodeHex {
@@ -62,7 +63,18 @@ void AgentEngine::onRunnerFinished(int exitCode) {
 
     QString currentResp = m_filter->currentResponse();
     if (!lastAssistantContent.isEmpty() && currentResp.trimmed() == lastAssistantContent) {
-        qWarning() << "[AgentEngine] LOOP DETECTED. Assistant repeated itself exactly.";
+        m_consecutiveRepetitions++;
+        qWarning() << "[AgentEngine] LOOP DETECTED. Assistant repeated itself exactly. Count:" << m_consecutiveRepetitions;
+        
+        if (m_consecutiveRepetitions >= 2) {
+            qCritical() << "[AgentEngine] HARD BREAK: Multiple consecutive repetitions. Stopping loop.";
+            emit statusChanged("Repetition loop blocked. Please rephrase or guide the agent.");
+            emit errorOccurred("The agent is stuck in a repetition loop. Task stopped for safety.");
+            m_isRunning = false;
+            m_consecutiveRepetitions = 0; // Reset for next user query
+            return;
+        }
+
         emit statusChanged("Loop detected. Nudging agent...");
         sendContinueRequest(
             "WARNING: You just sent the EXACT SAME response. DO NOT repeat your previous thought "
@@ -71,8 +83,16 @@ void AgentEngine::onRunnerFinished(int exitCode) {
         return;
     }
 
-    // Chain-of-Verification (CoVe) state machine
-    if (m_coveState == CoVeState::None && !currentResp.contains("<tool_call>")) {
+    // Reset repetition counter on successful progress
+    m_consecutiveRepetitions = 0;
+
+    // Chain-of-Verification (CoVe) state machine (Selective Activation)
+    bool roleSupportsCove = (m_currentRole == AgentRole::Architect || 
+                             m_currentRole == AgentRole::Reviewer || 
+                             m_currentRole == AgentRole::SecurityAuditor);
+
+    if (m_coveState == CoVeState::None && !currentResp.contains("<tool_call>") && 
+        m_config->coveEnabled() && roleSupportsCove) {
         qDebug() << "[AgentEngine] CoVe: Entering Drafting -> VerifyingQuestions";
         emit statusChanged("🧐 Verifying facts (CoVe)...");
         m_coveState = CoVeState::VerifyingQuestions;

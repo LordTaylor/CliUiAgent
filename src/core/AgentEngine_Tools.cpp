@@ -220,8 +220,14 @@ void AgentEngine::onToolResultReceived(const QString& toolName, const CodeHex::T
                                     "or FINALIZE the task if no more actions are needed.")
                             .arg(toolName, result.content);
             if (potentialLoop) {
-                nudge += "\n⚠️ WARNING: I detected that you are repeating the same output multiple times. "
-                         "Please check if you are stuck in a logic loop and try a DIFFERENT approach.";
+                QString repeatedInfo;
+                if (!m_lastToolCallFingerprints.isEmpty()) {
+                    repeatedInfo = QString(" You have called '%1' multiple times with similar results.")
+                                    .arg(m_lastToolCallFingerprints.last());
+                }
+                nudge += "\n⚠️ WARNING:" + repeatedInfo + " I detected a repetition loop. "
+                         "Please check your logic and try a DIFFERENT approach or a DIFFERENT tool. "
+                         "Repeating the same action will lead to a hard break.";
                 emit potentialLoopDetected("Agent seems to be repeating actions.");
             }
             sendContinueRequest(nudge);

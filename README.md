@@ -20,10 +20,8 @@ A desktop coding chatbot built with **Qt6/C++**. Connects to AI assistants via C
 - **🛡 Bezpieczeństwo** — Każda operacja zapisu lub komenda może wymagać Twojej ręcznej akceptacji (Manual Approval).
 - **⚡ Performance Profiler** — Analiza wydajności systemu (CPU, pamięć) bezpośrednio przez agenta (Item #16).
 - **🛠 Custom Skill Builder** — Możliwość tworzenia i zapisywania nowych umiejętności (workflowów) przez agenta (Item #18).
-- **🎨 Natural Language UI Builder** — Modyfikacja wyglądu aplikacji (QSS) przez agenta (Item #28).
-- **🎨 Modern UI** — Interfejs zbudowany w Qt6 z obsługą motywów i animacji.
-- **⚡ Performance Profiler** — Analiza wydajności systemu (CPU, pamięć) bezpośrednio przez agenta (Item #16).
-- **🛠 Custom Skill Builder** — Możliwość tworzenia i zapisywania nowych umiejętności (workflowów) przez agenta (Item #18).
+- **🎨 Elite Procedural Animations** — Widżet **Pixel Cauldron** w lewym dolnym rogu sygnalizuje stan agenta (Myślenie, Błąd, Bezczynność) przy użyciu proceduralnie generowanych cząsteczek i poświaty.
+- **💠 High-Fidelity Status Bar** — Rozbudowany, 140-pikselowy pasek statusu zapewniający lepszą czytelność i nowoczesny, przestronny interfejs (Design 'Elite').
 - **🎨 Natural Language UI Builder** — Modyfikacja wyglądu aplikacji (QSS) przez agenta (Item #28).
 
 ---
@@ -179,9 +177,9 @@ See **Help → Scripting (Lua/Python)** for full documentation and more examples
 ## Building Installers
 
 ```bash
-./build-scripts/package-macos.sh    # → dist/CodeHex-0.1.0-macOS.dmg
-./build-scripts/package-linux.sh    # → dist/CodeHex-0.1.0-linux-x86_64.AppImage
-.\build-scripts\package-windows.ps1 # → dist/CodeHex-0.1.0-windows-x64.exe
+./build-scripts/package-macos.sh    # → dist/CodeHex-1.2.0-macOS.dmg
+./build-scripts/package-linux.sh    # → dist/CodeHex-1.2.0-linux-x86_64.AppImage
+.\build-scripts\package-windows.ps1 # → dist/CodeHex-1.2.0-windows-x64.exe
 ```
 
 ---

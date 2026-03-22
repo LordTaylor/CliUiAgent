@@ -26,7 +26,7 @@ void LuaEngine::registerCodeHexAPI() {
     codehex.set_function("log", [](const std::string& msg) {
         qDebug() << "[Lua]" << QString::fromStdString(msg);
     });
-    codehex.set_function("version", []() -> std::string { return "0.1.0"; });
+    codehex.set_function("version", []() -> std::string { return "1.2.0"; });
     codehex.set_function("get_work_dir", [this]() -> std::string {
         return m_workDir.toStdString();
     });

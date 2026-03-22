@@ -31,6 +31,12 @@ A complete reference for every element of the CodeHex interface.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+> [!TIP]
+> **Alchemia Agenta (Elite Pixel Cauldron)**: W lewym dolnym rogu powiększonego do **140px paska statusu** znajduje się animowany kociołek (128x128). Sygnalizuje on stan pracy Agenta:
+> - **Zmienne kolory i iskry:** Agent analizuje lub wykonuje zadanie (Thinking).
+> - **Pulsująca czerwień:** Wystąpił błąd lub wykryto pętlę logiczną (Error/Loop).
+> - **Ciemny/Bezczynny:** Agent oczekuje na Twoje polecenie.
+
 ---
 
 ## [1] Sessions Panel

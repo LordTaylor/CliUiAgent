@@ -21,7 +21,7 @@ namespace CodeHex {
 
 Application::Application(int& argc, char** argv) : QApplication(argc, argv) {
     setApplicationName("CodeHex");
-    setApplicationVersion("0.1.0");
+    setApplicationVersion("1.2.0");
     setOrganizationName("CodeHex");
 
     // Set application icon for Windows / Linux (macOS uses app.icns from the bundle)

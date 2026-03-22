@@ -30,7 +30,10 @@ A complete reference for every element of the CodeHex interface.
 ```
 
 > [!TIP]
-> **Agent Alchemy (Pixel Cauldron)**: In the bottom-left corner, you'll see a small animated cauldron. It indicates the agent's current state: **Blue** means thinking/processing, **Red** indicates an error or logic loop, and **Dark** means the agent is idle.
+> **Agent Alchemy (Elite Pixel Cauldron)**: In the bottom-left corner of the expanded **140px Status Bar**, you'll see a large animated cauldron (128x128). It indicates the agent's current state with high-fidelity procedural animations: 
+> - **Hue-Shifting & Particles:** Agent is thinking/processing.
+> - **Pulsating Red:** An error occurred or a logic loop was detected.
+> - **Dark/Idle:** The agent is standby.
 
 ---
 

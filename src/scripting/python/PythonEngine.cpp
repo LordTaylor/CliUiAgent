@@ -32,7 +32,7 @@ PYBIND11_EMBEDDED_MODULE(codehex, m) {
     m.def("log", [](const std::string& msg) {
         qDebug() << "[Python]" << QString::fromStdString(msg);
     });
-    m.def("version", []() -> std::string { return "0.1.0"; });
+    m.def("version", []() -> std::string { return "1.2.0"; });
     m.def("get_work_dir", []() -> std::string { return g_workDir.toStdString(); });
 
     // ── File I/O ─────────────────────────────────────────────────────────────

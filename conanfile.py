@@ -4,7 +4,7 @@ from conan.tools.cmake import cmake_layout
 
 class CodeHexConan(ConanFile):
     name = "codehex"
-    version = "0.1.0"
+    version = "1.2.0"
     settings = "os", "compiler", "build_type", "arch"
     generators = ["CMakeDeps", "CMakeToolchain"]
 

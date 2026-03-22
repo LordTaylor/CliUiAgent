@@ -54,7 +54,7 @@ All `*.lua` and `*.py` files are loaded at startup and whenever a file is added,
 
 ```lua
 codehex.log(message)    -- print to Console widget
-codehex.version()       -- returns "0.1.0"
+codehex.version()       -- returns "1.2.0"
 
 -- IO & System (Phase 45+)
 codehex.read_file(path)               -- Read file content (relative to work dir)
@@ -155,7 +155,7 @@ end
 import codehex
 
 codehex.log(message: str)      # print to Console widget
-codehex.version() -> str       # returns "0.1.0"
+codehex.version() -> str       # returns "1.2.0"
 ```
 
 ### Hook registration

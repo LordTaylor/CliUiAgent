@@ -56,7 +56,7 @@ All `*.lua` and `*.py` files in these directories are loaded automatically at st
 
 ```lua
 codehex.log(message)         -- print to Console widget
-codehex.version()            -- returns "0.1.0"
+codehex.version()            -- returns "1.2.0"
 ```
 
 ### Hook registration
@@ -160,7 +160,7 @@ end
 import codehex
 
 codehex.log(message: str)      # print to Console widget
-codehex.version() -> str       # returns "0.1.0"
+codehex.version() -> str       # returns "1.2.0"
 ```
 
 ### Hook registration
